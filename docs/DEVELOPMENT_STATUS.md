@@ -1,3 +1,12 @@
-# Development status
+# وضعیت توسعه SteelOS
 
-Status: M1 foundation scaffold in progress. GitHub repository initialized, branch `codex/m1-foundation`. FastAPI health endpoint and CI test scaffold added. Not yet implemented: database migrations, auth, catalog CRUD, warehouse CRUD, price validation, accounting or agents. No paid services or deployment authorized.
+## بستهٔ backend — 2026-10-22
+
+- شاخه: `codex/m1-foundation`؛ مبنای بررسی: `6a8127e`، بدون تغییر در `main`.
+- پیاده‌شده: PostgreSQL، SQLAlchemy، migration اولیه Alembic، نشست‌های Argon2 و opaque token با rotation/revocation، عضویت سازمانی، نقش‌های admin/editor/viewer و کنترل دسترسی.
+- کاتالوگ با قواعد ابعاد قابل توسعه، SKU و مشخصات یکتا؛ CRM چندنقشی؛ انبار و مکان سلسله‌مراتبی با مجوز انبار؛ قیمت دستی و adapter محلی، تاریخچه و تصمیم تأیید؛ audit و idempotency.
+- آزمون: ۸ تست روی PostgreSQL 17 موفق؛ تست‌های سلامت، احراز هویت، جداسازی سازمان، محدودیت FK، کالا، CRM، انبار، قیمت و OpenAPI.
+- CI مبنای قبلی دو بار بدون اجرای هیچ step ناموفق بوده؛ علت هنوز از GitHub قابل تشخیص نیست. CI جدید پس از push باید بررسی شود.
+- محدودیت فعلی: UI، آزمون مرورگر، مستندات کامل راه‌اندازی و تأیید CI هنوز باقی است. M1 کامل اعلام نمی‌شود.
+- بستهٔ بعد: داشبورد Persian RTL متصل به API، گسترش آزمون‌ها و مستندات و بررسی clean setup.
+- هیچ سرویس پولی، استقرار عمومی، merge یا تغییر main انجام نشده است.

@@ -1,8 +1,8 @@
-from fastapi.testclient import TestClient
 from app.main import app
+from fastapi.testclient import TestClient
 
 
 def test_health():
-    response = TestClient(app).get('/api/v1/health')
+    response = TestClient(app).get("/api/v1/health")
     assert response.status_code == 200
-    assert response.json() == {'status': 'ok', 'service': 'steelos-api'}
+    assert response.json() == {"status": "ok", "service": "steelos-api"}
