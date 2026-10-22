@@ -273,3 +273,200 @@ def test_readiness_openapi_and_errors(world):
     finally:
         with engine().begin() as conn:
             conn.execute(text("UPDATE alembic_version SET version_num='0001_m1'"))
+
+
+def test_concurrent_retry_is_atomic(world):
+    from concurrent.futures import ThreadPoolExecutor
+
+    client, tokens, _, _ = world
+    data = {"name": "Concurrent party", "kind": "individual", "roles": ["customer"]}
+
+    def request(_):
+        return create(client, tokens[0], "parties", data, key="concurrent-retry")
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(request, range(2)))
+    assert results[0]["id"] == results[1]["id"]
+    assert client.get("/api/v1/parties", headers=tokens[0]).json()["total"] == 1
+    events = client.get("/api/v1/audit-events", headers=tokens[0]).json()["items"]
+    assert len([e for e in events if e["resource"] == "parties"]) == 1
+
+
+def test_filters_and_price_invalid_types(world, catalog):
+    client, tokens, _, _ = world
+    category, _, product = catalog
+    assert (
+        client.get("/api/v1/products?category_id=" + category["id"], headers=tokens[0]).json()[
+            "total"
+        ]
+        == 1
+    )
+    assert (
+        client.get("/api/v1/products?category_id=" + str(uuid.uuid4()), headers=tokens[0]).json()[
+            "total"
+        ]
+        == 0
+    )
+    source = create(
+        client,
+        tokens[0],
+        "price-sources",
+        {
+            "code": "test",
+            "name": "Test",
+            "kind": "mock",
+            "provenance": "Local test",
+            "approved": True,
+        },
+    )
+    now = datetime.now(timezone.utc)
+    data = {
+        "product_id": product["id"],
+        "source_id": source["id"],
+        "amount": "10",
+        "currency": "IRR",
+        "unit": "kg",
+        "observed_at": (now - timedelta(minutes=1)).isoformat(),
+        "valid_until": (now + timedelta(hours=1)).isoformat(),
+        "delivery_location": "Test",
+        "delivery_terms": "At warehouse",
+        "tax_included": False,
+        "provenance": "Test",
+    }
+    for bad in (None, {}, [], True, "NaN", "Infinity", "0", "-1", "0.0000001"):
+        create(client, tokens[0], "price-observations", {**data, "amount": bad}, expected=422)
+    row = create(client, tokens[0], "price-observations", data)
+    assert (
+        client.post(
+            "/api/v1/price-observations/" + row["id"] + "/decision",
+            headers=tokens[0],
+            json={"status": "approved"},
+        ).status_code
+        == 200
+    )
+    with engine().begin() as conn:
+        conn.execute(
+            text("UPDATE price_observations SET observed_at=:observed,valid_until=:expiry"),
+            {"observed": now - timedelta(days=2), "expiry": now - timedelta(days=1)},
+        )
+    assert (
+        client.get("/api/v1/price-observations?approved_only=true", headers=tokens[0]).json()[
+            "total"
+        ]
+        == 0
+    )
+
+
+def test_all_master_resource_isolation(world, catalog):
+    client, tokens, _, users = world
+    warehouse = create(
+        client,
+        tokens[0],
+        "warehouses",
+        {"code": "W", "name": "Warehouse", "city": "City", "address": "Address"},
+    )
+    records = [
+        ("catalog-references", catalog[0]),
+        ("products", catalog[2]),
+        (
+            "product-identifiers",
+            create(
+                client,
+                tokens[0],
+                "product-identifiers",
+                {"product_id": catalog[2]["id"], "kind": "barcode", "value": "123"},
+            ),
+        ),
+        (
+            "parties",
+            create(
+                client,
+                tokens[0],
+                "parties",
+                {"name": "Party", "kind": "individual", "roles": ["customer"]},
+            ),
+        ),
+        ("warehouses", warehouse),
+        (
+            "locations",
+            create(
+                client,
+                tokens[0],
+                "locations",
+                {"warehouse_id": warehouse["id"], "code": "A", "name": "Hall", "kind": "hall"},
+            ),
+        ),
+        (
+            "warehouse-access",
+            create(
+                client,
+                tokens[0],
+                "warehouse-access",
+                {"warehouse_id": warehouse["id"], "user_id": users[2]},
+            ),
+        ),
+        (
+            "price-sources",
+            create(
+                client,
+                tokens[0],
+                "price-sources",
+                {"code": "S", "name": "Source", "kind": "manual", "provenance": "Local"},
+            ),
+        ),
+    ]
+    for resource, row in records:
+        assert client.get("/api/v1/" + resource, headers=tokens[1]).json()["total"] == 0
+        assert (
+            client.get("/api/v1/" + resource + "/" + row["id"], headers=tokens[1]).status_code
+            == 404
+        )
+        assert (
+            client.delete("/api/v1/" + resource + "/" + row["id"], headers=tokens[1]).status_code
+            == 404
+        )
+
+
+def test_mock_ingestion_uses_domain_api_and_replays(world, catalog):
+    from app.main import app
+    from app.modules.pricing import ingest
+    from fastapi.testclient import TestClient
+
+    client, tokens, _, _ = world
+    source = create(
+        client,
+        tokens[0],
+        "price-sources",
+        {
+            "code": "mock",
+            "name": "Local fixtures",
+            "kind": "mock",
+            "provenance": "Synthetic fixtures",
+            "approved": True,
+        },
+    )
+    now = datetime.now(timezone.utc)
+    data = {
+        "source_id": source["id"],
+        "product_id": catalog[2]["id"],
+        "amount": "123.456789",
+        "currency": "IRR",
+        "unit": "kg",
+        "observed_at": (now - timedelta(minutes=1)).isoformat(),
+        "valid_until": (now + timedelta(hours=1)).isoformat(),
+        "delivery_location": "Local",
+        "delivery_terms": "Warehouse",
+        "tax_included": False,
+        "provenance": "Synthetic fixture",
+    }
+    with TestClient(app, headers=tokens[0]) as domain_client:
+        first = ingest(MockPriceProvider([data]), domain_client)
+        second = ingest(MockPriceProvider([data]), domain_client)
+    assert first[0]["status"] == "pending"
+    assert first[0]["id"] == second[0]["id"]
+    assert (
+        client.get("/api/v1/price-observations?approved_only=true", headers=tokens[0]).json()[
+            "total"
+        ]
+        == 0
+    )

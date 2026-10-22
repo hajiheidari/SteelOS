@@ -13,6 +13,7 @@ services:
       timeout: 3s
       retries: 20
   api:
+    image: steelos-api:local
     build: ./apps/api
     environment:
       DATABASE_URL: postgresql+psycopg://steelos:${POSTGRES_PASSWORD}@db:5432/steelos

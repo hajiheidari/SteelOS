@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 @pytest.fixture
 def world():
     # Dedicated disposable PostgreSQL database only; migrate before running tests.
+    if not engine().url.database.endswith("_test"):
+        raise pytest.UsageError("Tests require a disposable DATABASE_URL ending in _test")
     with engine().begin() as conn:
         tables = ", ".join('"' + t.name + '"' for t in Base.metadata.sorted_tables)
         conn.execute(text(f"TRUNCATE {tables} CASCADE"))

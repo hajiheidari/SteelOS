@@ -3,7 +3,14 @@ from decimal import Decimal, InvalidOperation
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 Text = Annotated[str, Field(min_length=1, max_length=200)]
 Code = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")]
@@ -16,7 +23,9 @@ class Input(BaseModel):
 
 class Login(Input):
     email: Annotated[str, Field(min_length=3, max_length=254)]
-    password: Annotated[str, Field(min_length=1, max_length=128)]
+    password: Annotated[
+        str, StringConstraints(strip_whitespace=False), Field(min_length=1, max_length=128)
+    ]
     organization_id: UUID
 
 
@@ -24,7 +33,9 @@ class NewMember(Input):
     email: Annotated[
         str, Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     ]
-    password: Annotated[str, Field(min_length=12, max_length=128)]
+    password: Annotated[
+        str, StringConstraints(strip_whitespace=False), Field(min_length=12, max_length=128)
+    ]
     role: Literal["admin", "editor", "viewer"]
 
 
@@ -153,7 +164,7 @@ class PriceInput(Input):
         try:
             if not Decimal(value).is_finite():
                 raise ValueError("Finite amount required")
-        except InvalidOperation as exc:
+        except (InvalidOperation, TypeError, ValueError) as exc:
             raise ValueError("Invalid decimal") from exc
         return value
 
@@ -173,3 +184,20 @@ class PriceInput(Input):
 
 class Approval(Input):
     status: Literal["approved", "rejected"]
+
+
+class OrganizationUpdate(Input):
+    name: Text
+
+
+class PasswordUpdate(Input):
+    current_password: Annotated[
+        str, StringConstraints(strip_whitespace=False), Field(min_length=1, max_length=128)
+    ]
+    new_password: Annotated[
+        str, StringConstraints(strip_whitespace=False), Field(min_length=12, max_length=128)
+    ]
+
+
+class RoleUpdate(Input):
+    role: Literal["admin", "editor", "viewer"]

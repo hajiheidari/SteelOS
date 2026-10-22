@@ -12,7 +12,9 @@ class Base(DeclarativeBase):
 
 @lru_cache
 def engine():
-    return create_engine(settings().database_url, pool_pre_ping=True)
+    return create_engine(
+        settings().database_url, pool_pre_ping=True, connect_args={"connect_timeout": 3}
+    )
 
 
 def database():

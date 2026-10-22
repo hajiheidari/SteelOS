@@ -1,8 +1,16 @@
 # Roadmap
 
-M1 weeks 1–4: project scaffold, identity, catalog, parties, warehouses, pricing intake, audit and CI.
-M2: stock movement, ownership, reservations, purchases and sales.
-M3: proprietary double-entry accounting and parallel reconciliation.
-M4: CRM, quoting and sales agent.
-M5: research, market, education and marketing agents.
-M6: integrations, tax validation and operational hardening.
+M1 foundation: local setup/migrations, identity, tenant authorization, validated catalog,
+parties, warehouse/location master data and grants, pricing intake/history/approval, audit,
+Persian RTL workspace. Implementation/acceptance results in DEVELOPMENT_STATUS.md.
+Acceptance remains gated by actual CI execution and review; do not infer completion from scope.
+
+M2: append-only stock/ownership/reservation operations, purchases/sales/quotes, transactional
+availability and approved-price revalidation. Existing M1 contracts are design inputs only.
+M3: proprietary double-entry accounting, official requirements research and parallel reconciliation.
+M4: deeper CRM, quoting and controlled sales agent workflows.
+M5: approved research/market/education/marketing assistance.
+M6: approved external integrations, official tax validation and operational hardening.
+
+No paid services, main merge or public deployment without founder authorization. No sensitive
+agent database writes. New infrastructure requires a concrete validated need.

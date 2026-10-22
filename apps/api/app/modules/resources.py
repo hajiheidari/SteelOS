@@ -153,6 +153,12 @@ def register(resource, model, schema):
         limit: int = Query(25, ge=1, le=100),
         sort: str = Query("created_at"),
         direction: str = Query("desc", pattern="^(asc|desc)$"),
+        category_id: UUID | None = None,
+        manufacturer_id: UUID | None = None,
+        grade_id: UUID | None = None,
+        standard_id: UUID | None = None,
+        unit: str | None = None,
+        active: bool | None = None,
         kind: str | None = None,
         role: str | None = None,
         product_id: UUID | None = None,
@@ -177,6 +183,12 @@ def register(resource, model, schema):
                     or_(*(field.ilike(f"%{escaped}%", escape="\\") for field in fields))
                 )
         for key, value in (
+            ("category_id", category_id),
+            ("manufacturer_id", manufacturer_id),
+            ("grade_id", grade_id),
+            ("standard_id", standard_id),
+            ("unit", unit),
+            ("active", active),
             ("kind", kind),
             ("product_id", product_id),
             ("warehouse_id", warehouse_id),

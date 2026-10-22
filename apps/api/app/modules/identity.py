@@ -42,7 +42,7 @@ def login(payload: s.Login, db: Session = Depends(database)):
     if attempt.failures >= 10:
         db.commit()
         raise HTTPException(429, "Too many login attempts; retry in 15 minutes")
-    user = db.scalar(select(m.User).where(m.User.email == email))
+    user = db.scalar(select(m.User).where(m.User.email == email).with_for_update())
     valid = verify(payload.password, user.password_hash if user else DUMMY_HASH)
     member = (
         db.scalar(
@@ -127,7 +127,7 @@ def add_member(
 ):
     permit(ctx, admin=True)
     email = payload.email.lower()
-    if db.scalar(select(m.User).where(m.User.email == email)):
+    if db.scalar(select(m.User).where(m.User.email == email).with_for_update()):
         raise HTTPException(
             409, "Email already exists; cross-organization enrollment requires operator review"
         )
@@ -164,3 +164,53 @@ def remove_member(user_id: UUID, ctx: Context = Depends(context), db: Session = 
     audit(db, ctx, "remove_member", "users", user_id)
     db.commit()
     return {"deleted": True}
+
+
+@router.put("/organization")
+def update_organization(
+    payload: s.OrganizationUpdate, ctx: Context = Depends(context), db: Session = Depends(database)
+):
+    permit(ctx, admin=True)
+    org = db.get(m.Organization, ctx.organization_id)
+    org.name = payload.name
+    audit(db, ctx, "update", "organizations", org.id)
+    db.commit()
+    return {"id": org.id, "name": org.name}
+
+
+@router.put("/auth/password")
+def change_password(
+    payload: s.PasswordUpdate, ctx: Context = Depends(context), db: Session = Depends(database)
+):
+    user = db.scalar(select(m.User).where(m.User.id == ctx.user_id).with_for_update())
+    if not verify(payload.current_password, user.password_hash):
+        raise HTTPException(401, "Invalid current password")
+    user.password_hash = hasher.hash(payload.new_password)
+    for session in db.scalars(select(m.AuthSession).where(m.AuthSession.user_id == ctx.user_id)):
+        db.delete(session)
+    audit(db, ctx, "password_change", "users", user.id)
+    db.commit()
+    return {"revoked": True}
+
+
+@router.put("/organization/members/{user_id}")
+def update_role(
+    user_id: UUID,
+    payload: s.RoleUpdate,
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
+    permit(ctx, admin=True)
+    if user_id == ctx.user_id:
+        raise HTTPException(422, "Cannot change own role; another administrator must review")
+    row = db.scalar(
+        select(m.Membership)
+        .where(m.Membership.organization_id == ctx.organization_id, m.Membership.user_id == user_id)
+        .with_for_update()
+    )
+    if not row:
+        raise HTTPException(404, "Member not found")
+    row.role = payload.role
+    audit(db, ctx, "role_change", "users", user_id)
+    db.commit()
+    return {"user_id": row.user_id, "role": row.role}
