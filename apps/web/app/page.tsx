@@ -17,6 +17,7 @@ import {
   sessionExpiredEvent,
 } from "./workspace-schema";
 import { Editor } from "./record-editor";
+import { InventoryWorkspace } from "./inventory-workspace";
 
 export default function Home() {
   const [me, setMe] = useState<Me | null>(null);
@@ -84,6 +85,11 @@ export default function Home() {
   };
   const load = useCallback(async () => {
     if (!me || latestView.current !== viewKey) return;
+    if (page === "inventory") {
+      setLoading(false);
+      setError("");
+      return;
+    }
     const sequence = ++loadSequence.current;
     const current = () =>
       latestView.current === viewKey && loadSequence.current === sequence;
@@ -358,7 +364,9 @@ export default function Home() {
               در حال دریافت اطلاعات…
             </p>
           )}
-          {page === "dashboard" ? (
+          {page === "inventory" ? (
+            <InventoryWorkspace role={me.role} />
+          ) : page === "dashboard" ? (
             <>
               <div className="stats">
                 {Object.entries(stats).map(([key, n]) => (
@@ -380,8 +388,8 @@ export default function Home() {
                   تجاری، انبارها و مشاهدات قیمت را تکمیل کنید.
                 </p>
                 <p className="muted">
-                  موجودی عملیاتی و حسابداری متعلق به مراحل بعد هستند. محل
-                  نگهداری کالا نشان‌دهندهٔ مالکیت آن نیست.
+                  عملیات موجودی از بخش انبار انجام می‌شود؛ حسابداری هنوز پیاده
+                  نشده است. محل نگهداری کالا نشان‌دهندهٔ مالکیت آن نیست.
                 </p>
               </section>
             </>

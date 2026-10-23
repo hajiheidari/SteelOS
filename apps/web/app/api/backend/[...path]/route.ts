@@ -5,6 +5,7 @@ const upstream = process.env.API_BASE_URL || "http://127.0.0.1:8000";
 const cookieName = "steelos_session";
 const resources = new Set([
   "auth",
+  "inventory",
   "organization",
   "catalog-references",
   "products",

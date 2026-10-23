@@ -35,6 +35,7 @@ export const roles = [
 ];
 export const titles: Record<string, string> = {
   dashboard: "نمای کلی",
+  inventory: "عملیات و موجودی انبار",
   products: "کالاها",
   "catalog-references": "تعاریف کاتالوگ",
   "product-identifiers": "شناسه‌های کالا",
@@ -78,6 +79,20 @@ export const errorMessages: Record<number, string> = {
   503: "ارتباط با پایگاه داده یا سرور برقرار نیست.",
 };
 
+const inventoryErrors: Record<string, string> = {
+  "Insufficient available stock or invalid resulting position":
+    "موجودی قابل استفاده کافی نیست یا نتیجهٔ عملیات با موجودی سازگار نیست.",
+  "Quantity exceeds remaining reservation":
+    "مقدار از باقی‌ماندهٔ رزرو بیشتر است.",
+  "Expired reservation cannot be fulfilled":
+    "خروج از رزرو منقضی‌شده مجاز نیست.",
+  "Reservation expired before posting": "رزرو پیش از ثبت نهایی منقضی شده است.",
+  "Movement already reversed": "این گردش قبلاً برگشت شده است.",
+  "Invalid resulting reservation quantity":
+    "برگشت با گردش‌های وابستهٔ رزرو سازگار نیست.",
+  "Rejected draft cannot be posted": "پیش‌نویس ردشده قابل ثبت نهایی نیست.",
+};
+
 export async function api(
   path: string,
   method = "GET",
@@ -103,8 +118,10 @@ export async function api(
     throw new Error(
       (result.status === 400 && path === "auth/password"
         ? "رمز عبور فعلی درست نیست."
-        : errorMessages[result.status] || "عملیات ناموفق بود.") +
-        (details ? ` (${details})` : ""),
+        : (path.startsWith("inventory/") &&
+            inventoryErrors[data.error?.message]) ||
+          errorMessages[result.status] ||
+          "عملیات ناموفق بود.") + (details ? ` (${details})` : ""),
     );
   }
   return data;

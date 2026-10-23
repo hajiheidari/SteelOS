@@ -63,3 +63,9 @@ be specified before implementation. Run in parallel with the existing reference 
 reconcile opening balances, daily journals, counterparties, inventory valuation and period-end
 trial balance before any authority transfer. M1 contains no accounting engine or tax connector.
 Current official Iranian specifications must be reviewed before later production tax integration.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.

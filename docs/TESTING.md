@@ -55,3 +55,9 @@ request queues, then commit a demotion or membership removal. Create, replay, up
 admin catalog definition and removed-member requests must be rejected without changing data.
 Catalog rule concurrency uses different actors so membership serialization cannot mask the
 category-row invariant. Current backend suite: 24 tests.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.

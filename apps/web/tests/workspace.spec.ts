@@ -94,7 +94,13 @@ test("catalog, warehouse and approved pricing form workflow", async ({
     await page.getByRole("button", { name: "+ ثبت جدید", exact: true }).click();
   }
   async function save(name: string) {
+    const saved = page.waitForResponse(
+      (response) =>
+        response.url().includes("/api/backend/") &&
+        ["POST", "PUT"].includes(response.request().method()),
+    );
     await page.getByRole("button", { name: "ذخیره", exact: true }).click();
+    expect((await saved).ok()).toBeTruthy();
     await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
   }
   await newRecord("تعاریف کاتالوگ");

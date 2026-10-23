@@ -2,7 +2,9 @@
 
 Persian RTL steel trading foundation. Modular FastAPI/SQLAlchemy backend, PostgreSQL 17,
 Next.js/TypeScript workspace. M1 features and automated GitHub Actions checks pass; the milestone is ready
-for founder acceptance review. No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
+for founder acceptance review. The subsequently approved warehouse operations extension
+adds ownership-aware lots, immutable stock movements and reservations; see
+[Inventory contracts](docs/INVENTORY.md). No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
 
 ## Clean local setup
 

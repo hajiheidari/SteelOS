@@ -1,10 +1,12 @@
-# پیشنهاد دامنهٔ M2 — نیازمند تصمیم founder، پیاده‌سازی نشده
+# دامنهٔ مصوب عملیات انبار M2
+
+این پیشنهاد پس از پذیرش M1 با پاسخ «ادامه بده» تأیید شد. قرارداد و وضعیت فعلی در [INVENTORY.md](INVENTORY.md) ثبت شده است.
 
 ## خروجی پیشنهادی
 
 یک زیرسیستم عملیاتی محدود انبار، روی foundation مصوب M1:
 
-1. lot با product، واحد، warehouse/location و مالک حقوقی مستقل: company یا party مشخص.
+1. lot با product و واحد و مالک حقوقی مستقل؛ موقعیت‌های warehouse/location در ledger: company یا party مشخص.
 2. receipt/dispatch/transfer به شکل ledger append-only، با reference کسب‌وکار و idempotency.
 3. block/unblock و reservation/release/fulfillment، بدون فیلد balance قابل ویرایش.
 4. نمای مشتق‌شدهٔ موجودی، blocked/reserved/available در scope سازمان/مالک/کالا/lot/location/unit.
@@ -19,8 +21,7 @@
 - این پیشنهاد برای کالای شرکت و کالای مشتری یکسان است؛ انتقال محل هیچ‌گاه انتقال مالکیت نیست.
 - عامل AI اجازهٔ نوشتن مستقیم ledger یا تأیید نهایی ندارد.
 
-این ماتریس پیشنهادی یک تصمیم عملیاتی کسب‌وکار است و در کد اجرا نشده؛ founder باید آن را
-تأیید یا اصلاح کند، خصوصاً دربارهٔ اختیار editor برای خروج کالای مشتری.
+این ماتریس تأیید شده و اکنون در backend اجرا می‌شود؛ editor اختیار posting ندارد.
 
 ## invariantها و آزمون پذیرش پیشنهادی
 
@@ -29,7 +30,7 @@
 - transfer اتمیک، مجموع quantity و مالکیت را حفظ می‌کند؛ هر دو انبار باید مجاز باشند.
 - ثبت نهایی و اثر ledger یک تراکنش با audit/idempotency هستند؛ پیش‌نویس اثر موجودی ندارد.
 - retry ثبت یا reversal نتیجهٔ تکراری می‌دهد؛ هیچ حرکت دوباره ثبت نمی‌شود.
-- FK و API جلوی ارتباط cross-organization را می‌گیرند؛ location باید داخل warehouse همان lot باشد.
+- FK و API جلوی ارتباط cross-organization را می‌گیرند؛ location باید داخل warehouse همان موقعیت ledger باشد.
 - timestamp رخداد UTC و posting time مستقل؛ backdating و دوره‌بندی فراتر از receipt جاری قبل از طراحی روشن نمی‌شوند.
 
 ## ترتیب batchهای پیشنهادی

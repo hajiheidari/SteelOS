@@ -104,3 +104,9 @@ Domain writes also recheck membership after acquiring their transaction lock. A 
 before a role change/removal cannot perform a write or replay a write response using stale
 permission: revoked membership returns 401, insufficient current role returns 403. This applies
 to create, full update, admin deletion and pricing decisions.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.

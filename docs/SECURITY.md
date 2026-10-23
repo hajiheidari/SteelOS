@@ -59,3 +59,9 @@ memberships return 401; demoted actors return 403. Idempotency replays are check
 same current authorization before returning a stored result. The lock also serializes retries
 for the same actor. Different actors/organizations remain independent except for domain locks
 such as the category-rule invariant. Identity administration retains its organization-lock order.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.

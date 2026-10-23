@@ -40,3 +40,9 @@ decimal strings at submission; money and dimension values are never converted to
 Workspace loads carry a view identity (organization/role/page/filter/pagination) plus a request
 sequence. Late responses, errors and pending mutation refreshes from an obsolete view cannot
 replace the current page. Navigating also clears the previous page's table immediately.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.
