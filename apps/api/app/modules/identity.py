@@ -23,6 +23,30 @@ from sqlalchemy.orm import Session
 router = APIRouter(tags=["identity"])
 
 
+def require_organization_admin(db: Session, ctx: Context):
+    """Serialize administration and recheck authority after waiting for the lock.
+
+    Self-demotion/removal is forbidden. Rechecking the actor ensures two admins
+    cannot concurrently remove or demote one another and leave no administrator.
+    The organization lock is held until the enclosing transaction completes.
+    """
+    permit(ctx, admin=True)
+    db.execute(
+        select(m.Organization.id)
+        .where(m.Organization.id == ctx.organization_id)
+        # NO KEY UPDATE serializes admins without blocking ordinary FK inserts.
+        .with_for_update(key_share=True)
+    )
+    role = db.scalar(
+        select(m.Membership.role).where(
+            m.Membership.organization_id == ctx.organization_id,
+            m.Membership.user_id == ctx.user_id,
+        )
+    )
+    if role != "admin":
+        raise HTTPException(403, "Administrator permission changed; reload your session")
+
+
 @router.post("/auth/login")
 def login(payload: s.Login, db: Session = Depends(database)):
     email = payload.email.lower()
@@ -125,7 +149,7 @@ def members(ctx: Context = Depends(context), db: Session = Depends(database)):
 def add_member(
     payload: s.NewMember, ctx: Context = Depends(context), db: Session = Depends(database)
 ):
-    permit(ctx, admin=True)
+    require_organization_admin(db, ctx)
     email = payload.email.lower()
     if db.scalar(select(m.User).where(m.User.email == email).with_for_update()):
         raise HTTPException(
@@ -142,7 +166,7 @@ def add_member(
 
 @router.delete("/organization/members/{user_id}")
 def remove_member(user_id: UUID, ctx: Context = Depends(context), db: Session = Depends(database)):
-    permit(ctx, admin=True)
+    require_organization_admin(db, ctx)
     if user_id == ctx.user_id:
         raise HTTPException(422, "Cannot remove own membership")
     member = db.scalar(
@@ -170,7 +194,7 @@ def remove_member(user_id: UUID, ctx: Context = Depends(context), db: Session = 
 def update_organization(
     payload: s.OrganizationUpdate, ctx: Context = Depends(context), db: Session = Depends(database)
 ):
-    permit(ctx, admin=True)
+    require_organization_admin(db, ctx)
     org = db.get(m.Organization, ctx.organization_id)
     org.name = payload.name
     audit(db, ctx, "update", "organizations", org.id)
@@ -200,7 +224,7 @@ def update_role(
     ctx: Context = Depends(context),
     db: Session = Depends(database),
 ):
-    permit(ctx, admin=True)
+    require_organization_admin(db, ctx)
     if user_id == ctx.user_id:
         raise HTTPException(422, "Cannot change own role; another administrator must review")
     row = db.scalar(

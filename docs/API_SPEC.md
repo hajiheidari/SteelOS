@@ -84,3 +84,7 @@ Local mock ingestion can run via `python -m app.modules.pricing fixture.json` wi
 PriceInput objects referencing a `mock` source. The adapter uses the authorized API,
 deterministic retry keys and pending-only intake; it never writes directly to tables
 or calls approval. Do not use real customer data in committed test fixtures.
+
+Concurrent organization-administration requests recheck the actor's current administrator
+role after acquiring the organization lock. If another administrator removed or demoted the
+actor while it waited, the request returns 403 and does not perform its mutation.

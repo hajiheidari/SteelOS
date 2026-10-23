@@ -38,3 +38,10 @@ can modify tables. Role grants and source approval require authenticated adminis
 
 Future agents must use controlled APIs with explicit policy/audit and approvals for sensitive
 stock ownership, approved pricing, accounting and tax actions; no direct database access.
+
+Organization administration (enrollment, removal, role changes and organization settings)
+is serialized with a PostgreSQL organization-row `FOR NO KEY UPDATE` lock. The actor's
+membership role is queried again after acquiring the lock, because authorization checked
+before waiting may have become stale. Combined with rejecting self-demotion/removal, this
+prevents two concurrent admins from removing/demoting each other and leaving no admin.
+The lock permits normal foreign-key key-share locks; it does not serialize unrelated tenants.

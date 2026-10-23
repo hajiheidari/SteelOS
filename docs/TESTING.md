@@ -24,3 +24,7 @@ blocker is distinct from local passing checks. Never report CI green until actua
 
 Additional coverage and known acceptance limits are tracked in DEVELOPMENT_STATUS.md.
 Avoid using test fixture accounts/databases for real business data.
+
+Administrator race regressions synchronize two requests after authentication, then exercise
+mutual demotion, mutual removal and mixed demotion/removal. Each must yield one successful
+mutation and one 403, with exactly one administrator remaining in PostgreSQL.

@@ -1,3 +1,4 @@
+import pytest
 from conftest import create
 
 
@@ -109,3 +110,53 @@ def test_membership_permissions_and_password_revocation(world):
         ).status_code
         == 401
     )
+
+
+@pytest.mark.parametrize(
+    "operations", [("demote", "demote"), ("remove", "remove"), ("demote", "remove")]
+)
+def test_concurrent_admin_changes_preserve_an_administrator(world, monkeypatch, operations):
+    """Both requests authenticate before either mutates the other's membership."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    from uuid import UUID
+
+    from app.db import engine
+    from app.models import Membership
+    from app.modules import identity
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    client, tokens, orgs, users = world
+    assert (
+        client.put(
+            "/api/v1/organization/members/" + users[2], headers=tokens[0], json={"role": "admin"}
+        ).status_code
+        == 200
+    )
+    authenticated = Barrier(2)
+    original_permit = identity.permit
+
+    def synchronize(ctx, **kwargs):
+        original_permit(ctx, **kwargs)
+        authenticated.wait(timeout=10)
+
+    monkeypatch.setattr(identity, "permit", synchronize)
+
+    def demote(pair):
+        actor, target, operation = pair
+        path = "/api/v1/organization/members/" + users[target]
+        if operation == "remove":
+            return client.delete(path, headers=tokens[actor]).status_code
+        return client.put(path, headers=tokens[actor], json={"role": "viewer"}).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(demote, [(0, 2, operations[0]), (2, 0, operations[1])]))
+    assert sorted(results) == [200, 403]
+    with Session(engine()) as db:
+        admins = db.scalars(
+            select(Membership).where(
+                Membership.organization_id == UUID(orgs[0]), Membership.role == "admin"
+            )
+        ).all()
+        assert len(admins) == 1
