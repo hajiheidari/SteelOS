@@ -58,3 +58,11 @@
 - هر دو job واقعاً آغاز شدند و نقص پیکربندی health command سرویس PostgreSQL آشکار شد: parser runner علامت single quote را برای آرگومان چندکلمه‌ای نگه نمی‌داشت و Docker گزینهٔ `-U` را متعلق به خود می‌پنداشت.
 - health command هر دو سرویس به double quote سازگار با runner تغییر کرد. تست کسب‌وکار جدید برای این تغییر پیکربندی لازم نیست؛ بررسی معتبر، اجرای واقعی workflow روی commit جدید است.
 - شاخه همچنان `codex/m1-foundation`، مبنای شروع `e33c368`؛ main و وضعیت draft PR تغییر نکرده‌اند. پذیرش M1 تا نتیجهٔ واقعی CI باز است.
+
+### نتیجهٔ اجرای واقعی و اصلاح نصب مرورگر
+
+- روی commit `cb94646`، job backend در GitHub Actions موفق شد: ۱۷ تست، migration و model drift check، Ruff و pip-audit.
+- frontend نیز نصب وابستگی‌ها، migration، seed، build تولیدی، TypeScript و npm audit را گذراند، اما step ترکیبی نصب/test بیش از هشت دقیقه در دانلود بسته‌های apt از `azure.archive.ubuntu.com` ماند؛ تست مرورگر هنوز شروع نشده بود. اجرای `39927328096` برای دریافت گزارش و رفع مشکل متوقف شد، نه به‌عنوان شکست تست برنامه.
+- روی hosted Ubuntu، کتابخانه‌های runtime مرورگر از قبل وجود دارند؛ نصب Chromium بدون `--with-deps` انجام می‌شود تا upgrade/دانلودهای نامرتبط apt حذف شود. Playwright همچنان وابستگی‌های launch را بررسی می‌کند؛ هیچ اعتبارسنجی یا TLS غیرفعال نشده است.
+- نصب مرورگر و اجرای تست دو step جدا، با timeout مشخص شدند و API log نیز در failure artifact قرار می‌گیرد. health check دیتابیس آزمون را صریح مشخص می‌کند.
+- پذیرش M1 تا موفقیت کامل job frontend و بازبینی نهایی باز است؛ main تغییر نکرده است.

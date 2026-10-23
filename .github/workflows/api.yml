@@ -8,6 +8,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -17,7 +18,7 @@ jobs:
           POSTGRES_DB: steelos_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U steelos"
+          --health-cmd "pg_isready -U steelos -d steelos_test"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       DATABASE_URL: postgresql+psycopg://steelos:steelos@localhost:5432/steelos_test
@@ -35,6 +36,7 @@ jobs:
       - run: pip-audit -r apps/api/requirements.txt --progress-spinner off
   frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17-alpine
@@ -44,7 +46,7 @@ jobs:
           POSTGRES_DB: steelos_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U steelos"
+          --health-cmd "pg_isready -U steelos -d steelos_test"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       DATABASE_URL: postgresql+psycopg://steelos:steelos@localhost:5432/steelos_test
@@ -67,10 +69,20 @@ jobs:
       - run: uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/steelos-api.log 2>&1 &
       - run: npm ci && npm run typecheck && npm run build && npm audit --audit-level=moderate
         working-directory: apps/web
-      - run: npx playwright install --with-deps chromium && npm test
+      - name: Install Chromium
+        # Hosted Ubuntu already provides Chromium runtime libraries. Avoid an
+        # unrelated apt upgrade/font download on every browser test run.
+        run: npx playwright install chromium
         working-directory: apps/web
+        timeout-minutes: 10
+      - name: Browser tests
+        run: npm test
+        working-directory: apps/web
+        timeout-minutes: 10
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: browser-failures
-          path: apps/web/test-results
+          path: |
+            apps/web/test-results
+            /tmp/steelos-api.log
