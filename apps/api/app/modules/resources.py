@@ -8,7 +8,7 @@ from uuid import UUID
 from app import models as m
 from app import schemas as s
 from app.db import database
-from app.security import Context, context, digest, permit
+from app.security import Context, authorize_write, context, digest, permit
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, or_, select
@@ -150,6 +150,7 @@ def validate_domain(db, ctx, model, data, current=None):
 
 def register(resource, model, schema):
     admin_only = model in (m.WarehouseAccess,)
+    admin_write = model in (m.Warehouse, m.WarehouseAccess, m.PriceSource, m.Reference)
 
     def list_records(
         q: str = Query("", max_length=200),
@@ -256,19 +257,8 @@ def register(resource, model, schema):
         db: Session = Depends(database),
         idempotency_key: str = Header(..., min_length=1, max_length=100),
     ):
-        permit(ctx, write=True)
-        if admin_only:
-            permit(ctx, admin=True)
+        authorize_write(db, ctx, admin=admin_write)
         fingerprint = digest(resource + json.dumps(payload.model_dump(mode="json"), sort_keys=True))
-        # Serialize retries for this actor, including concurrent identical requests.
-        db.execute(
-            select(m.Membership)
-            .where(
-                m.Membership.organization_id == ctx.organization_id,
-                m.Membership.user_id == ctx.user_id,
-            )
-            .with_for_update()
-        )
         prior = db.scalar(
             scoped(m.IdempotencyRecord, ctx).where(
                 m.IdempotencyRecord.actor_id == ctx.user_id,
@@ -307,7 +297,7 @@ def register(resource, model, schema):
     def update_record(
         record_id: UUID, payload, ctx: Context = Depends(context), db: Session = Depends(database)
     ):
-        permit(ctx, write=True)
+        authorize_write(db, ctx, admin=admin_write)
         row = get_row(db, model, ctx, record_id, lock=model is m.Reference)
         data = payload.model_dump(mode="python")
         for key in ("attributes", "attribute_rules", "contacts", "addresses"):
@@ -325,7 +315,7 @@ def register(resource, model, schema):
     def delete_record(
         record_id: UUID, ctx: Context = Depends(context), db: Session = Depends(database)
     ):
-        permit(ctx, admin=True)
+        authorize_write(db, ctx, admin=True)
         if model == m.PriceObservation:
             raise HTTPException(405, "Price history is retained")
         row = get_row(db, model, ctx, record_id)
@@ -362,7 +352,7 @@ def decide(
     ctx: Context = Depends(context),
     db: Session = Depends(database),
 ):
-    permit(ctx, admin=True)
+    authorize_write(db, ctx, admin=True)
     row = get_row(db, m.PriceObservation, ctx, record_id)
     db.refresh(row, with_for_update=True)
     if row.status != "pending":

@@ -52,3 +52,10 @@ a full navigation to login, discarding tenant data, outstanding UI work and form
 old document. Logout/password-change success deletes the HttpOnly cookie and navigates to a
 fresh document; no follow-up workspace load is issued after these actions. No business form
 payload or password is stored in browser storage to restore it after logout.
+
+Every domain create/update/delete and price decision locks the actor's membership row for
+its transaction, refreshes the current role, and rechecks permission after waiting. Removed
+memberships return 401; demoted actors return 403. Idempotency replays are checked under the
+same current authorization before returning a stored result. The lock also serializes retries
+for the same actor. Different actors/organizations remain independent except for domain locks
+such as the category-rule invariant. Identity administration retains its organization-lock order.

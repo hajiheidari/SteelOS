@@ -12,7 +12,13 @@ from sqlalchemy import text
 
 
 def test_category_rules_cannot_change_during_validated_product_creation(world, monkeypatch):
-    client, tokens, _, _ = world
+    client, tokens, _, users = world
+    assert (
+        client.put(
+            "/api/v1/organization/members/" + users[2], headers=tokens[0], json={"role": "editor"}
+        ).status_code
+        == 200
+    )
     category = create(
         client,
         tokens[0],
@@ -43,7 +49,7 @@ def test_category_rules_cannot_change_during_validated_product_creation(world, m
 
     monkeypatch.setattr(resources, "validate_domain", pause_after_validation)
     with ThreadPoolExecutor(max_workers=2) as pool:
-        creation = pool.submit(create, client, tokens[0], "products", product)
+        creation = pool.submit(create, client, tokens[2], "products", product)
         try:
             assert validated.wait(timeout=5)
             update = pool.submit(

@@ -49,3 +49,9 @@ checks the exact stored decimal string through the real API, leaves an optional 
 and edits it later. It verifies required/optional flags and fixed category units. An additional
 delayed-response scenario deliberately holds the product list while loading parties, then
 releases it: the party table must remain intact on desktop and mobile. Browser suite: 12 tests.
+
+Permission concurrency tests hold an actual membership row lock while an authenticated domain
+request queues, then commit a demotion or membership removal. Create, replay, update, delete,
+admin catalog definition and removed-member requests must be rejected without changing data.
+Catalog rule concurrency uses different actors so membership serialization cannot mask the
+category-row invariant. Current backend suite: 24 tests.

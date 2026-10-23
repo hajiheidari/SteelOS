@@ -99,3 +99,8 @@ Catalog category rules and product validation share a PostgreSQL row lock held u
 If product creation wins a concurrent race, changing that category's rules returns 409 after
 the product commits. If the rule change wins first, the product validates against the updated
 rules. A stale in-memory category object is refreshed when acquiring the lock.
+
+Domain writes also recheck membership after acquiring their transaction lock. A request queued
+before a role change/removal cannot perform a write or replay a write response using stale
+permission: revoked membership returns 401, insufficient current role returns 403. This applies
+to create, full update, admin deletion and pricing decisions.

@@ -69,6 +69,21 @@ def permit(ctx: Context, write: bool = False, admin: bool = False):
         raise HTTPException(403, "Permission denied")
 
 
+def authorize_write(db: Session, ctx: Context, *, admin: bool = False):
+    """Hold current membership authority stable for the whole domain mutation."""
+    permit(ctx, write=True, admin=admin)
+    member = db.scalar(
+        select(Membership)
+        .where(Membership.organization_id == ctx.organization_id, Membership.user_id == ctx.user_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if not member:
+        raise HTTPException(401, "Organization membership no longer exists")
+    ctx.role = member.role
+    permit(ctx, write=True, admin=admin)
+
+
 def issue_session(db, user_id, organization_id, hours):
     token = secrets.token_urlsafe(48)
     session = AuthSession(
