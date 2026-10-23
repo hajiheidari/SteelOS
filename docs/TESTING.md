@@ -39,3 +39,7 @@ HttpOnly cookie and continued /auth/me access), and a tab retaining an actually 
 (return to login, Persian explanation, no workspace navigation and no session cookie), on both
 desktop and mobile. This brings the browser suite to 10 tests. Backend password tests verify
 400 preserves the current session and successful change still revokes every session.
+
+Catalog concurrency tests pause a product after domain validation, execute a category-rule
+change in another transaction, observe the real PostgreSQL lock wait, then release creation.
+The update must return 409 and the persisted product's dimension unit must match its category.

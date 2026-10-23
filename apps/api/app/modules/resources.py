@@ -71,8 +71,12 @@ def accessible(stmt, model, ctx):
     return stmt
 
 
-def get_row(db, model, ctx, record_id):
-    row = db.scalar(accessible(scoped(model, ctx), model, ctx).where(model.id == record_id))
+def get_row(db, model, ctx, record_id, *, lock=False):
+    stmt = accessible(scoped(model, ctx), model, ctx).where(model.id == record_id)
+    if lock:
+        # Serialize catalog rule changes with validation until the transaction commits.
+        stmt = stmt.with_for_update(key_share=True).execution_options(populate_existing=True)
+    row = db.scalar(stmt)
     if not row:
         raise HTTPException(404, "Record not found")
     return row
@@ -92,7 +96,7 @@ def validate_domain(db, ctx, model, data, current=None):
         for kind in ("category", "manufacturer", "grade", "standard"):
             ref_id = data[f"{kind}_id"]
             if ref_id:
-                ref = get_row(db, m.Reference, ctx, ref_id)
+                ref = get_row(db, m.Reference, ctx, ref_id, lock=kind == "category")
                 if ref.kind != kind:
                     raise HTTPException(422, "Incorrect catalog reference kind")
         category = get_row(db, m.Reference, ctx, data["category_id"])
@@ -304,7 +308,7 @@ def register(resource, model, schema):
         record_id: UUID, payload, ctx: Context = Depends(context), db: Session = Depends(database)
     ):
         permit(ctx, write=True)
-        row = get_row(db, model, ctx, record_id)
+        row = get_row(db, model, ctx, record_id, lock=model is m.Reference)
         data = payload.model_dump(mode="python")
         for key in ("attributes", "attribute_rules", "contacts", "addresses"):
             if key in data:

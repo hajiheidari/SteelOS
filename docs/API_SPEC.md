@@ -94,3 +94,8 @@ session remains valid. A genuinely invalid/expired bearer still returns 401. On 
 password change, all backend sessions are revoked and the browser proxy deletes its cookie.
 Authenticated browser requests receiving 401 return to a fresh login page with a Persian
 session-ended message. Explicit logout also uses a fresh navigation to discard workspace state.
+
+Catalog category rules and product validation share a PostgreSQL row lock held until commit.
+If product creation wins a concurrent race, changing that category's rules returns 409 after
+the product commits. If the rule change wins first, the product validates against the updated
+rules. A stale in-memory category object is refreshed when acquiring the lock.
