@@ -1,7 +1,7 @@
 # پذیرش دامنهٔ محدود عملیات انبار M2
 
 دامنهٔ این گزارش همان پیشنهاد تأییدشدهٔ انبار است؛ تکمیل کل roadmap معاملات یا حسابداری نیست.
-شاخه: `codex/m1-foundation`، backend: `b97c3e5`، رابط و تست: `ac31269`.
+شاخه: `codex/m1-foundation`، backend اولیه: `b97c3e5`، رابط: `ac31269`، اصلاحات مجوز/هم‌زمانی: `7a5c71c` و `ad60a5c`.
 
 | معیار | پیاده‌سازی و شاهد |
 |---|---|
@@ -14,10 +14,10 @@
 | مانده | مشتق‌شدهٔ on_hand/blocked/active reserved/available؛ بدون balance قابل ویرایش |
 | migration | clean head، ارتقای M1 دارای داده، حفظ داده، downgrade/upgrade و model drift موفق |
 | رابط فارسی | فرم lot و تمام انواع عملیات؛ جدول موجودی/گردش/رزرو؛ تأیید صریح مدیر؛ pagination/filter |
-| مرورگر | ۱۴ تست production desktop/mobile، از جمله پیش‌نویس بدون مانده و تأیید دریافت دقیق 12.500 |
+| مرورگر | ۱۴ تست production desktop/mobile؛ چرخهٔ دریافت، رزرو، fulfill/release، block/unblock، انتقال، برگشت و رد خروج نامعتبر |
 | راه‌اندازی پاک | Docker Compose با volume مستقل و image تازه؛ health/ready و alembic check موفق |
 
-۳۱ تست backend، Ruff، TypeScript و build محلی موفق‌اند. نتیجهٔ CI ثبت‌شده در
+۳۸ تست backend، Ruff، TypeScript و build محلی موفق‌اند. نتیجهٔ CI ثبت‌شده در
 [DEVELOPMENT_STATUS.md](DEVELOPMENT_STATUS.md) مرجع نتیجهٔ اجرای GitHub است.
 
 ## محدودیت‌های عملیاتی

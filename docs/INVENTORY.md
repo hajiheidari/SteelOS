@@ -78,7 +78,9 @@ requires an explicit admin confirmation showing quantity, owner and physical pos
 No editable stock balance is exposed. Read the actual backend OpenAPI for field limits.
 Backend integration tests cover tenant/warehouse isolation, database guards, expiry,
 idempotency, reversal dependencies and concurrent consumption. Browser tests cover
-receipt draft, no balance effect before approval, explicit posting and derived stock.
+receipt draft, no balance effect before approval, explicit posting, reservation fulfillment/
+release, block/unblock, cross-warehouse transfer, reversal and rejection of excessive
+dispatch with unchanged stock. Persian decimal quantities are verified through the API.
 
 Trading documents, valuation/accounting, tax filing, title transfer, backdating, partial
 reversal, configurable approval chains and public deployment remain outside this scope.
