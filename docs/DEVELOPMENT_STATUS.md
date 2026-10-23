@@ -51,3 +51,10 @@
 - commit پیاده‌سازی و آزمون‌شده: `e4923845affd3e7018361debfb1ecb6f40797f45`؛ روی همان شاخه push شد و PR #1 به‌روزرسانی شد.
 - [اجرای تازهٔ CI #39926050513](https://github.com/hajiheidari/SteelOS/actions/runs/39926050513) نیز با همان پیام رسمی billing/spending limit پیش از شروع stepها متوقف شد؛ دسترسی GitHub برقرار است ولی CI همچنان مسدود است.
 - `main` بدون تغییر روی `6238616450e63a6f0279d4eb4d1ec7b8c69c9c16` باقی ماند. هیچ public deployment، تغییر visibility یا تنظیم مالی انجام نشد.
+
+## اجرای CI پس از عمومی‌شدن مخزن — 2026-10-23
+
+- founder مخزن را عمومی کرد؛ visibility از API GitHub تأیید شد. محدودیت قبلی billing دیگر مانع شروع اجرای مجدد `39926143077` نشد.
+- هر دو job واقعاً آغاز شدند و نقص پیکربندی health command سرویس PostgreSQL آشکار شد: parser runner علامت single quote را برای آرگومان چندکلمه‌ای نگه نمی‌داشت و Docker گزینهٔ `-U` را متعلق به خود می‌پنداشت.
+- health command هر دو سرویس به double quote سازگار با runner تغییر کرد. تست کسب‌وکار جدید برای این تغییر پیکربندی لازم نیست؛ بررسی معتبر، اجرای واقعی workflow روی commit جدید است.
+- شاخه همچنان `codex/m1-foundation`، مبنای شروع `e33c368`؛ main و وضعیت draft PR تغییر نکرده‌اند. پذیرش M1 تا نتیجهٔ واقعی CI باز است.

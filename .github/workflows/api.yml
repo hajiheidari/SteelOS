@@ -17,7 +17,7 @@ jobs:
           POSTGRES_DB: steelos_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U steelos'
+          --health-cmd "pg_isready -U steelos"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       DATABASE_URL: postgresql+psycopg://steelos:steelos@localhost:5432/steelos_test
@@ -44,7 +44,7 @@ jobs:
           POSTGRES_DB: steelos_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd 'pg_isready -U steelos'
+          --health-cmd "pg_isready -U steelos"
           --health-interval 3s --health-timeout 3s --health-retries 20
     env:
       DATABASE_URL: postgresql+psycopg://steelos:steelos@localhost:5432/steelos_test
