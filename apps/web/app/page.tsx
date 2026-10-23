@@ -1,5 +1,11 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   type Row,
   type Me,
@@ -35,6 +41,19 @@ export default function Home() {
   const [members, setMembers] = useState<Row[]>([]);
   const [grants, setGrants] = useState<Row[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
+  const viewKey = JSON.stringify([
+    me?.organization.id,
+    me?.role,
+    page,
+    offset,
+    search,
+    filter,
+  ]);
+  const latestView = useRef(viewKey);
+  useLayoutEffect(() => {
+    latestView.current = viewKey;
+  }, [viewKey]);
+  const loadSequence = useRef(0);
   useEffect(() => {
     if (
       new URLSearchParams(window.location.search).get("session") === "expired"
@@ -64,7 +83,10 @@ export default function Home() {
     }
   };
   const load = useCallback(async () => {
-    if (!me) return;
+    if (!me || latestView.current !== viewKey) return;
+    const sequence = ++loadSequence.current;
+    const current = () =>
+      latestView.current === viewKey && loadSequence.current === sequence;
     setLoading(true);
     setError("");
     try {
@@ -77,6 +99,7 @@ export default function Home() {
           "locations",
         ].map(all),
       );
+      if (!current()) return;
       setRefs(referenceData[0]);
       setWarehouses(referenceData[1]);
       setProducts(referenceData[2]);
@@ -90,11 +113,15 @@ export default function Home() {
           "price-observations",
         ];
         const values = await Promise.all(keys.map((k) => api(`${k}?limit=1`)));
+        if (!current()) return;
         setStats(Object.fromEntries(keys.map((k, i) => [k, values[i].total])));
       } else if (page === "settings") {
         if (me.role === "admin") {
-          setMembers((await api("organization/members")).items);
-          setGrants(await all("warehouse-access"));
+          const memberData = await api("organization/members");
+          const grantData = await all("warehouse-access");
+          if (!current()) return;
+          setMembers(memberData.items);
+          setGrants(grantData);
         }
       } else {
         const extra =
@@ -106,19 +133,26 @@ export default function Home() {
         const data = await api(
           `${page}?limit=25&offset=${offset}&q=${encodeURIComponent(search)}${extra}`,
         );
+        if (!current()) return;
         setRows(data.items);
         setTotal(data.total);
       }
     } catch (e) {
-      setError((e as Error).message);
+      if (current()) setError((e as Error).message);
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
-  }, [me, page, offset, search, filter]);
+  }, [me, page, offset, search, filter, viewKey]);
   useEffect(() => {
     void load();
+    return () => {
+      loadSequence.current += 1;
+    };
   }, [load]);
   function navigate(key: string) {
+    loadSequence.current += 1;
+    setRows([]);
+    setTotal(0);
     setPage(key);
     setOffset(0);
     setQuery("");
@@ -132,11 +166,11 @@ export default function Home() {
   async function mutate(action: () => Promise<unknown>) {
     setError("");
     try {
-      if ((await action()) === false) return;
+      if ((await action()) === false || latestView.current !== viewKey) return;
       setNotice("عملیات با موفقیت انجام شد.");
       await load();
     } catch (e) {
-      setError((e as Error).message);
+      if (latestView.current === viewKey) setError((e as Error).message);
     }
   }
   if (checking)
@@ -611,6 +645,7 @@ export default function Home() {
                       data,
                       key,
                     );
+                    if (latestView.current !== viewKey) return;
                     setEditing(undefined);
                     setNotice("رکورد ذخیره شد.");
                     await load();

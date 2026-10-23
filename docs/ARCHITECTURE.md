@@ -31,3 +31,12 @@ all authorized rows in pages; server-side autocomplete is a future scalability i
 Stock operations, trading and accounting remain separate future modules. Inventory contracts
 only define ownership/location/movement/reservation boundaries. Accounting journal invariants
 and parallel reconciliation are specified in DATA_MODEL.md. No engine is represented as ready.
+
+Product forms are driven by the selected category's dimension rules: required fields cannot
+be removed, optional blank dimensions are omitted, and their configured units are read-only.
+Persian/Arabic digits and standard Arabic decimal/grouping separators are normalized to ASCII
+decimal strings at submission; money and dimension values are never converted to JS Number.
+
+Workspace loads carry a view identity (organization/role/page/filter/pagination) plus a request
+sequence. Late responses, errors and pending mutation refreshes from an obsolete view cannot
+replace the current page. Navigating also clears the previous page's table immediately.

@@ -43,3 +43,9 @@ desktop and mobile. This brings the browser suite to 10 tests. Backend password 
 Catalog concurrency tests pause a product after domain validation, execute a category-rule
 change in another transaction, observe the real PostgreSQL lock wait, then release creation.
 The update must return 409 and the persisted product's dimension unit must match its category.
+
+The catalog/pricing browser workflow now enters Persian/Arabic digits with six price decimals,
+checks the exact stored decimal string through the real API, leaves an optional dimension blank,
+and edits it later. It verifies required/optional flags and fixed category units. An additional
+delayed-response scenario deliberately holds the product list while loading parties, then
+releases it: the party table must remain intact on desktop and mobile. Browser suite: 12 tests.

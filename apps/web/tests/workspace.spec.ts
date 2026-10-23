@@ -108,14 +108,47 @@ test("catalog, warehouse and approved pricing form workflow", async ({
   await page.getByLabel("نام بعد جدید (لاتین)").fill("thickness");
   await page.getByRole("button", { name: "افزودن بعد", exact: true }).click();
   await page.getByLabel("الزامی", { exact: false }).check();
+  await page.getByLabel("نام بعد جدید (لاتین)").fill("width");
+  await page.getByRole("button", { name: "افزودن بعد", exact: true }).click();
   await save("گروه " + unique);
   await newRecord("کالاها");
   await page.getByLabel("کد کالا (SKU)").fill("sku-" + unique);
   await page.getByLabel("نام کالا").fill("کالا " + unique);
   await page.getByLabel("گروه کالا").selectOption({ label: "گروه " + unique });
-  await page.getByLabel("مقدار thickness").fill("2.000");
+  await page.getByLabel("مقدار thickness").fill("۲٫۰۰۰");
+  await expect(page.getByLabel("مقدار thickness")).toHaveAttribute(
+    "required",
+    "",
+  );
+  await expect(page.getByLabel("مقدار width")).not.toHaveAttribute(
+    "required",
+    "",
+  );
+  await expect(page.getByLabel("واحد thickness")).toBeDisabled();
+  await expect(page.getByLabel("واحد width")).toBeDisabled();
   await page.getByRole("combobox", { name: /^واحد \*/ }).selectOption("kg");
   await save("کالا " + unique);
+  const productList = await (
+    await page.request.get(
+      "/api/backend/products?q=" + encodeURIComponent("کالا " + unique),
+    )
+  ).json();
+  const product = productList.items[0];
+  expect(product.attributes).toEqual({ thickness: { value: "2", unit: "mm" } });
+  const productRow = page
+    .getByRole("row")
+    .filter({ hasText: "کالا " + unique });
+  await productRow.getByRole("button", { name: "ویرایش", exact: true }).click();
+  await expect(page.getByLabel("مقدار width")).toHaveValue("");
+  await page.getByLabel("مقدار width").fill("۱٬۲۵۰٫۵");
+  await save("کالا " + unique);
+  const updatedProduct = await (
+    await page.request.get("/api/backend/products/" + product.id)
+  ).json();
+  expect(updatedProduct.attributes.width).toEqual({
+    value: "1250.5",
+    unit: "mm",
+  });
   await newRecord("انبارها");
   await page.getByLabel("کد انبار (لاتین)").fill("wh-" + unique);
   await page.getByLabel("نام انبار").fill("انبار " + unique);
@@ -141,7 +174,7 @@ test("catalog, warehouse and approved pricing form workflow", async ({
     .getByRole("combobox", { name: /^کالا \*/ })
     .selectOption({ label: "کالا " + unique });
   await page.getByLabel("منبع قیمت").selectOption({ label: "منبع " + unique });
-  await page.getByLabel("قیمت واحد").fill("123456.123456");
+  await page.getByLabel("قیمت واحد").fill("١٢٣٬٤٥٦٫۱۲۳۴۵۶");
   await page.getByLabel("ارز").selectOption("IRR");
   await page.getByRole("combobox", { name: /^واحد \*/ }).selectOption("kg");
   await page
@@ -162,6 +195,12 @@ test("catalog, warehouse and approved pricing form workflow", async ({
   await expect(observation).toContainText("تأیید شده");
   await page.getByRole("combobox", { name: /^نمایش/ }).selectOption("approved");
   await expect(observation).toBeVisible();
+  const prices = await (
+    await page.request.get(
+      "/api/backend/price-observations?product_id=" + product.id,
+    )
+  ).json();
+  expect(prices.items[0].amount).toBe("123456.123456");
 });
 
 async function loginWorkspace(page: import("@playwright/test").Page) {
@@ -245,4 +284,65 @@ test("revoked session discards workspace and returns to login with a Persian mes
   expect(
     (await context.cookies()).find((c) => c.name === "steelos_session"),
   ).toBeUndefined();
+});
+
+test("a delayed product response cannot overwrite a newer party page", async ({
+  page,
+}, info) => {
+  await loginWorkspace(page);
+  const name = `طرف تجاری ${info.project.name} ${Date.now()}`;
+  const party = await page.request.post("/api/backend/parties", {
+    headers: {
+      Origin: "http://127.0.0.1:3000",
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    data: { name, kind: "individual", roles: ["customer"] },
+  });
+  expect(party.status()).toBe(201);
+  let release!: () => void;
+  const delay = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let started = false;
+  let finished!: () => void;
+  const delivered = new Promise<void>((resolve) => {
+    finished = resolve;
+  });
+  await page.route("**/api/backend/products?limit=25*", async (route) => {
+    const response = await route.fetch();
+    started = true;
+    await delay;
+    await route.fulfill({ response });
+    finished();
+  });
+  try {
+    await page
+      .getByRole("navigation")
+      .getByRole("button", { name: "کالاها", exact: true })
+      .click();
+    await expect.poll(() => started).toBe(true);
+    await page
+      .getByRole("navigation")
+      .getByRole("button", { name: "مشتریان و تأمین‌کنندگان", exact: true })
+      .click();
+    await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+    release();
+    await delivered;
+    // Let the browser render the response before inspecting the newer table.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        ),
+    );
+    await expect(
+      page.getByRole("heading", {
+        name: "مشتریان و تأمین‌کنندگان",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(page.getByRole("row").filter({ hasText: name })).toBeVisible();
+  } finally {
+    release();
+  }
 });

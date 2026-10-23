@@ -109,6 +109,16 @@ export async function api(
   }
   return data;
 }
+export function normalizeDecimalInput(value: string): string {
+  // Keep amounts as strings: Persian/Arabic digits and separators never pass through Number.
+  return value
+    .trim()
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/٫/g, ".")
+    .replace(/٬/g, "");
+}
+
 export function display(value: unknown): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "بله" : "خیر";

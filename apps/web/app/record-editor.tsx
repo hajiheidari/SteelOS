@@ -1,29 +1,52 @@
 "use client";
 import { FormEvent, useRef, useState } from "react";
-import { type Row, type Field, translations } from "./workspace-schema";
+import {
+  type Row,
+  type Field,
+  translations,
+  normalizeDecimalInput,
+} from "./workspace-schema";
+
+type DimensionRules = Record<string, { unit: string; required: boolean }>;
 
 function Collection({
   field,
   value,
   set,
+  rules,
 }: {
   field: Field;
   value: unknown;
   set: (v: unknown) => void;
+  rules?: DimensionRules;
 }) {
   const type = field.type;
   if (type === "rules" || type === "dimensions") {
-    const obj = (value || {}) as Record<string, Record<string, unknown>>;
+    const stored = (value || {}) as Record<string, Record<string, unknown>>;
+    const obj =
+      type === "dimensions" && rules
+        ? Object.fromEntries(
+            Object.entries(rules).map(([key, rule]) => [
+              key,
+              { unit: rule.unit, value: stored[key]?.value ?? "" },
+            ]),
+          )
+        : stored;
     return (
       <fieldset className="collection">
         <legend>{field.label}</legend>
         {Object.entries(obj).map(([key, val]) => (
           <div className="inline" key={key}>
-            <span>{key}</span>
+            <span>
+              {key}
+              {rules && (
+                <small> · {rules[key]?.required ? "الزامی" : "اختیاری"}</small>
+              )}
+            </span>
             {type === "dimensions" ? (
               <input
                 aria-label={`مقدار ${key}`}
-                required
+                required={rules ? !!rules[key]?.required : true}
                 inputMode="decimal"
                 value={String(val.value || "")}
                 onChange={(e) =>
@@ -32,6 +55,7 @@ function Collection({
               />
             ) : null}
             <select
+              disabled={type === "dimensions" && !!rules}
               aria-label={`واحد ${key}`}
               value={String(val.unit || "mm")}
               onChange={(e) =>
@@ -57,50 +81,54 @@ function Collection({
                 الزامی
               </label>
             )}
+            {!(type === "dimensions" && rules) && (
+              <button
+                type="button"
+                className="quiet"
+                onClick={() =>
+                  set(
+                    Object.fromEntries(
+                      Object.entries(obj).filter(([k]) => k !== key),
+                    ),
+                  )
+                }
+              >
+                حذف {key}
+              </button>
+            )}
+          </div>
+        ))}
+        {!(type === "dimensions" && rules) && (
+          <div className="inline">
+            <input
+              aria-label="نام بعد جدید (لاتین)"
+              placeholder="thickness"
+              id={`new-${type}`}
+            />
             <button
               type="button"
               className="quiet"
-              onClick={() =>
-                set(
-                  Object.fromEntries(
-                    Object.entries(obj).filter(([k]) => k !== key),
-                  ),
-                )
-              }
+              onClick={() => {
+                const el = document.getElementById(
+                  `new-${type}`,
+                ) as HTMLInputElement;
+                const key = el.value.trim();
+                if (/^[A-Za-z0-9_.-]+$/.test(key) && !obj[key]) {
+                  set({
+                    ...obj,
+                    [key]:
+                      type === "rules"
+                        ? { unit: "mm", required: false }
+                        : { unit: "mm", value: "" },
+                  });
+                  el.value = "";
+                }
+              }}
             >
-              حذف {key}
+              افزودن بعد
             </button>
           </div>
-        ))}
-        <div className="inline">
-          <input
-            aria-label="نام بعد جدید (لاتین)"
-            placeholder="thickness"
-            id={`new-${type}`}
-          />
-          <button
-            type="button"
-            className="quiet"
-            onClick={() => {
-              const el = document.getElementById(
-                `new-${type}`,
-              ) as HTMLInputElement;
-              const key = el.value.trim();
-              if (/^[A-Za-z0-9_.-]+$/.test(key) && !obj[key]) {
-                set({
-                  ...obj,
-                  [key]:
-                    type === "rules"
-                      ? { unit: "mm", required: false }
-                      : { unit: "mm", value: "" },
-                });
-                el.value = "";
-              }
-            }}
-          >
-            افزودن بعد
-          </button>
-        </div>
+        )}
       </fieldset>
     );
   }
@@ -211,6 +239,8 @@ export function Editor({
       ]),
     ),
   );
+  const dimensionRules = (refs.find((r) => r.id === values.category_id)
+    ?.attribute_rules || {}) as DimensionRules;
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const retry = useRef({ signature: "", key: "" });
@@ -239,7 +269,30 @@ export function Editor({
     setError("");
     try {
       const data = { ...values };
+      if (page === "products") {
+        const attributes = (values.attributes || {}) as Record<
+          string,
+          { unit: string; value: string }
+        >;
+        data.attributes = Object.fromEntries(
+          Object.entries(attributes)
+            .filter(
+              ([key, dimension]) =>
+                dimensionRules[key]?.required ||
+                String(dimension.value).trim() !== "",
+            )
+            .map(([key, dimension]) => [
+              key,
+              {
+                ...dimension,
+                value: normalizeDecimalInput(String(dimension.value)),
+              },
+            ]),
+        );
+      }
       for (const field of fields) {
+        if (field.type === "decimal")
+          data[field.key] = normalizeDecimalInput(String(data[field.key]));
         if (field.type === "datetime-local")
           data[field.key] = new Date(String(data[field.key])).toISOString();
         if (field.required === false && data[field.key] === "")
@@ -267,6 +320,7 @@ export function Editor({
               key={f.key}
               field={f}
               value={values[f.key]}
+              rules={f.type === "dimensions" ? dimensionRules : undefined}
               set={(v) => set(f.key, v)}
             />
           ) : f.type === "roles" ? (
