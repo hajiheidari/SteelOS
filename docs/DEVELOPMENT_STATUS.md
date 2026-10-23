@@ -207,3 +207,14 @@
 - اجرای هدفمند desktop/mobile موفق شد؛ API محلی سپس با آخرین کد دوباره راه‌اندازی و مجموعهٔ کامل مرورگر اجرا شد. نتیجهٔ نهایی در ادامه ثبت می‌شود.
 - تغییر این batch فقط تست و مستندات است؛ محدودیت‌های دامنهٔ مصوب، main، merge و استقرار تغییر نمی‌کنند.
 - نتیجهٔ نهایی محلی: هر ۱۴ تست مرورگر روی build تولیدی و backend تازه موفق؛ TypeScript موفق؛ ۳۸ تست backend بستهٔ قبلی محلی و CI موفق‌اند. گزارش پذیرش و قرارداد انبار با این شواهد به‌روز شدند.
+
+### نتیجهٔ CI چرخهٔ مرورگر
+
+- commit `c49929274a462fa5c6c9a4e237cb02116375d431`؛ [PR CI شمارهٔ 39981634521](https://github.com/hajiheidari/SteelOS/actions/runs/39981634521) موفق؛ هر ۳۸ تست backend و ۱۴ تست مرورگرِ گسترش‌یافته در GitHub پاس شدند.
+
+## نگهداری Actions با runtime پشتیبانی‌شده — 2026-10-23
+
+- CI موفق قبلی هشدار داد actions/checkout@v4 و setup-python@v5 از Node 20 استفاده می‌کنند و runner آن‌ها را به Node 24 مجبور می‌کند.
+- release notes و action.yml رسمی بررسی شد؛ checkout v7.0.1، setup-python و setup-node v7.1.0 و upload-artifact v7.0.2 روی Node 24 هستند. SHA هر نسخه از commit رسمی tag خوانده و در workflow pin شد؛ نسخه در comment آمده است.
+- checkout credential را نگه نمی‌دارد؛ مجوز contents: read و jobهای backend/frontend ثابت‌اند. نسخهٔ runtime برنامه در CI همچنان Python 3.12 و Node 22 است؛ کتابخانه‌های برنامه/DB/migration تغییر نکرده‌اند.
+- نام workflow به SteelOS checks تغییر کرد تا محدودهٔ فعلی را منعکس کند. انتشار/deployment یا permission اضافه نشده؛ تأیید سازگاری نهایی با اجرای واقعی CI انجام می‌شود.

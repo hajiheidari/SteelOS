@@ -75,3 +75,11 @@ location creation replay must still resolve the existing record through current 
 scope and hold the grant. Inventory draft replay likewise revalidates warehouse scope.
 Restoring access allows the same idempotency key to return its original result without
 creating another record. Requests denied for revoked scope do not create audit/domain rows.
+
+### CI action dependencies
+
+Workflow actions are pinned to verified commit SHAs of official `actions/*` releases,
+with a version comment for review. Their internal runtime is Node 24; application CI
+still uses Python 3.12 and Node 22. Checkout does not persist credentials, and workflow
+permissions remain `contents: read`. Update pins deliberately against official release
+metadata and validate with the full CI workflow. No deployment or publishing job exists.
