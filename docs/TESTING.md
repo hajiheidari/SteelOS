@@ -19,8 +19,13 @@ rejection. Failure traces and screenshots remain local or CI artifacts, not sour
 Production frontend build, TypeScript, Ruff and pip/npm vulnerability audits are required.
 
 GitHub workflow has backend and frontend jobs with disposable PostgreSQL services and the
-same checks. GitHub account billing currently prevents jobs from starting; this external
-blocker is distinct from local passing checks. Never report CI green until actual jobs run.
+same checks. Initial private-repository attempts were blocked by account billing. After the
+founder made the repository public and service health-command quoting was fixed, both jobs
+passed in run 39928699090 on commit a1c22f5: 17 backend tests and 6 production-browser tests.
+The hosted Ubuntu runner supplies browser runtime libraries; CI installs Chromium without
+redundant apt upgrades. Browser install and test steps have separate timeouts and failure
+artifacts include the API log. Local Linux machines may still need --with-deps.
+Never infer success on a new commit without checking its actual workflow result.
 
 Additional coverage and known acceptance limits are tracked in DEVELOPMENT_STATUS.md.
 Avoid using test fixture accounts/databases for real business data.
