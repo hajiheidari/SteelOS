@@ -174,3 +174,12 @@
 - [PR CI شمارهٔ 39979530193](https://github.com/hajiheidari/SteelOS/actions/runs/39979530193) و [push CI شمارهٔ 39979519002](https://github.com/hajiheidari/SteelOS/actions/runs/39979519002): backend/frontend موفق؛ ۳۱ تست backend و ۱۴ تست مرورگر، migration/model drift، lint، build، TypeScript و audit dependency موفق.
 - دامنهٔ محدود و مصوب انبار برای بازبینی پذیرش آماده است؛ roadmap معاملات و accounting تکمیل اعلام نمی‌شود. نقص مسدودکنندهٔ شناخته‌شده در این دامنه باقی نمانده؛ محدودیت‌های عملیاتی در سند پذیرش آمده‌اند.
 - مرحلهٔ بعد در دامنهٔ مجاز: حفظ شواهد و گزارش پذیرش؛ ورود به معاملات/حسابداری یا deployment به دامنه و تصمیم مستقل نیاز دارد. main تغییر نکرد، PR merge نشده و هیچ سرویس پولی فعال نشده است.
+
+## بازبینی هم‌زمانی وضعیت مرجع و مجوز انبار — 2026-10-23
+
+- شاخه `codex/m1-foundation`، مبنا `2653fe7b053def16e519330a35fc459d02c695d1`؛ fetch تازه انجام شد و هر دو CI مبنا موفق بودند. دامنه همچنان foundation و عملیات انبار مصوب است.
+- سه نقص با تراکنش واقعی بازتولید شد: posting هنگام غیرفعال‌سازی commit‌نشدهٔ product/party/warehouse، وضعیت قدیمی را می‌دید و 200 می‌داد. هر سه تست پیش از اصلاح شکست خوردند.
+- اصلاح: validation هنگام posting قفل shared روی مرجع می‌گیرد و بعد از انتظار داده را refresh می‌کند؛ غیرفعال‌سازی مقدم اکنون 409 می‌دهد و draft/ledger بدون تغییر می‌مانند. ترتیب warehouse قبل از location با ویرایش hierarchy هماهنگ است؛ postingهای مستقل می‌توانند قفل shared را هم‌زمان بگیرند.
+- دو نقص مجوز نیز بازتولید شد: حذف commit‌نشدهٔ grant مانع ساخت location یا inventory draft توسط editor نمی‌شد (201). بررسی grant اکنون قفل shared تا commit نگه می‌دارد و حذف مقدم پس از انتظار 403 می‌دهد؛ در جهت مقابل، revoke منتظر write ازقبل مجاز می‌ماند.
+- بررسی محلی: هر ۳۶ تست backend موفق، شامل پنج تست تازهٔ رقابت واقعی؛ Ruff/format موفق. مدل DB، migration، dependency و UI تغییر نکرده‌اند؛ هشدار deprecation قبلی پابرجاست.
+- بستهٔ بعد همین نوبت: بررسی CI و بازبینی سناریوهای idempotency/مجوز در انبار؛ هیچ merge/main/deployment/paid service مجاز یا اجرا نشده است.

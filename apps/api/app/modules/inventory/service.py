@@ -58,19 +58,25 @@ def record(db, model, ctx, record_id, *, lock=False):
     return row
 
 
-def active_lot(db, ctx, lot):
-    product = get_row(db, m.Product, ctx, lot.product_id)
+def active_lot(db, ctx, lot, *, lock=False):
+    product = get_row(db, m.Product, ctx, lot.product_id, shared_lock=lock)
     if not product.active or product.unit != lot.unit:
         raise HTTPException(409, "Lot product is inactive or unit changed")
-    if lot.owner_party_id and not get_row(db, m.Party, ctx, lot.owner_party_id).active:
+    if (
+        lot.owner_party_id
+        and not get_row(db, m.Party, ctx, lot.owner_party_id, shared_lock=lock).active
+    ):
         raise HTTPException(409, "Lot owner is inactive")
 
 
-def location(db, ctx, location_id):
+def location(db, ctx, location_id, *, lock=False):
     row = get_row(db, m.Location, ctx, location_id)
     warehouse_allowed(db, ctx, row.warehouse_id)
-    if not get_row(db, m.Warehouse, ctx, row.warehouse_id).active:
+    # Match hierarchy edits: warehouse before location, avoiding inverse lock ordering.
+    if not get_row(db, m.Warehouse, ctx, row.warehouse_id, shared_lock=lock).active:
         raise HTTPException(409, "Warehouse is inactive")
+    if lock:
+        row = get_row(db, m.Location, ctx, location_id, shared_lock=True)
     return row
 
 
@@ -283,11 +289,11 @@ def post(db, ctx, draft_id):
         return draft
     if draft.status != "draft":
         raise HTTPException(409, "Rejected draft cannot be posted")
-    active_lot(db, ctx, lot)
+    active_lot(db, ctx, lot, lock=True)
     for side in ("from", "to"):
         loc_id = getattr(draft, f"{side}_location_id")
         if loc_id:
-            location(db, ctx, loc_id)
+            location(db, ctx, loc_id, lock=True)
     at = now(db)
     with db.no_autoflush:
         legs = effects(db, ctx, draft, at)

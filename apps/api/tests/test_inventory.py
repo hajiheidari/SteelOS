@@ -372,3 +372,115 @@ def test_inventory_validation_warehouse_visibility_and_database_constraints(inve
         )
         with pytest.raises(IntegrityError):
             db.commit()
+
+
+@pytest.mark.parametrize("target", ["products", "parties", "warehouses"])
+def test_posting_rechecks_master_status_after_concurrent_deactivation(inventory, target):
+    from time import monotonic, sleep
+
+    env = inventory
+    client, tokens, _, _, warehouses, _, party, _, lot_data = env
+    ids = {
+        "products": lot_data["product_id"],
+        "parties": party["id"],
+        "warehouses": warehouses[0]["id"],
+    }
+    movement = draft(env, "receipt", "2")
+    with engine().connect() as blocker:
+        transaction = blocker.begin()
+        blocker.execute(text(f"UPDATE {target} SET active=false WHERE id=:id"), {"id": ids[target]})
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(
+                client.post,
+                "/api/v1/inventory/drafts/" + movement["id"] + "/post",
+                headers={**tokens[0], "Idempotency-Key": str(uuid4())},
+            )
+            try:
+                deadline = monotonic() + 5
+                with engine().connect() as observer:
+                    while monotonic() < deadline:
+                        observer.commit()
+                        waiting = observer.scalar(
+                            text("""
+                            SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+                            WHERE datname=current_database() AND wait_event_type='Lock'
+                              AND query LIKE :query)
+                        """),
+                            {"query": "%" + target + "%"},
+                        )
+                        if pending.done() or waiting:
+                            break
+                        sleep(0.01)
+                    else:
+                        pytest.fail("Posting neither completed nor waited for master status")
+            finally:
+                transaction.commit()
+            response = pending.result(timeout=5)
+    assert response.status_code == 409, response.text
+    assert balance(env) == (0, 0, 0, 0)
+    assert (
+        client.get("/api/v1/inventory/drafts/" + movement["id"], headers=tokens[0]).json()["status"]
+        == "draft"
+    )
+
+
+@pytest.mark.parametrize("resource", ["locations", "inventory/drafts"])
+def test_warehouse_revocation_blocks_queued_editor_mutation(inventory, resource):
+    from time import monotonic, sleep
+
+    env = inventory
+    client, tokens, _, users, warehouses, locations, _, lot, _ = env
+    assert (
+        client.put(
+            "/api/v1/organization/members/" + users[2], headers=tokens[0], json={"role": "editor"}
+        ).status_code
+        == 200
+    )
+    grant = create(
+        client,
+        tokens[0],
+        "warehouse-access",
+        {"user_id": users[2], "warehouse_id": warehouses[0]["id"]},
+    )
+    payload = (
+        {"warehouse_id": warehouses[0]["id"], "code": "queued", "name": "Queued", "kind": "hall"}
+        if resource == "locations"
+        else {
+            "lot_id": lot["id"],
+            "kind": "receipt",
+            "quantity": "2",
+            "to_location_id": locations[0]["id"],
+            "reference": "Queued",
+        }
+    )
+    with engine().connect() as blocker:
+        transaction = blocker.begin()
+        blocker.execute(text("DELETE FROM warehouse_access WHERE id=:id"), {"id": grant["id"]})
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            pending = pool.submit(
+                client.post,
+                "/api/v1/" + resource,
+                headers={**tokens[2], "Idempotency-Key": "revoked-grant"},
+                json=payload,
+            )
+            try:
+                deadline = monotonic() + 5
+                with engine().connect() as observer:
+                    while monotonic() < deadline:
+                        observer.commit()
+                        waiting = observer.scalar(
+                            text("""SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+                            WHERE datname=current_database() AND wait_event_type='Lock'
+                            AND query LIKE '%warehouse_access%')""")
+                        )
+                        if pending.done() or waiting:
+                            break
+                        sleep(0.01)
+                    else:
+                        pytest.fail("Editor mutation did not execute")
+            finally:
+                transaction.commit()
+            response = pending.result(timeout=5)
+    assert response.status_code == 403, response.text
+    assert client.get("/api/v1/inventory/drafts", headers=tokens[0]).json()["total"] == 0
+    assert client.get("/api/v1/locations", headers=tokens[0]).json()["total"] == 2

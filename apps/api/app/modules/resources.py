@@ -54,9 +54,11 @@ def warehouse_allowed(db, ctx, warehouse_id):
     if ctx.role == "admin":
         return
     if not db.scalar(
-        scoped(m.WarehouseAccess, ctx).where(
+        scoped(m.WarehouseAccess, ctx)
+        .where(
             m.WarehouseAccess.warehouse_id == warehouse_id, m.WarehouseAccess.user_id == ctx.user_id
         )
+        .with_for_update(read=True)
     ):
         raise HTTPException(403, "Warehouse permission required")
 
@@ -71,11 +73,13 @@ def accessible(stmt, model, ctx):
     return stmt
 
 
-def get_row(db, model, ctx, record_id, *, lock=False):
+def get_row(db, model, ctx, record_id, *, lock=False, shared_lock=False):
     stmt = accessible(scoped(model, ctx), model, ctx).where(model.id == record_id)
-    if lock:
-        # Serialize catalog rule changes with validation until the transaction commits.
-        stmt = stmt.with_for_update(key_share=True).execution_options(populate_existing=True)
+    if lock or shared_lock:
+        # Shared validation locks block master edits but allow independent stock postings.
+        stmt = stmt.with_for_update(read=shared_lock, key_share=not shared_lock).execution_options(
+            populate_existing=True
+        )
     row = db.scalar(stmt)
     if not row:
         raise HTTPException(404, "Record not found")

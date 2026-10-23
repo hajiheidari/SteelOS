@@ -82,3 +82,13 @@ receipt draft, no balance effect before approval, explicit posting and derived s
 
 Trading documents, valuation/accounting, tax filing, title transfer, backdating, partial
 reversal, configurable approval chains and public deployment remain outside this scope.
+
+## Master changes and warehouse grant revocation
+
+Posting holds shared row locks on the validated product, third-party owner, warehouses
+and locations until commit. A preceding uncommitted deactivation is awaited and rechecked;
+posting fails without ledger effects if the master is now inactive. Independent postings
+can share these validation locks. Warehouse is locked before location, matching hierarchy
+edits. Warehouse grant checks used by mutations also hold a shared grant lock: a preceding
+revocation is awaited and denied, while a mutation already holding the grant finishes
+before revocation. This policy does not retroactively cancel committed drafts or history.
