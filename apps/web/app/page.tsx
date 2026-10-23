@@ -8,6 +8,7 @@ import {
   getFields,
   titles,
   roles,
+  sessionExpiredEvent,
 } from "./workspace-schema";
 import { Editor } from "./record-editor";
 
@@ -35,11 +36,23 @@ export default function Home() {
   const [grants, setGrants] = useState<Row[]>([]);
   const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
   useEffect(() => {
+    if (
+      new URLSearchParams(window.location.search).get("session") === "expired"
+    ) {
+      setError("نشست شما پایان یافته است. دوباره وارد شوید.");
+    }
     api("auth/me")
       .then(setMe)
       .catch(() => {})
       .finally(() => setChecking(false));
   }, []);
+  useEffect(() => {
+    if (!me) return;
+    // A fresh navigation discards cached tenant data, pending requests and form secrets.
+    const expired = () => window.location.replace("/?session=expired");
+    window.addEventListener(sessionExpiredEvent, expired);
+    return () => window.removeEventListener(sessionExpiredEvent, expired);
+  }, [me]);
   const all = async (resource: string): Promise<Row[]> => {
     const items: Row[] = [];
     let offset = 0;
@@ -119,7 +132,7 @@ export default function Home() {
   async function mutate(action: () => Promise<unknown>) {
     setError("");
     try {
-      await action();
+      if ((await action()) === false) return;
       setNotice("عملیات با موفقیت انجام شد.");
       await load();
     } catch (e) {
@@ -265,7 +278,8 @@ export default function Home() {
               onClick={() =>
                 mutate(async () => {
                   await api("auth/logout", "POST");
-                  setMe(null);
+                  window.location.replace("/");
+                  return false;
                 })
               }
             >
@@ -353,7 +367,8 @@ export default function Home() {
                     );
                     void mutate(async () => {
                       await api("auth/password", "PUT", data);
-                      setMe(null);
+                      window.location.replace("/");
+                      return false;
                     });
                   }}
                 >

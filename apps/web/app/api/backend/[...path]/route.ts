@@ -77,7 +77,10 @@ async function proxy(
     });
     delete data.access_token;
   }
-  if (result.status === 401 || (path.join("/") === "auth/logout" && result.ok))
+  if (
+    result.status === 401 ||
+    (["auth/logout", "auth/password"].includes(path.join("/")) && result.ok)
+  )
     jar.delete(cookieName);
   return NextResponse.json(data, {
     status: result.status,

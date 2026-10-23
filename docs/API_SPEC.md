@@ -88,3 +88,9 @@ or calls approval. Do not use real customer data in committed test fixtures.
 Concurrent organization-administration requests recheck the actor's current administrator
 role after acquiring the organization lock. If another administrator removed or demoted the
 actor while it waited, the request returns 403 and does not perform its mutation.
+
+For `PUT /auth/password`, an incorrect current password returns 400 while the existing
+session remains valid. A genuinely invalid/expired bearer still returns 401. On a successful
+password change, all backend sessions are revoked and the browser proxy deletes its cookie.
+Authenticated browser requests receiving 401 return to a fresh login page with a Persian
+session-ended message. Explicit logout also uses a fresh navigation to discard workspace state.

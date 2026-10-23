@@ -1,3 +1,5 @@
+export const sessionExpiredEvent = "steelos:session-expired";
+
 export type Row = Record<string, unknown> & { id: string };
 export type Option = { value: string; label: string };
 export type Field = {
@@ -92,11 +94,16 @@ export async function api(
   });
   const data = await result.json();
   if (!result.ok) {
+    if (result.status === 401 && path !== "auth/login") {
+      window.dispatchEvent(new Event(sessionExpiredEvent));
+    }
     const details = data.error?.details
       ?.map((d: { location: string[] }) => d.location.slice(1).join("."))
       .join("، ");
     throw new Error(
-      (errorMessages[result.status] || "عملیات ناموفق بود.") +
+      (result.status === 400 && path === "auth/password"
+        ? "رمز عبور فعلی درست نیست."
+        : errorMessages[result.status] || "عملیات ناموفق بود.") +
         (details ? ` (${details})` : ""),
     );
   }

@@ -45,3 +45,10 @@ membership role is queried again after acquiring the lock, because authorization
 before waiting may have become stale. Combined with rejecting self-demotion/removal, this
 prevents two concurrent admins from removing/demoting each other and leaving no admin.
 The lock permits normal foreign-key key-share locks; it does not serialize unrelated tenants.
+
+Browser session lifecycle: failed current-password verification is a 400 input error and does
+not clear an otherwise valid cookie. Actual 401 responses from authenticated requests trigger
+a full navigation to login, discarding tenant data, outstanding UI work and form secrets in the
+old document. Logout/password-change success deletes the HttpOnly cookie and navigates to a
+fresh document; no follow-up workspace load is issued after these actions. No business form
+payload or password is stored in browser storage to restore it after logout.

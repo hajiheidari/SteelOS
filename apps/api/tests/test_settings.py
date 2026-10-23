@@ -64,6 +64,13 @@ def test_membership_permissions_and_password_revocation(world):
         client.get("/api/v1/auth/me", headers=tokens[0]).json()["organization"]["name"]
         == "نام جدید"
     )
+    wrong_password = client.put(
+        "/api/v1/auth/password",
+        headers=headers,
+        json={"current_password": "Wrong-password-123", "new_password": "New-strong-password-456"},
+    )
+    assert wrong_password.status_code == 400
+    assert client.get("/api/v1/auth/me", headers=headers).status_code == 200
     assert (
         client.put(
             "/api/v1/auth/password",

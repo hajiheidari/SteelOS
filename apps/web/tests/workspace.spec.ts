@@ -163,3 +163,86 @@ test("catalog, warehouse and approved pricing form workflow", async ({
   await page.getByRole("combobox", { name: /^نمایش/ }).selectOption("approved");
   await expect(observation).toBeVisible();
 });
+
+async function loginWorkspace(page: import("@playwright/test").Page) {
+  await page.goto("/");
+  await page.getByLabel("ایمیل", { exact: true }).fill("browser@example.test");
+  await page
+    .getByLabel("رمز عبور", { exact: true })
+    .fill("Browser-test-only-123");
+  await page
+    .getByLabel("شناسه سازمان")
+    .fill("00000000-0000-0000-0000-000000000001");
+  await page.getByRole("button", { name: "ورود", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "نمای کلی", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".stats .stat")).toHaveCount(4);
+}
+
+test("incorrect current password preserves the authenticated session", async ({
+  page,
+  context,
+}) => {
+  await loginWorkspace(page);
+  const original = (await context.cookies()).find(
+    (c) => c.name === "steelos_session",
+  )!;
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "کاربران و تنظیمات", exact: true })
+    .click();
+  await page
+    .getByLabel("رمز عبور فعلی", { exact: true })
+    .fill("Incorrect-password-123");
+  await page
+    .getByLabel("رمز عبور جدید (حداقل ۱۲ نویسه)")
+    .fill("Unused-new-password-123");
+  await page
+    .getByRole("button", { name: "تغییر رمز و خروج از همه نشست‌ها" })
+    .click();
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: /رمز عبور فعلی درست نیست|نشست شما پایان یافته/ }),
+  ).toHaveText("رمز عبور فعلی درست نیست.");
+  expect(
+    (await context.cookies()).find((c) => c.name === "steelos_session")?.value,
+  ).toBe(original.value);
+  expect((await page.request.get("/api/backend/auth/me")).status()).toBe(200);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "نمای کلی", exact: true }),
+  ).toBeVisible();
+});
+
+test("revoked session discards workspace and returns to login with a Persian message", async ({
+  page,
+  context,
+}) => {
+  await loginWorkspace(page);
+  const cookies = await context.cookies();
+  const revoked = await page.request.post("/api/backend/auth/logout", {
+    headers: { Origin: "http://127.0.0.1:3000" },
+  });
+  expect(revoked.status()).toBe(200);
+  // Simulate a tab retaining a token revoked by another client.
+  await context.addCookies(cookies);
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "کالاها", exact: true })
+    .click();
+  await expect(page).toHaveURL(/session=expired/);
+  await expect(
+    page.getByRole("heading", { name: "ورود به فضای کاری" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("alert")
+      .filter({ hasText: /رمز عبور فعلی درست نیست|نشست شما پایان یافته/ }),
+  ).toHaveText("نشست شما پایان یافته است. دوباره وارد شوید.");
+  await expect(page.getByRole("navigation")).toHaveCount(0);
+  expect(
+    (await context.cookies()).find((c) => c.name === "steelos_session"),
+  ).toBeUndefined();
+});

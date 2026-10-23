@@ -208,7 +208,7 @@ def change_password(
 ):
     user = db.scalar(select(m.User).where(m.User.id == ctx.user_id).with_for_update())
     if not verify(payload.current_password, user.password_hash):
-        raise HTTPException(401, "Invalid current password")
+        raise HTTPException(400, "Invalid current password")
     user.password_hash = hasher.hash(payload.new_password)
     for session in db.scalars(select(m.AuthSession).where(m.AuthSession.user_id == ctx.user_id)):
         db.delete(session)

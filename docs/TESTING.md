@@ -33,3 +33,9 @@ Avoid using test fixture accounts/databases for real business data.
 Administrator race regressions synchronize two requests after authentication, then exercise
 mutual demotion, mutual removal and mixed demotion/removal. Each must yield one successful
 mutation and one 403, with exactly one administrator remaining in PostgreSQL.
+
+Browser session regressions additionally check incorrect-current-password behavior (same
+HttpOnly cookie and continued /auth/me access), and a tab retaining an actually revoked token
+(return to login, Persian explanation, no workspace navigation and no session cookie), on both
+desktop and mobile. This brings the browser suite to 10 tests. Backend password tests verify
+400 preserves the current session and successful change still revokes every session.
