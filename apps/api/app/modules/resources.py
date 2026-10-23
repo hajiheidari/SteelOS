@@ -279,6 +279,10 @@ def register(resource, model, schema):
         if prior:
             if prior.request_hash != fingerprint:
                 raise HTTPException(409, "Idempotency key reused with different request")
+            if model is m.Location:
+                # Cached creation data does not confer current warehouse authority.
+                row = get_row(db, model, ctx, UUID(prior.response["id"]))
+                warehouse_allowed(db, ctx, row.warehouse_id)
             return prior.response
         data = payload.model_dump(mode="python")
         # Nested JSON fields contain decimal strings and no Python model instances.

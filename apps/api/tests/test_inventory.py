@@ -484,3 +484,47 @@ def test_warehouse_revocation_blocks_queued_editor_mutation(inventory, resource)
     assert response.status_code == 403, response.text
     assert client.get("/api/v1/inventory/drafts", headers=tokens[0]).json()["total"] == 0
     assert client.get("/api/v1/locations", headers=tokens[0]).json()["total"] == 2
+
+
+@pytest.mark.parametrize("resource", ["locations", "inventory/drafts"])
+def test_idempotent_replay_does_not_restore_revoked_warehouse_access(inventory, resource):
+    env = inventory
+    client, tokens, _, users, warehouses, locations, _, lot, _ = env
+    assert (
+        client.put(
+            "/api/v1/organization/members/" + users[2], headers=tokens[0], json={"role": "editor"}
+        ).status_code
+        == 200
+    )
+    grant_data = {"user_id": users[2], "warehouse_id": warehouses[0]["id"]}
+    grant = create(client, tokens[0], "warehouse-access", grant_data)
+    payload = (
+        {"warehouse_id": warehouses[0]["id"], "code": "replay", "name": "Replay", "kind": "hall"}
+        if resource == "locations"
+        else {
+            "lot_id": lot["id"],
+            "kind": "receipt",
+            "quantity": "2",
+            "to_location_id": locations[0]["id"],
+            "reference": "Replay",
+        }
+    )
+    headers = {**tokens[2], "Idempotency-Key": "warehouse-replay"}
+    first = client.post("/api/v1/" + resource, headers=headers, json=payload)
+    assert first.status_code == 201
+    assert (
+        client.delete("/api/v1/warehouse-access/" + grant["id"], headers=tokens[0]).status_code
+        == 200
+    )
+    assert (
+        client.get("/api/v1/" + resource + "/" + first.json()["id"], headers=tokens[2]).status_code
+        == 404
+    )
+    replay = client.post("/api/v1/" + resource, headers=headers, json=payload)
+    assert replay.status_code == 404, replay.text
+    create(client, tokens[0], "warehouse-access", grant_data)
+    restored = client.post("/api/v1/" + resource, headers=headers, json=payload)
+    assert restored.status_code == 201 and restored.json() == first.json()
+    assert client.get("/api/v1/" + resource, headers=tokens[0]).json()["total"] == (
+        3 if resource == "locations" else 1
+    )

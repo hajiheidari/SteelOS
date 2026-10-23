@@ -65,3 +65,13 @@ such as the category-rule invariant. Identity administration retains its organiz
 See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
 role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
 M1 historical boundaries describe the foundation before this approved extension.
+
+### Warehouse grant checks and cached creation responses
+
+Warehouse-scoped mutations hold a shared lock on the actor's grant through commit;
+revocation that acquires its row first is awaited and denied after recheck. Grant revocation
+waits for a write that already acquired permission. Idempotency responses carry no authority:
+location creation replay must still resolve the existing record through current warehouse
+scope and hold the grant. Inventory draft replay likewise revalidates warehouse scope.
+Restoring access allows the same idempotency key to return its original result without
+creating another record. Requests denied for revoked scope do not create audit/domain rows.

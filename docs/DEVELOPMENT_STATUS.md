@@ -183,3 +183,14 @@
 - دو نقص مجوز نیز بازتولید شد: حذف commit‌نشدهٔ grant مانع ساخت location یا inventory draft توسط editor نمی‌شد (201). بررسی grant اکنون قفل shared تا commit نگه می‌دارد و حذف مقدم پس از انتظار 403 می‌دهد؛ در جهت مقابل، revoke منتظر write ازقبل مجاز می‌ماند.
 - بررسی محلی: هر ۳۶ تست backend موفق، شامل پنج تست تازهٔ رقابت واقعی؛ Ruff/format موفق. مدل DB، migration، dependency و UI تغییر نکرده‌اند؛ هشدار deprecation قبلی پابرجاست.
 - بستهٔ بعد همین نوبت: بررسی CI و بازبینی سناریوهای idempotency/مجوز در انبار؛ هیچ merge/main/deployment/paid service مجاز یا اجرا نشده است.
+
+### نتیجهٔ CI هم‌زمانی
+
+- commit `7a5c71c`؛ [PR CI شمارهٔ 39980873596](https://github.com/hajiheidari/SteelOS/actions/runs/39980873596) با هر دو job موفق پایان یافت؛ ۳۶ تست backend و مجموعهٔ ۱۴ تست مرورگر، migration، build و audit موفق‌اند.
+
+## مجوز جاری در replay مکان — 2026-10-23
+
+- بررسی idempotency یک نقص مستقل را بازتولید کرد: پس از revoke انبار، GET مکان 404 می‌داد اما replay ایجاد مکان همان اطلاعات را با 201 برمی‌گرداند. تست قبل از اصلاح شکست خورد؛ مسیر inventory draft در همان سناریو از قبل درست بود.
+- replay مکان اکنون رکورد را با scope فعلی می‌خواند و قفل grant می‌گیرد؛ revoke موجب 404 می‌شود. بازیابی grant همان پاسخ اصلی را می‌دهد و رکورد جدید ایجاد نمی‌کند. تست هر دو resource این رفتار و تعداد ثابت رکوردها را بررسی می‌کند.
+- هر ۳۸ تست backend محلی موفق، Ruff/format موفق؛ migration/dependency/UI تغییر نکرده‌اند. شاخه همان `codex/m1-foundation` است؛ commit بسته در تاریخچهٔ همراه سند ثبت می‌شود.
+- ادامه: CI commit تازه و به‌روزرسانی شواهد همان PR #1؛ هیچ main/merge/deployment/paid service انجام نشده است.
