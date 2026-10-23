@@ -1,4 +1,4 @@
-"""M1 persistence. Tenant relationships use composite foreign keys."""
+"""Core persistence with modular M2 inventory registration and tenant-aware FKs."""
 
 import uuid
 from datetime import datetime
@@ -249,3 +249,12 @@ class LoginAttempt(Base):
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
     failures: Mapped[int] = mapped_column(Integer, default=0)
     window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+# Register modular inventory tables with the same SQLAlchemy metadata/migration graph.
+from app.modules.inventory.models import (  # noqa: E402,F401
+    StockDraft,
+    StockEntry,
+    StockLot,
+    StockReservation,
+)

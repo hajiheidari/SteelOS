@@ -272,7 +272,7 @@ def test_readiness_openapi_and_errors(world):
         assert client.get("/api/v1/ready").status_code == 503
     finally:
         with engine().begin() as conn:
-            conn.execute(text("UPDATE alembic_version SET version_num='0001_m1'"))
+            conn.execute(text("UPDATE alembic_version SET version_num='0002_inventory'"))
 
 
 def test_concurrent_retry_is_atomic(world):

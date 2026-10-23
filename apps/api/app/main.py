@@ -12,8 +12,9 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException
 
 from app.config import settings
-from app.db import engine
+from app.db import SCHEMA_REVISION, engine
 from app.modules.identity import router as identity
+from app.modules.inventory.router import router as inventory
 from app.modules.resources import router as resources
 
 logger = logging.getLogger("steelos")
@@ -26,6 +27,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key"],
 )
 app.include_router(identity, prefix="/api/v1")
+app.include_router(inventory, prefix="/api/v1")
 app.include_router(resources, prefix="/api/v1")
 
 
@@ -120,7 +122,7 @@ def ready(request: Request):
     try:
         with engine().connect() as conn:
             version = conn.scalar(text("SELECT version_num FROM alembic_version"))
-            if version != "0001_m1":
+            if version != SCHEMA_REVISION:
                 return error(request, 503, "migration_required", "Database migration required")
     except SQLAlchemyError:
         return error(request, 503, "not_ready", "Database unavailable or migrations missing")

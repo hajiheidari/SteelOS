@@ -1,4 +1,8 @@
-"""M2 contracts only. No stock write APIs or editable balances exist in M1."""
+"""Historical M1 planning contracts; current M2 APIs use inventory/schemas.py.
+
+The implemented M2 lot identity is location-independent; physical positions come
+from ledger entries. These older shapes are retained as planning history only.
+"""
 
 from datetime import datetime
 from decimal import Decimal

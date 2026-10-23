@@ -117,6 +117,13 @@ def validate_domain(db, ctx, model, data, current=None):
         specification["attributes"] = attrs
         data["specification_hash"] = digest(json.dumps(specification, sort_keys=True))
         data["sku"] = data["sku"].upper()
+        if current and (
+            data["unit"] != current.unit or data["specification_hash"] != current.specification_hash
+        ):
+            if db.scalar(
+                scoped(m.StockLot, ctx).where(m.StockLot.product_id == current.id).limit(1)
+            ):
+                raise HTTPException(409, "Product technical identity is immutable once lots exist")
     if model == m.ProductIdentifier:
         get_row(db, m.Product, ctx, data["product_id"])
     if model == m.WarehouseAccess:
@@ -298,7 +305,7 @@ def register(resource, model, schema):
         record_id: UUID, payload, ctx: Context = Depends(context), db: Session = Depends(database)
     ):
         authorize_write(db, ctx, admin=admin_write)
-        row = get_row(db, model, ctx, record_id, lock=model is m.Reference)
+        row = get_row(db, model, ctx, record_id, lock=model in (m.Reference, m.Product))
         data = payload.model_dump(mode="python")
         for key in ("attributes", "attribute_rules", "contacts", "addresses"):
             if key in data:
