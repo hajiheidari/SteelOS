@@ -107,7 +107,7 @@ These small tests establish connectivity/basic extraction,
 not broad Persian accuracy, production load capacity or immunity to misinterpreted intent.
 Read-only hard limits still apply even if a model produces a misleading search term.
 
-Pending: richer dimension-aware search, broader quality/abuse evaluation, organization-specific
+Pending: ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
 operating limits, optional citation-based prose, agent service-principal lifecycle if needed,
 and separately authorized proposal/write workflows. OCR/research/marketing/channel agents
 are not implemented. No production deployment is included.
