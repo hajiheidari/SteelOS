@@ -126,8 +126,14 @@ def validate_domain(db, ctx, model, data, current=None):
         ):
             if db.scalar(
                 scoped(m.StockLot, ctx).where(m.StockLot.product_id == current.id).limit(1)
+            ) or db.scalar(
+                scoped(m.PriceObservation, ctx)
+                .where(m.PriceObservation.product_id == current.id)
+                .limit(1)
             ):
-                raise HTTPException(409, "Product technical identity is immutable once lots exist")
+                raise HTTPException(
+                    409, "Product technical identity is immutable once price history or lots exist"
+                )
     if model == m.ProductIdentifier:
         get_row(db, m.Product, ctx, data["product_id"])
     if model == m.WarehouseAccess:
@@ -152,7 +158,8 @@ def validate_domain(db, ctx, model, data, current=None):
                 raise HTTPException(422, "Parent belongs to another warehouse")
             parent_id = parent.parent_id
     if model == m.PriceObservation:
-        get_row(db, m.Product, ctx, data["product_id"])
+        # Serialize first price intake with technical product edits.
+        get_row(db, m.Product, ctx, data["product_id"], lock=True)
         get_row(db, m.PriceSource, ctx, data["source_id"])
         if current:
             raise HTTPException(405, "Price history is immutable; create a new observation")

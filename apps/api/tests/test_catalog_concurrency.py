@@ -92,3 +92,81 @@ def test_category_rules_cannot_change_during_validated_product_creation(world, m
     assert (
         stored["attributes"]["thickness"]["unit"] == rules["attribute_rules"]["thickness"]["unit"]
     )
+
+
+def test_first_price_intake_serializes_technical_product_edit(world, catalog, monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from app.models import PriceObservation
+
+    client, tokens, _, users = world
+    _, product_data, product = catalog
+    assert (
+        client.put(
+            "/api/v1/organization/members/" + users[2], headers=tokens[0], json={"role": "editor"}
+        ).status_code
+        == 200
+    )
+    source = create(
+        client,
+        tokens[0],
+        "price-sources",
+        {"code": "race", "name": "منبع", "kind": "manual", "provenance": "آزمون"},
+    )
+    at = datetime.now(UTC)
+    payload = {
+        "product_id": product["id"],
+        "source_id": source["id"],
+        "amount": "100",
+        "currency": "IRR",
+        "unit": "kg",
+        "observed_at": at.isoformat(),
+        "valid_until": (at + timedelta(hours=1)).isoformat(),
+        "delivery_location": "تهران",
+        "delivery_terms": "آزمون",
+        "tax_included": False,
+        "provenance": "مشاهده",
+    }
+    validated, release = Event(), Event()
+    original = resources.validate_domain
+
+    def pause(db, ctx, model, data, current=None):
+        result = original(db, ctx, model, data, current)
+        if model is PriceObservation:
+            validated.set()
+            assert release.wait(timeout=10)
+        return result
+
+    monkeypatch.setattr(resources, "validate_domain", pause)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        intake = pool.submit(create, client, tokens[2], "price-observations", payload)
+        try:
+            assert validated.wait(timeout=5)
+            update = pool.submit(
+                client.put,
+                "/api/v1/products/" + product["id"],
+                headers=tokens[0],
+                json={**product_data, "attributes": {"thickness": {"unit": "mm", "value": "3"}}},
+            )
+            deadline = monotonic() + 5
+            with engine().connect() as observer:
+                while monotonic() < deadline:
+                    observer.commit()
+                    waiting = observer.scalar(
+                        text("""SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+                        WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%products%')""")
+                    )
+                    if waiting or update.done():
+                        break
+                    sleep(0.01)
+                else:
+                    raise AssertionError("Product edit did not execute")
+        finally:
+            release.set()
+        intake.result(timeout=5)
+        response = update.result(timeout=5)
+    assert response.status_code == 409, response.text
+    assert (
+        client.get("/api/v1/products/" + product["id"], headers=tokens[0]).json()["attributes"]
+        == product["attributes"]
+    )

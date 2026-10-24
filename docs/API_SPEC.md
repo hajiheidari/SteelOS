@@ -128,12 +128,6 @@ without downloading the whole catalog. These are read projections; write and sin
 contracts stay unchanged. Warehouse grant labels include tenant member email only for
 admin-authorized grant lists. No foreign labels bypass organization/warehouse scope.
 
-## Bounded foundation reads
-
-`GET /organization/members` is admin-only and uses limit 1–100 (default 25),
-nonnegative offset, total and literal case-insensitive email `q` (maximum 200 characters).
-Items include id (alias of user_id), user_id, email and role; clients must page explicitly.
-Generic domain lists include tenant/warehouse-scoped `display_names` for the current page.
-Product list items include `category_rules` so editors can load dimensions without a complete
-catalog download. Write and single-record contracts remain unchanged. Grant labels expose
-tenant member email only to admin-authorized grant lists.
+Product technical identity/unit becomes immutable once any price observation or stock lot
+exists, preserving the meaning of historical prices. Name/SKU edits remain allowed. First
+price intake and technical edits serialize on the product row; conflicting edits return409.

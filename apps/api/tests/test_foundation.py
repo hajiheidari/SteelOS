@@ -517,3 +517,49 @@ def test_page_foreign_names_and_category_rules_preserve_scope(world, catalog):
     assert row["display_names"] == {"warehouse_id": "نام انبار", "user_id": "user2@example.test"}
     assert client.get("/api/v1/warehouse-access", headers=tokens[2]).status_code == 403
     assert client.get("/api/v1/locations", headers=tokens[1]).json()["items"] == []
+
+
+@pytest.mark.parametrize(
+    "changes", [{"unit": "tonne"}, {"attributes": {"thickness": {"unit": "mm", "value": "3"}}}]
+)
+def test_product_technical_identity_is_retained_after_price_intake(world, catalog, changes):
+    client, tokens, *_ = world
+    _, payload, product = catalog
+    source = create(
+        client,
+        tokens[0],
+        "price-sources",
+        {"code": "identity", "name": "منبع", "kind": "manual", "provenance": "آزمون"},
+    )
+    at = datetime.now(timezone.utc)
+    create(
+        client,
+        tokens[0],
+        "price-observations",
+        {
+            "product_id": product["id"],
+            "source_id": source["id"],
+            "amount": "100",
+            "currency": "IRR",
+            "unit": "kg",
+            "observed_at": at.isoformat(),
+            "valid_until": (at + timedelta(hours=1)).isoformat(),
+            "delivery_location": "تهران",
+            "delivery_terms": "درب انبار",
+            "tax_included": False,
+            "provenance": "مشاهده",
+        },
+    )
+    response = client.put(
+        "/api/v1/products/" + product["id"], headers=tokens[0], json={**payload, **changes}
+    )
+    assert response.status_code == 409, response.text
+    response = client.put(
+        "/api/v1/products/" + product["id"],
+        headers=tokens[0],
+        json={**payload, "name": "نام روشن‌تر", "sku": "RENAMED"},
+    )
+    assert response.status_code == 200
+    assert (
+        response.json()["unit"] == "kg" and response.json()["attributes"] == product["attributes"]
+    )
