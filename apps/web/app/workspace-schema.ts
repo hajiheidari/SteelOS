@@ -7,6 +7,7 @@ export type Field = {
   label: string;
   type?: string;
   options?: Option[];
+  resource?: string;
   required?: boolean;
   default?: string;
 };
@@ -151,16 +152,7 @@ export function display(value: unknown): string {
     return s.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]);
   return translations[s] || s;
 }
-export function getFields(
-  page: string,
-  refs: Row[],
-  warehouses: Row[],
-  products: Row[],
-  sources: Row[],
-  locations: Row[],
-): Field[] {
-  const opts = (rows: Row[]) =>
-    rows.map((r) => ({ value: r.id, label: String(r.name || r.code) }));
+export function getFields(page: string): Field[] {
   switch (page) {
     case "catalog-references":
       return [
@@ -181,7 +173,7 @@ export function getFields(
         ...["category", "manufacturer", "grade", "standard"].map((kind) => ({
           key: kind + "_id",
           label: kinds.find((k) => k.value === kind)!.label,
-          options: opts(refs.filter((r) => r.kind === kind)),
+          resource: `catalog-references?kind=${kind}`,
           required: kind === "category",
         })),
         { key: "unit", label: "واحد", options: units },
@@ -190,7 +182,7 @@ export function getFields(
       ];
     case "product-identifiers":
       return [
-        { key: "product_id", label: "کالا", options: opts(products) },
+        { key: "product_id", label: "کالا", resource: "products" },
         { key: "kind", label: "نوع شناسه (لاتین)", default: "barcode" },
         { key: "value", label: "شناسه" },
       ];
@@ -235,11 +227,11 @@ export function getFields(
       ];
     case "locations":
       return [
-        { key: "warehouse_id", label: "انبار", options: opts(warehouses) },
+        { key: "warehouse_id", label: "انبار", resource: "warehouses" },
         {
           key: "parent_id",
           label: "مکان والد",
-          options: opts(locations),
+          resource: "locations",
           required: false,
         },
         { key: "code", label: "کد مکان (لاتین)" },
@@ -263,8 +255,8 @@ export function getFields(
       ];
     case "price-observations":
       return [
-        { key: "product_id", label: "کالا", options: opts(products) },
-        { key: "source_id", label: "منبع قیمت", options: opts(sources) },
+        { key: "product_id", label: "کالا", resource: "products" },
+        { key: "source_id", label: "منبع قیمت", resource: "price-sources" },
         { key: "amount", label: "قیمت واحد", type: "decimal" },
         {
           key: "currency",

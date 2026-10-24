@@ -16,8 +16,8 @@ from app.security import (
     permit,
     verify,
 )
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 router = APIRouter(tags=["identity"])
@@ -133,15 +133,31 @@ def refresh(ctx: Context = Depends(context), db: Session = Depends(database)):
 
 
 @router.get("/organization/members")
-def members(ctx: Context = Depends(context), db: Session = Depends(database)):
+def members(
+    offset: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=100),
+    q: str = Query("", max_length=200),
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
     permit(ctx, admin=True)
-    rows = db.execute(
+    stmt = (
         select(m.Membership, m.User)
         .join(m.User, m.User.id == m.Membership.user_id)
         .where(m.Membership.organization_id == ctx.organization_id)
-    ).all()
+    )
+    if q.strip():
+        stmt = stmt.where(m.User.email.icontains(q.strip(), autoescape=True))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    rows = db.execute(stmt.order_by(m.User.email, m.User.id).offset(offset).limit(limit)).all()
     return {
-        "items": [{"user_id": u.id, "email": u.email, "role": member.role} for member, u in rows]
+        "items": [
+            {"id": u.id, "user_id": u.id, "email": u.email, "role": member.role}
+            for member, u in rows
+        ],
+        "total": total,
+        "offset": offset,
+        "limit": limit,
     }
 
 

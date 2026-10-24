@@ -239,3 +239,19 @@
 - محدودیت باقی‌مانده: benchmark حجیم و جست‌وجوی صفحه‌بندی‌شدهٔ سایر فرم‌های foundation مستقل‌اند؛ معاملات/حسابداری/انتقال مالکیت/backdating پیاده‌شده اعلام نمی‌شوند. DB schema/dependency/main/merge/deployment/paid services تغییر نکرده‌اند.
 - بستهٔ بعد: CI این تغییر و ادامهٔ محدودسازی فهرست‌های فرم‌های foundation؛ برای commit موفق متوقف نمی‌شویم.
 - نتیجهٔ نهایی محلی این batch: هر ۱۶ تست production-browser روی backend تازه موفق شدند؛ ادامهٔ کار با بررسی CI انجام می‌شود.
+
+### نتیجهٔ CI دریافت محدود انبار
+
+- commit `bb6a80e`؛ هر دو اجرای [PR CI شمارهٔ 40085349940](https://github.com/hajiheidari/SteelOS/actions/runs/40085349940) و push موفق؛ ۴۰ تست backend و ۱۶ تست browser و بررسی‌های migration/build/audit پاس شدند.
+
+## دریافت محدود در فرم‌های foundation و تنظیمات — 2026-10-24
+
+- شاخه `codex/m1-foundation`، مبنا `bb6a80e`؛ commit این batch همراه تاریخچهٔ گزارش ثبت می‌شود.
+- بارگذاری اجباری کل catalog/products/warehouses/locations/sources از Home حذف شد؛ dashboard فقط شمارنده‌های limit=1 می‌گیرد و جدول فقط صفحهٔ limit=25 جاری را دریافت می‌کند.
+- فرم‌های کالا/شناسه/قیمت/مکان از انتخاب‌گر مشترک جست‌جو و صفحه‌بندی استفاده می‌کنند. نمایش FKها از display_names محدود همان صفحه است؛ category_rules همراه محصول می‌آید تا ویرایش خارج از اولین صفحهٔ انتخاب‌گر، قواعد و مقدار ابعاد را از دست ندهد.
+- انتخاب والد مکان فقط در warehouse همان فرم جست‌وجو می‌شود؛ warehouse مکان موجود در فرم غیرفعال است چون قرارداد backend آن را immutable می‌داند.
+- API اعضا با limit/offset/total و جست‌وجوی literal ایمیل صفحه‌بندی شد و alias id=user_id برای انتخاب‌گر دارد؛ همان admin-only/organization scope برقرار است. جدول کاربران و grantها pagination مستقل دارد؛ grant form جست‌وجوی کاربر/انبار دارد و labelهای grant از projection tenant-scoped می‌آیند.
+- ۴۲ تست backend موفق‌اند، شامل دادهٔ بیش از یک صفحهٔ اعضا، جست‌وجوی underscore، isolation/permission، labelهای وابسته و قواعد گروه. Ruff/format، TypeScript و production build موفق‌اند.
+- ۱۸ تست browser کامل موفق؛ دو تست هدفمند تازه نیز روی desktop/mobile مدیریت کاربر، جست‌وجوی grant، ثبت و revoke واقعی را پاس کردند (مجموع فعلی ۲۰ تست). شکست نخست price workflow از selector مبهم پس از افزودن کادر search بود و با combobox دقیق اصلاح شد؛ نقص محصول گزارش نشد.
+- کلیک روی navigation همان نمای بدون تغییر، دیگر بارگذاری فعال را invalidate و جدول را بی‌دلیل پاک نمی‌کند. تغییر schema/dependency/main/merge/deployment/paid service وجود ندارد.
+- ادامهٔ کار: CI همین بسته و طراحی draft داخلی معاملات با مرز صریحِ محاسبات نهایی، مالکیت موجودی و حسابداری؛ هیچ قابلیت مالی تأییدشده بدون قاعدهٔ کسب‌وکار معرفی نمی‌شود.

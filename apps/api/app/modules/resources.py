@@ -159,6 +159,50 @@ def validate_domain(db, ctx, model, data, current=None):
     return data
 
 
+def page_labels(db, ctx, model, items):
+    """Resolve foreign labels for this page only; never return master-list snapshots."""
+    targets = (
+        (m.Reference, ("category_id", "manufacturer_id", "grade_id", "standard_id")),
+        (m.Product, ("product_id",)),
+        (m.Warehouse, ("warehouse_id",)),
+        (m.Location, ("parent_id",)),
+        (m.PriceSource, ("source_id",)),
+    )
+    for item in items:
+        item["display_names"] = {}
+    for target, keys in targets:
+        ids = {UUID(str(item[key])) for item in items for key in keys if item.get(key)}
+        if not ids:
+            continue
+        related = {
+            str(row.id): row
+            for row in db.scalars(
+                accessible(scoped(target, ctx), target, ctx).where(target.id.in_(ids))
+            )
+        }
+        for item in items:
+            for key in keys:
+                row = related.get(str(item.get(key)))
+                if row:
+                    item["display_names"][key] = row.name
+                    if model is m.Product and key == "category_id":
+                        item["category_rules"] = row.attribute_rules
+                    if model is m.Location and key == "warehouse_id":
+                        item["warehouse_name"] = row.name
+    if model is m.WarehouseAccess and items:
+        ids = {UUID(str(item["user_id"])) for item in items}
+        emails = dict(
+            db.execute(
+                select(m.User.id, m.User.email)
+                .join(m.Membership, m.Membership.user_id == m.User.id)
+                .where(m.Membership.organization_id == ctx.organization_id, m.User.id.in_(ids))
+            ).all()
+        )
+        for item in items:
+            item["display_names"]["user_id"] = emails.get(UUID(str(item["user_id"])))
+    return items
+
+
 def register(resource, model, schema):
     admin_only = model in (m.WarehouseAccess,)
     admin_write = model in (m.Warehouse, m.WarehouseAccess, m.PriceSource, m.Reference)
@@ -247,23 +291,7 @@ def register(resource, model, schema):
             .offset(offset)
             .limit(limit)
         ).all()
-        items = [serialize(row) for row in rows]
-        if model is m.Location:
-            warehouse_ids = {row.warehouse_id for row in rows}
-            names = (
-                {
-                    str(row.id): row.name
-                    for row in db.scalars(
-                        accessible(scoped(m.Warehouse, ctx), m.Warehouse, ctx).where(
-                            m.Warehouse.id.in_(warehouse_ids)
-                        )
-                    )
-                }
-                if warehouse_ids
-                else {}
-            )
-            for item in items:
-                item["warehouse_name"] = names.get(str(item["warehouse_id"]))
+        items = page_labels(db, ctx, model, [serialize(row) for row in rows])
         return {
             "items": items,
             "total": count,

@@ -470,3 +470,50 @@ def test_mock_ingestion_uses_domain_api_and_replays(world, catalog):
         ]
         == 0
     )
+
+
+def test_page_foreign_names_and_category_rules_preserve_scope(world, catalog):
+    client, tokens, _, users = world
+    category, _, product = catalog
+    listed = client.get("/api/v1/products?limit=1", headers=tokens[0]).json()["items"][0]
+    assert listed["id"] == product["id"]
+    assert listed["display_names"]["category_id"] == category["name"]
+    assert listed["category_rules"] == category["attribute_rules"]
+    warehouse = create(
+        client,
+        tokens[0],
+        "warehouses",
+        {"code": "labels", "name": "نام انبار", "city": "تهران", "address": "آزمون"},
+    )
+    grant = create(
+        client,
+        tokens[0],
+        "warehouse-access",
+        {"warehouse_id": warehouse["id"], "user_id": users[2]},
+    )
+    parent = create(
+        client,
+        tokens[0],
+        "locations",
+        {"warehouse_id": warehouse["id"], "code": "parent", "name": "والد", "kind": "hall"},
+    )
+    child = create(
+        client,
+        tokens[0],
+        "locations",
+        {
+            "warehouse_id": warehouse["id"],
+            "parent_id": parent["id"],
+            "code": "child",
+            "name": "فرزند",
+            "kind": "bin",
+        },
+    )
+    rows = client.get("/api/v1/locations", headers=tokens[2]).json()["items"]
+    row = next(row for row in rows if row["id"] == child["id"])
+    assert row["display_names"] == {"warehouse_id": "نام انبار", "parent_id": "والد"}
+    grants = client.get("/api/v1/warehouse-access", headers=tokens[0]).json()["items"]
+    row = next(row for row in grants if row["id"] == grant["id"])
+    assert row["display_names"] == {"warehouse_id": "نام انبار", "user_id": "user2@example.test"}
+    assert client.get("/api/v1/warehouse-access", headers=tokens[2]).status_code == 403
+    assert client.get("/api/v1/locations", headers=tokens[1]).json()["items"] == []

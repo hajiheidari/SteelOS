@@ -114,3 +114,16 @@ M1 historical boundaries describe the foundation before this approved extension.
 Inventory paged read projections and `q`, `remaining_only`, `unexpired_only`,
 `reversible_only` filters are documented in [INVENTORY.md](INVENTORY.md). These are
 additive read contracts; no posting or authorization rule changes.
+
+## Bounded foundation reads
+
+`GET /organization/members` is admin-only and now uses the common pagination contract:
+limit 1–100 (default 25), nonnegative offset, total and literal case-insensitive email `q`
+(maximum 200 characters). Each item includes id (an alias of user_id), user_id, email and
+role. Consumers must page explicitly; a single request is not a complete member roster.
+
+Generic domain lists include page-scoped `display_names` for accessible foreign records.
+Product list items additionally contain `category_rules` for editing technical dimensions
+without downloading the whole catalog. These are read projections; write and single-record
+contracts stay unchanged. Warehouse grant labels include tenant member email only for
+admin-authorized grant lists. No foreign labels bypass organization/warehouse scope.

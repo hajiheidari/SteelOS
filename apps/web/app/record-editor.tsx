@@ -7,6 +7,8 @@ import {
   normalizeDecimalInput,
 } from "./workspace-schema";
 
+import { RemoteSelect } from "./remote-select";
+
 type DimensionRules = Record<string, { unit: string; required: boolean }>;
 
 function Collection({
@@ -213,14 +215,12 @@ export function Editor({
   onSave,
   onCancel,
   page,
-  refs,
 }: {
   fields: Field[];
   initial?: Row;
   onSave: (data: Record<string, unknown>, key: string) => Promise<void>;
   onCancel: () => void;
   page: string;
-  refs: Row[];
 }) {
   const [values, setValues] = useState<Record<string, unknown>>(() =>
     Object.fromEntries(
@@ -239,20 +239,36 @@ export function Editor({
       ]),
     ),
   );
-  const dimensionRules = (refs.find((r) => r.id === values.category_id)
-    ?.attribute_rules || {}) as DimensionRules;
+  const [selectedRows, setSelectedRows] = useState<Record<string, Row>>(() => {
+    const names = initial?.display_names as Record<string, string> | undefined;
+    return Object.fromEntries(
+      fields
+        .filter((f) => f.resource && initial?.[f.key])
+        .map((f) => [
+          f.key,
+          {
+            id: String(initial![f.key]),
+            name: names?.[f.key] || "—",
+            ...(f.key === "category_id"
+              ? { attribute_rules: initial?.category_rules || {} }
+              : {}),
+          },
+        ]),
+    );
+  });
+  const dimensionRules = (selectedRows.category_id?.attribute_rules ||
+    {}) as DimensionRules;
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const retry = useRef({ signature: "", key: "" });
-  function set(key: string, value: unknown) {
+  function set(key: string, value: unknown, selected?: Row | null) {
+    if (selected !== undefined)
+      setSelectedRows((old) => ({ ...old, [key]: selected || { id: "" } }));
     setValues((old) => {
       const next = { ...old, [key]: value };
       if (page === "products" && key === "category_id") {
         const rules =
-          (refs.find((r) => r.id === value)?.attribute_rules as Record<
-            string,
-            { unit: string }
-          >) || {};
+          (selected?.attribute_rules as Record<string, { unit: string }>) || {};
         next.attributes = Object.fromEntries(
           Object.entries(rules).map(([k, r]) => [
             k,
@@ -260,6 +276,7 @@ export function Editor({
           ]),
         );
       }
+      if (page === "locations" && key === "warehouse_id") next.parent_id = "";
       return next;
     });
   }
@@ -346,6 +363,31 @@ export function Editor({
                 </label>
               ))}
             </fieldset>
+          ) : f.resource ? (
+            <RemoteSelect
+              key={`${f.key}-${f.key === "parent_id" ? values.warehouse_id : ""}`}
+              label={`${f.label}${f.required !== false ? " *" : ""}`}
+              resource={
+                f.key === "parent_id"
+                  ? values.warehouse_id
+                    ? `locations?warehouse_id=${values.warehouse_id}`
+                    : ""
+                  : f.resource
+              }
+              value={String(values[f.key] || "")}
+              selectedOption={selectedRows[f.key]}
+              required={f.required !== false}
+              disabled={
+                saving ||
+                !!(initial && page === "locations" && f.key === "warehouse_id")
+              }
+              optionLabel={(row) =>
+                f.resource === "locations"
+                  ? `${row.warehouse_name || ""} / ${row.name}`
+                  : String(row.name || row.code)
+              }
+              onChange={(row) => set(f.key, row?.id || "", row)}
+            />
           ) : (
             <label key={f.key}>
               {f.label}

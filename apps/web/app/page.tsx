@@ -17,6 +17,7 @@ import {
   sessionExpiredEvent,
 } from "./workspace-schema";
 import { Editor } from "./record-editor";
+import { RemoteSelect } from "./remote-select";
 import { InventoryWorkspace } from "./inventory-workspace";
 
 export default function Home() {
@@ -33,14 +34,13 @@ export default function Home() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Row | null | undefined>(undefined);
-  const [refs, setRefs] = useState<Row[]>([]);
-  const [warehouses, setWarehouses] = useState<Row[]>([]);
-  const [products, setProducts] = useState<Row[]>([]);
-  const [sources, setSources] = useState<Row[]>([]);
-  const [locations, setLocations] = useState<Row[]>([]);
   const [stats, setStats] = useState<Record<string, number>>({});
   const [members, setMembers] = useState<Row[]>([]);
   const [grants, setGrants] = useState<Row[]>([]);
+  const [memberOffset, setMemberOffset] = useState(0);
+  const [grantOffset, setGrantOffset] = useState(0);
+  const [memberTotal, setMemberTotal] = useState(0);
+  const [grantTotal, setGrantTotal] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState<Row | null>(null);
   const viewKey = JSON.stringify([
     me?.organization.id,
@@ -49,6 +49,8 @@ export default function Home() {
     offset,
     search,
     filter,
+    memberOffset,
+    grantOffset,
   ]);
   const latestView = useRef(viewKey);
   useLayoutEffect(() => {
@@ -73,16 +75,6 @@ export default function Home() {
     window.addEventListener(sessionExpiredEvent, expired);
     return () => window.removeEventListener(sessionExpiredEvent, expired);
   }, [me]);
-  const all = async (resource: string): Promise<Row[]> => {
-    const items: Row[] = [];
-    let offset = 0;
-    while (true) {
-      const data = await api(`${resource}?limit=100&offset=${offset}`);
-      items.push(...data.items);
-      if (items.length >= data.total) return items;
-      offset += 100;
-    }
-  };
   const load = useCallback(async () => {
     if (!me || latestView.current !== viewKey) return;
     if (page === "inventory") {
@@ -96,21 +88,6 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const referenceData = await Promise.all(
-        [
-          "catalog-references",
-          "warehouses",
-          "products",
-          "price-sources",
-          "locations",
-        ].map(all),
-      );
-      if (!current()) return;
-      setRefs(referenceData[0]);
-      setWarehouses(referenceData[1]);
-      setProducts(referenceData[2]);
-      setSources(referenceData[3]);
-      setLocations(referenceData[4]);
       if (page === "dashboard") {
         const keys = [
           "products",
@@ -123,11 +100,15 @@ export default function Home() {
         setStats(Object.fromEntries(keys.map((k, i) => [k, values[i].total])));
       } else if (page === "settings") {
         if (me.role === "admin") {
-          const memberData = await api("organization/members");
-          const grantData = await all("warehouse-access");
+          const [memberData, grantData] = await Promise.all([
+            api(`organization/members?limit=25&offset=${memberOffset}`),
+            api(`warehouse-access?limit=25&offset=${grantOffset}`),
+          ]);
           if (!current()) return;
           setMembers(memberData.items);
-          setGrants(grantData);
+          setGrants(grantData.items);
+          setMemberTotal(memberData.total);
+          setGrantTotal(grantData.total);
         }
       } else {
         const extra =
@@ -148,7 +129,7 @@ export default function Home() {
     } finally {
       if (current()) setLoading(false);
     }
-  }, [me, page, offset, search, filter, viewKey]);
+  }, [me, page, offset, search, filter, memberOffset, grantOffset, viewKey]);
   useEffect(() => {
     void load();
     return () => {
@@ -156,9 +137,13 @@ export default function Home() {
     };
   }, [load]);
   function navigate(key: string) {
-    loadSequence.current += 1;
-    setRows([]);
-    setTotal(0);
+    const changed =
+      key !== page || offset !== 0 || search !== "" || filter !== "";
+    if (changed) {
+      loadSequence.current += 1;
+      setRows([]);
+      setTotal(0);
+    }
     setPage(key);
     setOffset(0);
     setQuery("");
@@ -259,14 +244,7 @@ export default function Home() {
     );
   const admin = me.role === "admin";
   const canWrite = me.role !== "viewer";
-  const fields = getFields(
-    page,
-    refs,
-    warehouses,
-    products,
-    sources,
-    locations,
-  );
+  const fields = getFields(page);
   const columns = fields
     .filter(
       (f) =>
@@ -520,6 +498,23 @@ export default function Home() {
                         </tbody>
                       </table>
                     </div>
+                    <div className="pagination">
+                      <button
+                        className="quiet"
+                        disabled={loading || memberOffset === 0}
+                        onClick={() => setMemberOffset(memberOffset - 25)}
+                      >
+                        کاربران قبلی
+                      </button>
+                      <span>{display(memberTotal)} کاربر</span>
+                      <button
+                        className="quiet"
+                        disabled={loading || memberOffset + 25 >= memberTotal}
+                        onClick={() => setMemberOffset(memberOffset + 25)}
+                      >
+                        کاربران بعدی
+                      </button>
+                    </div>
                     <form
                       className="form-grid"
                       onSubmit={(e) => {
@@ -583,42 +578,48 @@ export default function Home() {
                         );
                       }}
                     >
-                      <label>
-                        کاربر
-                        <select name="user_id" required>
-                          <option value="">انتخاب کنید</option>
-                          {members.map((m) => (
-                            <option
-                              key={String(m.user_id)}
-                              value={String(m.user_id)}
-                            >
-                              {String(m.email)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label>
-                        انبار
-                        <select name="warehouse_id" required>
-                          <option value="">انتخاب کنید</option>
-                          {warehouses.map((w) => (
-                            <option key={w.id} value={w.id}>
-                              {String(w.name)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <RemoteSelect
+                        label="کاربر"
+                        resource="organization/members"
+                        name="user_id"
+                        required
+                        optionLabel={(row) => String(row.email)}
+                      />
+                      <RemoteSelect
+                        label="انبار"
+                        resource="warehouses"
+                        name="warehouse_id"
+                        required
+                      />
                       <button>ثبت دسترسی</button>
                     </form>
+                    <div className="pagination">
+                      <button
+                        className="quiet"
+                        disabled={loading || grantOffset === 0}
+                        onClick={() => setGrantOffset(grantOffset - 25)}
+                      >
+                        دسترسی‌های قبلی
+                      </button>
+                      <span>{display(grantTotal)} دسترسی</span>
+                      <button
+                        className="quiet"
+                        disabled={loading || grantOffset + 25 >= grantTotal}
+                        onClick={() => setGrantOffset(grantOffset + 25)}
+                      >
+                        دسترسی‌های بعدی
+                      </button>
+                    </div>
                     {grants.map((g) => (
                       <p key={g.id}>
                         {String(
-                          members.find((m) => m.user_id === g.user_id)?.email ||
-                            g.user_id,
+                          (g.display_names as Record<string, string>)
+                            ?.user_id || g.user_id,
                         )}{" "}
                         ·{" "}
                         {String(
-                          warehouses.find((w) => w.id === g.warehouse_id)?.name,
+                          (g.display_names as Record<string, string>)
+                            ?.warehouse_id || "—",
                         )}{" "}
                         <button
                           className="quiet"
@@ -642,7 +643,6 @@ export default function Home() {
                 <Editor
                   key={`${page}-${editing?.id || "new"}`}
                   fields={fields}
-                  refs={refs}
                   initial={editing || undefined}
                   page={page}
                   onCancel={() => setEditing(undefined)}
@@ -747,14 +747,10 @@ export default function Home() {
                             <td key={f.key}>
                               {f.key.endsWith("_id")
                                 ? String(
-                                    [
-                                      ...refs,
-                                      ...warehouses,
-                                      ...products,
-                                      ...sources,
-                                      ...locations,
-                                    ].find((r) => r.id === row[f.key])?.name ||
-                                      "—",
+                                    (
+                                      row.display_names as
+                                        Record<string, string> | undefined
+                                    )?.[f.key] || "—",
                                   )
                                 : display(row[f.key])}
                             </td>

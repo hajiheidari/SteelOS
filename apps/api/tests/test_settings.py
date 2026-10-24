@@ -167,3 +167,40 @@ def test_concurrent_admin_changes_preserve_an_administrator(world, monkeypatch, 
             )
         ).all()
         assert len(admins) == 1
+
+
+def test_member_pages_search_are_bounded_and_organization_scoped(world):
+    from uuid import UUID
+
+    from app import models as m
+    from app.db import engine
+    from sqlalchemy.orm import Session
+
+    client, tokens, orgs, users = world
+    with Session(engine()) as db, db.begin():
+        password_hash = db.get(m.User, UUID(users[0])).password_hash
+        for index in range(28):
+            email = f"bounded-{index:02}@example.test" if index else "bounded_needle@example.test"
+            user = m.User(email=email, password_hash=password_hash)
+            db.add(user)
+            db.flush()
+            db.add(m.Membership(organization_id=UUID(orgs[0]), user_id=user.id, role="viewer"))
+    first = client.get("/api/v1/organization/members?limit=25", headers=tokens[0]).json()
+    second = client.get("/api/v1/organization/members?limit=25&offset=25", headers=tokens[0]).json()
+    assert first["total"] == second["total"] == 30
+    assert len(first["items"]) == 25 and len(second["items"]) == 5
+    assert {row["id"] for row in first["items"]}.isdisjoint({row["id"] for row in second["items"]})
+    assert all(row["id"] == row["user_id"] for row in first["items"])
+    result = client.get(
+        "/api/v1/organization/members", headers=tokens[0], params={"q": "bounded_"}
+    ).json()
+    assert result["total"] == 1 and result["items"][0]["email"] == "bounded_needle@example.test"
+    assert (
+        client.get("/api/v1/organization/members?q=bounded", headers=tokens[1]).json()["total"] == 0
+    )
+    assert client.get("/api/v1/organization/members", headers=tokens[2]).status_code == 403
+    for params in ({"limit": 101}, {"limit": 0}, {"offset": -1}, {"q": "x" * 201}):
+        assert (
+            client.get("/api/v1/organization/members", headers=tokens[0], params=params).status_code
+            == 422
+        )

@@ -120,7 +120,9 @@ test("catalog, warehouse and approved pricing form workflow", async ({
   await newRecord("کالاها");
   await page.getByLabel("کد کالا (SKU)").fill("sku-" + unique);
   await page.getByLabel("نام کالا").fill("کالا " + unique);
-  await page.getByLabel("گروه کالا").selectOption({ label: "گروه " + unique });
+  await page
+    .getByRole("combobox", { name: /^گروه کالا/ })
+    .selectOption({ label: "گروه " + unique });
   await page.getByLabel("مقدار thickness").fill("۲٫۰۰۰");
   await expect(page.getByLabel("مقدار thickness")).toHaveAttribute(
     "required",
@@ -179,7 +181,9 @@ test("catalog, warehouse and approved pricing form workflow", async ({
   await page
     .getByRole("combobox", { name: /^کالا \*/ })
     .selectOption({ label: "کالا " + unique });
-  await page.getByLabel("منبع قیمت").selectOption({ label: "منبع " + unique });
+  await page
+    .getByRole("combobox", { name: /^منبع قیمت/ })
+    .selectOption({ label: "منبع " + unique });
   await page.getByLabel("قیمت واحد").fill("١٢٣٬٤٥٦٫۱۲۳۴۵۶");
   await page.getByLabel("ارز").selectOption("IRR");
   await page.getByRole("combobox", { name: /^واحد \*/ }).selectOption("kg");
@@ -351,4 +355,172 @@ test("a delayed product response cannot overwrite a newer party page", async ({
   } finally {
     release();
   }
+});
+
+test("catalog editor resolves a category beyond the first page without losing dimension rules", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.getByLabel("ایمیل", { exact: true }).fill("browser@example.test");
+  await page
+    .getByLabel("رمز عبور", { exact: true })
+    .fill("Browser-test-only-123");
+  await page
+    .getByLabel("شناسه سازمان")
+    .fill("00000000-0000-0000-0000-000000000001");
+  await page.getByRole("button", { name: "ورود", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "نمای کلی", exact: true }),
+  ).toBeVisible();
+  const stamp = Date.now().toString();
+  async function create(path: string, data: object) {
+    const response = await page.request.post("/api/backend/" + path, {
+      headers: {
+        Origin: "http://127.0.0.1:3000",
+        "Idempotency-Key": crypto.randomUUID(),
+      },
+      data,
+    });
+    expect(response.status(), await response.text()).toBe(201);
+    return response.json();
+  }
+  const category = await create("catalog-references", {
+    kind: "category",
+    code: "selected-" + stamp,
+    name: "گروه قدیمی " + stamp,
+    attribute_rules: {
+      thickness: { unit: "mm", required: true },
+      width: { unit: "mm", required: false },
+    },
+  });
+  for (let index = 0; index < 27; index++)
+    await create("catalog-references", {
+      kind: "category",
+      code: `page-${stamp}-${index}`,
+      name: `گروه ${stamp}-${index}`,
+    });
+  const product = await create("products", {
+    sku: "edit-" + stamp,
+    name: "کالای قبلی " + stamp,
+    category_id: category.id,
+    unit: "kg",
+    attributes: { thickness: { unit: "mm", value: "2" } },
+  });
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "کالاها", exact: true })
+    .click();
+  const row = page.getByRole("row").filter({ hasText: product.name });
+  await expect(row).toContainText(category.name);
+  await row.getByRole("button", { name: "ویرایش", exact: true }).click();
+  const select = page.getByRole("combobox", { name: /^گروه کالا/ });
+  await expect(select).toHaveValue(category.id);
+  await expect(page.getByLabel("مقدار thickness")).toHaveValue("2");
+  await expect(page.getByLabel("مقدار thickness")).toHaveAttribute(
+    "required",
+    "",
+  );
+  await expect(page.getByLabel("واحد thickness")).toBeDisabled();
+  await page.getByLabel("مقدار width").fill("۱۲۵۰٫۵");
+  const saved = page.waitForResponse(
+    (response) =>
+      response.request().method() === "PUT" &&
+      response.url().endsWith("/products/" + product.id),
+  );
+  await page.getByRole("button", { name: "ذخیره", exact: true }).click();
+  expect((await saved).ok()).toBeTruthy();
+  await expect(
+    page.getByRole("heading", { name: "ویرایش رکورد", exact: true }),
+  ).toHaveCount(0);
+  const updated = await (
+    await page.request.get("/api/backend/products/" + product.id)
+  ).json();
+  expect(updated.attributes.width).toEqual({ unit: "mm", value: "1250.5" });
+  await page.getByRole("button", { name: "+ ثبت جدید", exact: true }).click();
+  await page.getByLabel("کد کالا (SKU)").fill("new-" + stamp);
+  await page.getByLabel("نام کالا").fill("کالای جدید " + stamp);
+  await page
+    .getByLabel("جست‌وجوی گروه کالا *", { exact: true })
+    .fill(category.name);
+  await select.selectOption(category.id);
+  await page.getByLabel("مقدار thickness").fill("۳");
+  await page.getByRole("combobox", { name: /^واحد \*/ }).selectOption("kg");
+  const created = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/products"),
+  );
+  await page.getByRole("button", { name: "ذخیره", exact: true }).click();
+  const response = await created;
+  expect(response.status()).toBe(201);
+  expect((await response.json()).attributes).toEqual({
+    thickness: { unit: "mm", value: "3" },
+  });
+});
+
+test("organization settings use searchable users and warehouse grants", async ({
+  page,
+}) => {
+  await loginWorkspace(page);
+  const stamp = Date.now().toString();
+  const email = `member-${stamp}@example.test`;
+  const warehouseResponse = await page.request.post("/api/backend/warehouses", {
+    headers: {
+      Origin: "http://127.0.0.1:3000",
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    data: {
+      code: "grant-" + stamp,
+      name: "انبار دسترسی " + stamp,
+      city: "تهران",
+      address: "آزمون",
+    },
+  });
+  expect(warehouseResponse.status()).toBe(201);
+  const warehouse = await warehouseResponse.json();
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "کاربران و تنظیمات", exact: true })
+    .click();
+  await page.getByLabel("ایمیل کاربر جدید").fill(email);
+  await page.getByLabel("رمز عبور اولیه").fill("Temporary-browser-only-123");
+  await page
+    .getByRole("combobox", { name: "نقش", exact: true })
+    .selectOption("editor");
+  const creation = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/organization/members"),
+  );
+  await page.getByRole("button", { name: "افزودن کاربر", exact: true }).click();
+  expect((await creation).status()).toBe(201);
+  const memberRow = page.getByRole("row").filter({ hasText: email });
+  await expect(memberRow).toBeVisible();
+  await page.getByLabel("جست‌وجوی کاربر", { exact: true }).fill(email);
+  await page
+    .getByLabel("کاربر", { exact: true })
+    .selectOption({ label: email });
+  await page.getByLabel("جست‌وجوی انبار", { exact: true }).fill(warehouse.name);
+  await page.getByLabel("انبار", { exact: true }).selectOption(warehouse.id);
+  const grantRequest = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/warehouse-access"),
+  );
+  await page.getByRole("button", { name: "ثبت دسترسی", exact: true }).click();
+  expect((await grantRequest).status()).toBe(201);
+  const grant = page
+    .locator("p")
+    .filter({ hasText: email })
+    .filter({ hasText: warehouse.name });
+  await expect(grant).toBeVisible();
+  const revoked = page.waitForResponse(
+    (response) =>
+      response.request().method() === "DELETE" &&
+      response.url().includes("/warehouse-access/"),
+  );
+  await grant.getByRole("button", { name: "لغو دسترسی", exact: true }).click();
+  expect((await revoked).ok()).toBeTruthy();
+  await expect(grant).toHaveCount(0);
 });
