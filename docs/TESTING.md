@@ -206,3 +206,8 @@ Local exclusive-bound batch:178 backend tests passed,2 actual-model tests skippe
 browser tests passed. Expanded synthetic actual-model evaluation21/21 is recorded in
  evidence/local-assistant-exclusive-ranges-2026-10-25.json (Tehran date). This small regression
 set is not a general language accuracy/production-readiness benchmark. Earlier counts are historical.
+
+Exclusive-bound implementation9f9a61b passed both PR CI jobs40133189700:178 backend tests,
+2 actual-model opt-in skips,24 desktop/mobile browser tests, migration/model drift,
+Ruff/format, TypeScript/build and dependency audits.113 actual-model assistant tests and
+21 synthetic extraction cases were run separately; CI downloads no weights or paid services.
