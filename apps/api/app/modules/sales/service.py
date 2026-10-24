@@ -5,7 +5,7 @@ from decimal import ROUND_HALF_UP, Decimal, localcontext
 from app import models as m
 from app.modules.resources import audit, get_row, scoped, serialize
 from fastapi import HTTPException
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, tuple_
 
 
 def now(db):
@@ -137,6 +137,26 @@ def rows_by_id(db, ctx, model, ids):
     )
 
 
+def review_summary(review):
+    return {key: value for key, value in serialize(review).items() if key != "snapshot"}
+
+
+def current_reviews(db, ctx, drafts):
+    if not drafts:
+        return {}
+    versions = {row.id: row.version for row in drafts}
+    rows = db.scalars(
+        scoped(m.SalesDraftReview, ctx).where(
+            tuple_(m.SalesDraftReview.draft_id, m.SalesDraftReview.version).in_(
+                list(versions.items())
+            )
+        )
+    )
+    return {
+        row.draft_id: review_summary(row) for row in rows if row.version == versions[row.draft_id]
+    }
+
+
 def details(db, ctx, draft):
     result = serialize(draft)
     result["tax_rate_percent"] = (
@@ -198,6 +218,17 @@ def details(db, ctx, draft):
         prices_usable=all(line["price_usable"] for line in lines),
         financial_approval=False,
         invoice_policy=invoice_policy(draft.currency),
+    )
+    result["internal_review"] = current_reviews(db, ctx, [draft]).get(draft.id)
+    result["internal_review_usable"] = bool(
+        result["internal_review"]
+        and result["internal_review"]["decision"] == "accepted"
+        and draft.status == "draft"
+        and draft.currency == "IRR"
+        and draft.tax_rate_percent is not None
+        and draft.amount_rounding == "half_up_2"
+        and result["prices_usable"]
+        and result["customer_eligible"]
     )
     return result
 

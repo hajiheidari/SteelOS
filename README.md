@@ -7,6 +7,8 @@ adds ownership-aware lots, immutable stock movements and reservations; see
 [Inventory contracts](docs/INVENTORY.md). Internal sales drafts with immutable revisions
 and configurable separate tax are available. Iranian monetary amounts use IRR and
 two-place ROUND_HALF_UP; raw rate/quantity evidence remains exact. See [scope and financial limits](docs/SALES_DRAFTS.md).
+Version-bound internal reviews are available; financial/customer issuance remains planned.
+[AI agent readiness](docs/AGENT_READINESS.md) distinguishes prerequisites from unimplemented agents.
 No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
 
 ## Clean local setup

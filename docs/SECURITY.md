@@ -102,3 +102,11 @@ supply another organization ID. Concurrent policy edits yield one200/one409; vie
 are403. Draft rates/rounding policies are version-specific snapshots; changing defaults
 never changes historical amounts. Tax-inclusive prices are rejected to prevent double tax.
 Two-place HALF_UP calculations use Decimal/SQL NUMERIC, never binary floating point.
+
+Internal sales reviews are administrator-only with current membership locking/recheck,
+expected-version validation and a draft-row lock. Acceptance revalidates price/customer/source/
+product under shared locks and checks expiry again before saving evidence. Review snapshots
+are append-only with tenant/version FKs and a current-draft PostgreSQL trigger; audit and
+idempotency share the transaction. Accepted internal review is not financial approval and
+cannot issue/send a quotation. There is no implemented agent identity/runtime yet; see
+AGENT_READINESS.md. Do not give future agents human administrator session tokens.

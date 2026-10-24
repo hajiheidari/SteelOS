@@ -61,3 +61,9 @@ rate; editing the default cannot change old amounts. Base, separate tax and gran
 use Decimal ROUND_HALF_UP per line to two places, then sum line amounts. Raw input
 evidence remains exact; no binary float calculations occur. Tax-inclusive pricing must supply an approved net base
 observation explicitly; no implicit netting or double tax is allowed. See SALES_DRAFTS.md.
+
+Internal review records immutable, version-bound human decisions separately from editable
+sales drafts. Current usability is derived, not a stored approval flag; price expiry or a
+new version invalidates it. Domain master locks and the draft-row lock serialize acceptance
+against changes. No financial issuance or agent execution is implied. AGENT_READINESS.md
+tracks implemented prerequisites and unimplemented AI adapters/principals/tools explicitly.

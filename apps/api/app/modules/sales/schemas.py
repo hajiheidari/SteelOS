@@ -39,3 +39,15 @@ class DraftUpdate(DraftInput):
 
 class CancelInput(Input):
     expected_version: Annotated[int, Field(ge=1, strict=True)]
+
+
+class ReviewInput(Input):
+    expected_version: Annotated[int, Field(ge=1, strict=True)]
+    decision: Literal["accepted", "rejected"]
+    note: Annotated[str, Field(max_length=2000)] = ""
+
+    @model_validator(mode="after")
+    def rejection_reason(self):
+        if self.decision == "rejected" and not self.note:
+            raise ValueError("A rejection reason is required")
+        return self

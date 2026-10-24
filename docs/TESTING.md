@@ -73,3 +73,12 @@ maximum inputs and two0.045 lines at10% producing grand0.12. Migration testing u
 populated0003 draft/revision without inventing historical tax, then downgrades/upgrades
 and checks model drift. Browser flows set Persian tax rates, preserve revisions, update
 organization defaults and retain zero stock effects. Earlier counts above are historical.
+
+## Version-bound internal reviews
+
+Current local suite:63 backend tests and22 desktop/mobile browser tests. Review regressions
+cover admin-only scope, editor/viewer denial, cross-tenant404, replay, one decision per version,
+new edits invalidating current usability, immutable evidence/update-delete guards, expired
+price rejection, expiry during snapshot (no orphan audit/idempotency), concurrent reviewers
+(one201/one409), and zero stock effects. The browser sales workflow accepts version1,
+edits version2, records a rejection after source revocation, and preserves revision history.

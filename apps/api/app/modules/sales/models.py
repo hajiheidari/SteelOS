@@ -93,3 +93,26 @@ class SalesDraftRevision(Tenant, Base):
             ["organization_id", "draft_id"], ["sales_drafts.organization_id", "sales_drafts.id"]
         ),
     )
+
+
+class SalesDraftReview(Tenant, Base):
+    __tablename__ = "sales_draft_reviews"
+    draft_id: Mapped[UUID] = mapped_column()
+    version: Mapped[int] = mapped_column(Integer)
+    decision: Mapped[str] = mapped_column(String(20))
+    note: Mapped[str] = mapped_column(String(2000))
+    reviewer_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    __table_args__ = (
+        UniqueConstraint("organization_id", "draft_id", "version"),
+        CheckConstraint("decision IN ('accepted','rejected')"),
+        CheckConstraint("decision <> 'rejected' OR length(trim(note)) > 0"),
+        ForeignKeyConstraint(
+            ["organization_id", "draft_id", "version"],
+            [
+                "sales_draft_revisions.organization_id",
+                "sales_draft_revisions.draft_id",
+                "sales_draft_revisions.version",
+            ],
+        ),
+    )

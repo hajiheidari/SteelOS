@@ -155,6 +155,25 @@ test("internal sales draft preserves exact estimates and revisions without stock
   });
   const row = page.getByRole("row").filter({ hasText: "Q-" + stamp });
   await expect(row).toContainText("پیش‌نویس داخلی");
+  await page
+    .getByLabel("یادداشت بازبینی", { exact: true })
+    .fill("بازبینی نسخه اول");
+  await page
+    .getByRole("button", { name: "ثبت بازبینی داخلی", exact: true })
+    .click();
+  const acceptedReview = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith(`/sales-drafts/${draft.id}/review`),
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "تأیید ثبت بازبینی", exact: true })
+    .click();
+  expect((await acceptedReview).status()).toBe(201);
+  await expect(
+    page.getByText("نتیجهٔ این نسخه: پذیرفته‌شدهٔ داخلی", { exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "ویرایش سند", exact: true }).click();
   await page.getByLabel("مقدار ردیف 1", { exact: true }).fill("۳");
   await page
@@ -172,6 +191,8 @@ test("internal sales draft preserves exact estimates and revisions without stock
   const updated = await update;
   expect(updated.ok()).toBeTruthy();
   const newVersion = await updated.json();
+  expect(newVersion.internal_review).toBeNull();
+  expect(newVersion.internal_review_usable).toBe(false);
   expect(newVersion.estimated_total).toBe("370368.370368000");
   expect(newVersion.tax_rate_percent).toBe("9.500000");
   expect(newVersion.tax_total).toBe("35185.00");
@@ -207,6 +228,28 @@ test("internal sales draft preserves exact estimates and revisions without stock
       "قیمت یا وضعیت مشتری نیاز به بازبینی دارد. این سند تأیید مالی ندارد.",
       { exact: true },
     ),
+  ).toBeVisible();
+  await page
+    .getByRole("combobox", { name: "نتیجهٔ بازبینی", exact: true })
+    .selectOption("rejected");
+  await page
+    .getByLabel("یادداشت بازبینی", { exact: true })
+    .fill("منبع نیاز به بررسی دارد");
+  await page
+    .getByRole("button", { name: "ثبت بازبینی داخلی", exact: true })
+    .click();
+  const rejectedReview = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith(`/sales-drafts/${draft.id}/review`),
+  );
+  await page
+    .getByRole("alertdialog")
+    .getByRole("button", { name: "تأیید ثبت بازبینی", exact: true })
+    .click();
+  expect((await rejectedReview).status()).toBe(201);
+  await expect(
+    page.getByText("نتیجهٔ این نسخه: نیازمند اصلاح", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "لغو سند", exact: true }).click();
   const cancel = page.waitForResponse(

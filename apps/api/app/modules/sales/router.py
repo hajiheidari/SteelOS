@@ -3,9 +3,9 @@ from uuid import UUID
 from app import models as m
 from app.db import database
 from app.idempotency import finish, replay
-from app.modules.resources import scoped, serialize
+from app.modules.resources import audit, scoped, serialize
 from app.modules.sales import service
-from app.modules.sales.schemas import CancelInput, DraftInput, DraftUpdate
+from app.modules.sales.schemas import CancelInput, DraftInput, DraftUpdate, ReviewInput
 from app.security import Context, authorize_write, context
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_, select
@@ -173,11 +173,13 @@ def list_drafts(
         if drafts
         else {}
     )
+    reviews = service.current_reviews(db, ctx, drafts)
     items, at = [], service.now(db)
     for row in drafts:
         item, stat = serialize(row), stats[row.id]
         item.update(
             customer_name=customers[row.customer_id].name,
+            internal_review=reviews.get(row.id),
             line_count=stat.line_count,
             estimated_total=format(stat.amount, ".9f"),
             has_expired_price=stat.valid_until <= at,
@@ -238,3 +240,111 @@ def revision(
     if not row:
         raise HTTPException(404, "Sales draft revision not found")
     return serialize(row)
+
+
+@router.post("/{draft_id}/review", status_code=201)
+def review(
+    draft_id: UUID,
+    payload: ReviewInput,
+    idempotency_key: str = Key,
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
+    authorize_write(db, ctx, admin=True)
+    prior, fingerprint = replay(
+        db, ctx, idempotency_key, f"sales-drafts/{draft_id}/review", payload.model_dump(mode="json")
+    )
+    draft = service.record(db, ctx, draft_id, lock=True)
+    if prior:
+        return prior
+    service.change(db, ctx, draft, payload.expected_version)
+    if service.current_reviews(db, ctx, [draft]):
+        raise HTTPException(409, "This sales draft version has already been reviewed")
+    if payload.decision == "accepted":
+        if (
+            draft.currency != "IRR"
+            or draft.tax_rate_percent is None
+            or draft.amount_rounding != "half_up_2"
+        ):
+            raise HTTPException(
+                409, "Internal review requires IRR and a configured monetary policy"
+            )
+        rows = db.scalars(
+            scoped(m.SalesDraftLine, ctx)
+            .where(m.SalesDraftLine.draft_id == draft.id)
+            .order_by(m.SalesDraftLine.position)
+        ).all()
+        # Reuse locked domain validation; the review client cannot supply prices/totals.
+        service.prepare(
+            db,
+            ctx,
+            DraftInput(
+                code=draft.code,
+                customer_id=draft.customer_id,
+                currency=draft.currency,
+                tax_rate_percent=draft.tax_rate_percent,
+                lines=[{"price_id": row.price_id, "quantity": row.quantity} for row in rows],
+            ),
+        )
+    snapshot = service.details(db, ctx, draft)
+    if payload.decision == "accepted" and not (
+        snapshot["prices_usable"] and snapshot["customer_eligible"]
+    ):
+        raise HTTPException(409, "A currently approved and valid price is required")
+    entry = m.SalesDraftReview(
+        organization_id=ctx.organization_id,
+        draft_id=draft.id,
+        version=draft.version,
+        decision=payload.decision,
+        note=payload.note,
+        reviewer_id=ctx.user_id,
+        snapshot=snapshot,
+    )
+    db.add(entry)
+    db.flush()
+    audit(db, ctx, f"review_{payload.decision}", "sales-drafts", draft.id)
+    result = serialize(entry)
+    result["financial_approval"] = False
+    return finish(db, ctx, idempotency_key, fingerprint, result)
+
+
+@router.get("/{draft_id}/reviews")
+def reviews(
+    draft_id: UUID,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=100),
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
+    service.record(db, ctx, draft_id)
+    stmt = scoped(m.SalesDraftReview, ctx).where(m.SalesDraftReview.draft_id == draft_id)
+    return {
+        "items": [
+            service.review_summary(row)
+            for row in db.scalars(
+                stmt.order_by(m.SalesDraftReview.version.desc()).offset(offset).limit(limit)
+            )
+        ],
+        "total": db.scalar(select(func.count()).select_from(stmt.subquery())),
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/{draft_id}/reviews/{review_id}")
+def review_evidence(
+    draft_id: UUID,
+    review_id: UUID,
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
+    service.record(db, ctx, draft_id)
+    entry = db.scalar(
+        scoped(m.SalesDraftReview, ctx).where(
+            m.SalesDraftReview.draft_id == draft_id,
+            m.SalesDraftReview.id == review_id,
+        )
+    )
+    if entry is None:
+        raise HTTPException(404, "Sales draft review not found")
+    return serialize(entry)

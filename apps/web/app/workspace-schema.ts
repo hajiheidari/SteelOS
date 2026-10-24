@@ -82,6 +82,10 @@ export const errorMessages: Record<number, string> = {
 };
 
 const salesErrors: Record<string, string> = {
+  "This sales draft version has already been reviewed":
+    "این نسخه قبلاً بازبینی شده است؛ آخرین نسخه را دریافت کنید.",
+  "Internal review requires IRR and a configured monetary policy":
+    "برای پذیرش داخلی، سند ریالی با نرخ مالیات و محاسبهٔ دو اعشاری لازم است؛ سند قدیمی را ویرایش کنید.",
   "A tax-exclusive base price is required":
     "قیمت پایهٔ تأییدشدهٔ بدون مالیات انتخاب کنید؛ مالیات جدا اضافه می‌شود.",
   "Tax policy version conflict":

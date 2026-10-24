@@ -89,3 +89,9 @@ tax_policy_version, nullable sales_drafts.tax_rate_percent and amount_rounding. 
 enforce internal0–100 bounds, positive policy versions and the half_up_2 policy. Legacy
 null values preserve unconfigured history; new edits snapshot rate/policy. Derived two-place
 monetary totals and raw nine-place evidence are retained as strings in revision JSON.
+
+Migration0005_sales_review adds sales_draft_reviews: tenant/draft/version FK to immutable
+revisions, accepted/rejected decision, note, reviewer, timestamp and evidence JSON snapshot.
+One decision per version. Trigger prevents update/delete and insertion against any noncurrent
+or cancelled draft. Editing/cancelling the header preserves prior reviews but invalidates
+current-version usability. No financial-approval, stock or accounting row is created.

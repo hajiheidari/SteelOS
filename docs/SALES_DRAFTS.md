@@ -119,3 +119,32 @@ price/customer checks and cancel with explicit confirmation. Historical views sh
 original check time and cannot be edited. There are no financial approval, customer export
 or send controls. Browser tests on desktop/mobile verify the full lifecycle, snapshot
 history, source-approval revocation warnings and unchanged stock entry count.
+
+## Internal review (implemented, not financial issuance)
+
+POST /{id}/review is admin-only with Idempotency-Key and {expected_version, decision:
+accepted|rejected, note (max2000)}. A rejection requires a nonblank reason. One immutable
+decision per version; edits create a new version requiring a fresh review. A current review
+never freezes edits or becomes financial approval. Self-review by an administrator is allowed
+at this internal stage; no maker/checker segregation or agent principal is claimed.
+
+Acceptance requires an editable draft, matching current version, IRR and configured
+half_up_2/rate. The API revalidates stored customer/price/source/product data under the same
+shared master locks as draft creation; the review caller cannot supply prices or totals.
+A final snapshot validity check rejects prices expiring during preparation. Rejection can
+record invalid/expired pricing for correction. Review snapshot, audit and idempotency commit
+atomically. Concurrent reviewers yield one201/one409; replay rechecks current admin authority
+and organization scope, retaining original evidence rather than recalculating it.
+
+GET detail returns internal_review summary for the current version and internal_review_usable
+based on current version/state/customer/prices. Expiry/revocation can make it false while the
+original accepted review remains immutable. List returns a page-batched current review summary
+without evidence snapshots or a live usability claim. Neither field authorizes customer use;
+financial_approval remains false. GET /{id}/reviews is paginated (limit25,max100,offset);
+GET /{id}/reviews/{review_id} reads immutable snapshot evidence. Cross-tenant IDs return404.
+
+Migration0005_sales_review adds a tenant/version FK to immutable draft revisions, one review
+per version and a PostgreSQL guard prohibiting update/delete or insert against an old,
+cancelled or different-tenant draft. API locks the draft to serialize review/edit/cancel.
+No automatic retention/deletion job exists. The Persian panel requires a confirmation step,
+shows notes/version history and has no customer-send/export or financial-approval control.

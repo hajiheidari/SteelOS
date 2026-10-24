@@ -164,3 +164,16 @@ Tax-inclusive price observations return409 on draft writes. Price lists support 
 tax_included. Legacy drafts have null subtotal/tax/grand until a new edit; cancellation
 does not configure them. Old revisions/replays are not retroactively changed.
 Foreign currencies remain internal estimates only; no implicit conversion or final issuance.
+
+### Internal sales review
+
+POST /sales-drafts/{id}/review (admin, Idempotency-Key): expected_version (strict positive
+integer), decision accepted|rejected, optional note≤2000 (nonblank required for rejection).
+201 with immutable evidence snapshot and financial_approval=false;409 on stale/cancelled/
+already-reviewed version, unconfigured/non-IRR acceptance or invalid price/customer. Editors
+and viewers cannot review. Acceptance revalidates locked domain records; rejection may record
+an expired/invalid draft for correction. One decision per version; edit for another review.
+GET /sales-drafts/{id}/reviews: paginated summaries, limit25,max100,offset.
+GET /sales-drafts/{id}/reviews/{review_id}: immutable evidence; tenant scoped404.
+Detail adds internal_review and internal_review_usable (current eligibility); list adds only
+a bounded current-version summary. Review is internal evidence and never customer issuance.

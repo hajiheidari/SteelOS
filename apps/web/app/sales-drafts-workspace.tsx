@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { SalesReviewPanel } from "./sales-review-panel";
 import { RemoteSelect } from "./remote-select";
 import {
   api,
@@ -603,6 +604,27 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
               </>
             )}
           </div>
+          <SalesReviewPanel
+            key={`${selected.id}-${selected.version}-${historical}-${(selected.internal_review as Row | null)?.id || "unreviewed"}`}
+            draft={selected}
+            historical={historical}
+            admin={role === "admin"}
+            busy={busy}
+            submit={(decision, note) =>
+              void run(async () => {
+                const path = `sales-drafts/${selected.id}/review`;
+                const body = {
+                  expected_version: selected.version,
+                  decision,
+                  note,
+                };
+                await api(path, "POST", body, key(path, body));
+                if (!alive.current) return;
+                await open(selected.id);
+                await load();
+              })
+            }
+          />
           <h3>تاریخچهٔ نسخه‌ها</h3>
           {revisions.map((row) => (
             <p key={row.id}>
