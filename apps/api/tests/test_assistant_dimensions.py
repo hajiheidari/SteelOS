@@ -148,6 +148,12 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
     ).json()
     assert unclear["needs_clarification"] and unclear["products"] == []
     assert calls == []  # No model or data lookup for ambiguous numerical intent.
+    for question in ("ورق ضخامت بیشتر از۲", "ورق ضخامت۲mm نباشد", "ورق ضخامت از۲ تا۳mm نباشد"):
+        rejected = client.post(
+            "/api/v1/sales-assistant/query", headers=tokens[0], json={"question": question}
+        ).json()
+        assert rejected["needs_clarification"] and rejected["products"] == []
+    assert calls == []
     assert (
         client.get(
             "/api/v1/products",
@@ -233,3 +239,23 @@ def test_inclusive_range_extraction(question):
     assert not result.needs_clarification and result.question == "قیمت ورق"
     assert result.attributes["thickness"].max.value == 3
     assert result.attributes["thickness"].max.unit == "mm"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "ورق ضخامت بیشتر از۲",
+        "ورق ضخامت بیشتر۲",
+        "ورق ضخامت۲mm نباشد",
+        "ورق ضخامت۲mm نیست",
+        "ورق ضخامت حدود۲mm",
+        "ورق ضخامت حداقل۲",
+        "ورق ضخامت ≤۲mm",
+        "sheet thickness above 2",
+        "sheet thickness 2mm not 3mm",
+        "ورق ضخامت از۲ تا۳mm نباشد",
+        "ورق ضخامت به جز۲mm",
+    ],
+)
+def test_unsupported_comparisons_never_become_equality_or_unconstrained_search(question):
+    assert dimensions.extract(question).needs_clarification

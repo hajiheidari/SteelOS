@@ -173,3 +173,8 @@ Number-word ranges, open/exclusive comparisons and arbitrary tolerances remain u
 Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
 strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
 The query may scan tenant catalog rows; a large-catalog performance benchmark is still pending.
+
+Unsupported dimension comparisons, approximations and negation (such as بیشتر از۲,
+حداقل۲, ضخامت۲mm نباشد, thickness above2 and comparison symbols) request clarification.
+They must not be silently interpreted as equality or an unconstrained search. The finite
+operator guard is conservative, not a complete Persian/English negation parser.

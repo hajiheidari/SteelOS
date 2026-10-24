@@ -134,3 +134,8 @@ API result preservation and no relaxed criteria. Browser scenarios display two m
 boundary products and explicitly label inclusive limits. Synthetic actual-local-model
 evaluation matched14/14 cases; evidence/local-assistant-ranges-2026-10-24.json retains outputs.
 The prior number-word case now expects supported extraction; historical artifacts are unchanged.
+
+Range implementation CI40117117885 passed113 backend and24 browser tests. Subsequent
+comparison-safety regressions cover missing-unit operators, negated equality/ranges,
+approximation and comparison symbols; API tests prove the planner is never called and
+no products are returned for these unsupported intents.

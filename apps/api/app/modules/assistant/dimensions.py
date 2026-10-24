@@ -71,6 +71,13 @@ ATTEMPT = re.compile(
 )
 
 
+# Unsupported comparisons must not become equality or disappear before catalog search.
+UNSUPPORTED_COMPARISON = re.compile(
+    r"[<>≤≥≈]|(?<!\w)(?:بیشتر|بزرگتر|بزرگ‌تر|کمتر|کوچکتر|کوچک‌تر|حداقل|حداکثر|حدود|تقریباً|تقریبا|نباشد|نباشه|نیست|غیر|به[\s‌]+جز|except|not|above|below|over|under|at least|at most)(?=$|[^\w]|[0-9])",
+    re.I,
+)
+
+
 @dataclass
 class Extraction:
     question: str
@@ -81,7 +88,7 @@ class Extraction:
 def extract(question):
     text = question.translate(DIGITS)
     attributes, spans = {}, []
-    ambiguous = False
+    ambiguous = bool(KEY.search(text) and UNSUPPORTED_COMPARISON.search(text))
     for key in KEY.finditer(text):
         name = NAMES[key.group().lower()]
         interval = RANGE.match(text, key.end())

@@ -135,3 +135,8 @@ Ambiguity yields no data reads/model call; no-match never broadens criteria. A m
 query not copied from the question is rejected with a generic provider error. UI renders original
 attribute/price evidence as escaped text. No new mutable permissions, external service or model
 access to tokens/domain data was introduced.
+
+Unsupported comparison/approximation/negation markers on named dimensions stop inference
+and domain retrieval. Regressions specifically cover missing-unit comparisons and negated
+exact/range constraints, which previously could lose or invert the user's numeric intent.
+This guard does not authorize or implement open/exclusive comparison operators.
