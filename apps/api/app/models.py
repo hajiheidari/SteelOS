@@ -214,6 +214,7 @@ class PriceObservation(Tenant, Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     provenance: Mapped[str] = mapped_column(String(2000))
     __table_args__ = (
+        UniqueConstraint("organization_id", "id", name="uq_price_observations_org_id"),
         CheckConstraint("amount > 0"),
         CheckConstraint("valid_until > observed_at"),
         CheckConstraint("status IN ('pending','approved','rejected')"),
@@ -258,3 +259,4 @@ from app.modules.inventory.models import (  # noqa: E402,F401
     StockLot,
     StockReservation,
 )
+from app.modules.sales.models import SalesDraft, SalesDraftLine, SalesDraftRevision  # noqa: E402,F401

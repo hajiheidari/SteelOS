@@ -16,10 +16,11 @@ from app.db import SCHEMA_REVISION, engine
 from app.modules.identity import router as identity
 from app.modules.inventory.router import router as inventory
 from app.modules.resources import router as resources
+from app.modules.sales.router import router as sales
 
 logger = logging.getLogger("steelos")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
-app = FastAPI(title="SteelOS API", version="0.2.0")
+app = FastAPI(title="SteelOS API", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings().allowed_origins,
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(identity, prefix="/api/v1")
 app.include_router(inventory, prefix="/api/v1")
 app.include_router(resources, prefix="/api/v1")
+app.include_router(sales, prefix="/api/v1")
 
 
 def error(request, status, code, message, details=None):

@@ -1,11 +1,11 @@
 """Transactional stock operations. Every effect is an immutable signed ledger entry."""
 
-import json
 from decimal import Decimal
 
 from app import models as m
+from app.idempotency import finish as finish
+from app.idempotency import replay as replay
 from app.modules.resources import audit, get_row, scoped, warehouse_allowed
-from app.security import digest
 from fastapi import HTTPException
 from sqlalchemy import and_, case, func, or_, select
 
@@ -78,32 +78,6 @@ def location(db, ctx, location_id, *, lock=False):
     if lock:
         row = get_row(db, m.Location, ctx, location_id, shared_lock=True)
     return row
-
-
-def replay(db, ctx, key, namespace, payload):
-    fingerprint = digest(namespace + json.dumps(payload, sort_keys=True))
-    prior = db.scalar(
-        scoped(m.IdempotencyRecord, ctx).where(
-            m.IdempotencyRecord.actor_id == ctx.user_id, m.IdempotencyRecord.key == key
-        )
-    )
-    if prior and prior.request_hash != fingerprint:
-        raise HTTPException(409, "Idempotency key reused for another request")
-    return (prior.response if prior else None), fingerprint
-
-
-def finish(db, ctx, key, fingerprint, response):
-    db.add(
-        m.IdempotencyRecord(
-            organization_id=ctx.organization_id,
-            actor_id=ctx.user_id,
-            key=key,
-            request_hash=fingerprint,
-            response=response,
-        )
-    )
-    db.commit()
-    return response
 
 
 def draft_data(db, ctx, payload, lot):

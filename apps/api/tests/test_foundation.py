@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from app.db import engine
+from app.db import SCHEMA_REVISION, engine
 from app.models import AuditEvent, AuthSession, Product
 from app.modules.pricing import MockPriceProvider
 from conftest import create
@@ -272,7 +272,10 @@ def test_readiness_openapi_and_errors(world):
         assert client.get("/api/v1/ready").status_code == 503
     finally:
         with engine().begin() as conn:
-            conn.execute(text("UPDATE alembic_version SET version_num='0002_inventory'"))
+            conn.execute(
+                text("UPDATE alembic_version SET version_num=:revision"),
+                {"revision": SCHEMA_REVISION},
+            )
 
 
 def test_concurrent_retry_is_atomic(world):

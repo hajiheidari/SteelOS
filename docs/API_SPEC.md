@@ -131,3 +131,9 @@ admin-authorized grant lists. No foreign labels bypass organization/warehouse sc
 Product technical identity/unit becomes immutable once any price observation or stock lot
 exists, preserving the meaning of historical prices. Name/SKU edits remain allowed. First
 price intake and technical edits serialize on the product row; conflicting edits return409.
+
+## Internal sales draft extension
+
+See [SALES_DRAFTS.md](SALES_DRAFTS.md) for `/api/v1/sales-drafts`, price snapshots,
+optimistic versions, immutable revisions and explicit non-binding financial status.
+Price observation lists also accept currency and literal search in provenance/delivery fields.
