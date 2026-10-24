@@ -253,3 +253,7 @@ and produces no new token. Refresh and password changes use user-before-session 
 password change also revokes a token issued by an earlier concurrent rotation. Concurrent
 refresh of one token yields one successful rotation; the other returns401. Response contracts,
 session duration and current-organization membership authorization are unchanged.
+
+product-identifiers kind is an English Code of1–30 characters, matching its database column;
+value remains1–100 characters. Both create and replacement update reject longer kinds with422
+before database writes (OpenAPI includes maxLength30), not a misleading database-unavailable503.

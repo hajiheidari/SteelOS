@@ -117,3 +117,7 @@ Product identifiers remain unique by organization/kind/value, with existing tena
 Searching them neither normalizes nor changes identity/uniqueness. Multiple matching aliases
 must not duplicate their product in list totals. Alias edits/deletion affect future lookups;
 price/stock product references and historical snapshots keep their original product IDs.
+
+ProductIdentifier.kind is VARCHAR(30); its input Code max_length30 matches this existing
+storage boundary. This validation fix changes no stored identifier values, tenant uniqueness,
+FKs, migration or identity rules. Overlong kinds are rejected before attempting writes.

@@ -130,3 +130,67 @@ def test_identifier_list_search_filters_value_and_reflects_rename_delete(world, 
         ]
         == 0
     )
+
+
+def test_identifier_kind_length_is_validated_before_database_write(world, catalog):
+    from uuid import UUID
+
+    from app.db import engine
+    from app.models import AuditEvent, IdempotencyRecord
+    from sqlalchemy import func, select
+    from sqlalchemy.orm import Session
+
+    client, tokens, orgs, _ = world
+    _, _, product = catalog
+    longest = "k" * 30
+    existing = identifier(client, tokens[0], product, longest, "boundary-code")
+    for size in (31, 80):
+        payload = {"product_id": product["id"], "kind": "k" * size, "value": "invalid-kind"}
+        key = f"invalid-kind-{size}"
+        result = client.post(
+            "/api/v1/product-identifiers",
+            headers={**tokens[0], "Idempotency-Key": key},
+            json=payload,
+        )
+        assert result.status_code == 422, result.status_code
+        assert result.json()["error"]["code"] == "validation_error"
+        update = client.put(
+            "/api/v1/product-identifiers/" + existing["id"], headers=tokens[0], json=payload
+        )
+        assert update.status_code == 422
+        with Session(engine()) as db:
+            assert (
+                db.scalar(
+                    select(func.count())
+                    .select_from(IdempotencyRecord)
+                    .where(
+                        IdempotencyRecord.organization_id == UUID(orgs[0]),
+                        IdempotencyRecord.key == key,
+                    )
+                )
+                == 0
+            )
+    persisted = client.get(
+        "/api/v1/product-identifiers/" + existing["id"], headers=tokens[0]
+    ).json()
+    assert persisted["kind"] == longest and persisted["value"] == "boundary-code"
+    assert client.get("/api/v1/product-identifiers", headers=tokens[0]).json()["total"] == 1
+    with Session(engine()) as db:
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(AuditEvent)
+                .where(
+                    AuditEvent.organization_id == UUID(orgs[0]),
+                    AuditEvent.resource == "product-identifiers",
+                )
+            )
+            == 1
+        )
+    create(
+        client,
+        tokens[0],
+        "product-identifiers",
+        {"product_id": product["id"], "kind": "vendor", "value": "corrected-kind"},
+        key="invalid-kind-31",
+    )

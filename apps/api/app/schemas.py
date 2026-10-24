@@ -102,7 +102,7 @@ class ProductInput(Input):
 
 class IdentifierInput(Input):
     product_id: UUID
-    kind: Code
+    kind: Annotated[Code, Field(max_length=30)]
     value: Annotated[str, Field(min_length=1, max_length=100)]
 
 

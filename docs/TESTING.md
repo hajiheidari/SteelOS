@@ -248,3 +248,8 @@ No browser tests share that database during backend execution.
 Final isolated local run:187 passed,2 actual-model opt-in skips; Ruff/format passed.
 One existing Starlette/httpx deprecation warning remains. No provider/grammar changes
 were made; no new actual-model evaluation is claimed for this authentication fix.
+
+Identifier kind length regression:30-character Code is accepted;31/80-character kinds are422
+on create/update, preserving the original row and leaving no failed-write audit/idempotency
+record. A corrected request may reuse its rejected create key. Baseline4ac7080 returned503
+DataError for31 characters; the schema now documents/enforces the existing VARCHAR(30) limit.
