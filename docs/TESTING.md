@@ -253,3 +253,10 @@ Identifier kind length regression:30-character Code is accepted;31/80-character 
 on create/update, preserving the original row and leaving no failed-write audit/idempotency
 record. A corrected request may reuse its rejected create key. Baseline4ac7080 returned503
 DataError for31 characters; the schema now documents/enforces the existing VARCHAR(30) limit.
+
+Both CI jobs passed for authentication4ac7080 (run40141074361), then final combined
+implementation b4753b4 (run40141226238). Final job logs confirm188 backend passed,
+2 actual-model opt-in skips and26 production desktop/mobile browser passed. Clean migration/
+model-drift, Ruff/format, TypeScript/build and both dependency audits passed. Actual-model
+extraction was not rerun for these authentication/input-bound changes; historical evidence
+remains separate. The existing Starlette/httpx deprecation warning remains.

@@ -492,3 +492,10 @@
 - در بازبینی foundation پس از4ac7080، kind شناسهٔ کالا از Code عمومی با سقف۸۰ استفاده می‌کرد ولی ستون DB فقط۳۰ کاراکتر داشت. regression واقعی روی نسخهٔ قبلی برای۳۱ کاراکتر به‌جای۴۲۲، خطای503/DataError گرفت.
 - سقف input/OpenAPI به۳۰ هم‌تراز شد؛ بدون migration، تغییر یکتایی/مقادیر ذخیره‌شده یا اختیار جدید. تست مرز۳۰ و رد۳۱/۸۰ در create/update، حفظ رکورد قبلی، نبود audit/idempotency از درخواست مردود و امکان استفادهٔ کلید درخواست اصلاح‌شده را بررسی می‌کند.
 - هر۲۳ تست هدفمند کاتالوگ/نشست/foundation و Ruff/format موفق شدند. CI کامل پس از push بررسی می‌شود؛ همان PR #1 و شاخهٔ توسعه، بدون تغییر main/merge/deployment/هزینه یا پیام بیرونی.
+
+### شواهد نهایی CI دو اصلاح foundation
+
+- اصلاح احراز هویت `4ac70808ab1209ce8a961e121eca47ce507ae0de` در [CI شمارهٔ40141074361](https://github.com/hajiheidari/SteelOS/actions/runs/40141074361) با هر دو job موفق شد. اجرای محلی مستقل۱۸۷ passed و۲ opt-in skipped داشت؛ اجرای مقدماتی متداخل جزو شواهد موفق حساب نمی‌شود.
+- آخرین کد `b4753b4c6bdd6812eec5523000d23a0b8aed6597` در [CI شمارهٔ40141226238](https://github.com/hajiheidari/SteelOS/actions/runs/40141226238) با هر دو job موفق شد. لاگ واقعی jobها۱۸۸ backend passed،۲ opt-in skipped و۲۶ production desktop/mobile browser passed را تأیید کرد؛ migration/model drift، Ruff/format، TypeScript/build و هر دو dependency audit نیز موفق‌اند. یک هشدار قبلی Starlette/httpx باقی است.
+- تست‌های مرزی و شش رقابت نشست به مجموعهٔ موجود افزوده شدند. مدل/provider/grammar تغییر نکرد؛ ارزیابی واقعی مدل این batch دوباره اجرا نشده و شواهد تاریخی به‌عنوان اجرای جدید معرفی نمی‌شوند. schema DB، مبلغ، مالکیت، مجوز سازمان و اختیارات دستیار ثابت‌اند.
+- PR #1 به‌روز شد و شاخه فقط codex/m1-foundation است؛ main همچنان `6238616450e63a6f0279d4eb4d1ec7b8c69c9c16` و merge/deployment/سرویس پولی/ارسال بیرونی رخ نداده است. محدودیت‌های بار بزرگ و زبان عمومی در اسناد قبلی باقی‌اند؛ حسابداری/صدور مالی/ایجنت نوشتنی اجرا نشده‌اند. مرحلهٔ بعد فقط ارزیابی شکاف واقعی مصوب foundation یا سنجش بار مستقل است، نه گسترش حدسی roadmap.
