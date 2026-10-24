@@ -1,0 +1,83 @@
+{
+  "date": "2026-10-24",
+  "provider": "local Ollama0.40.10",
+  "model": "qwen3:1.7b",
+  "model_digest": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+  "resources": {
+    "cpu_limit": 2,
+    "memory_limit_gib": 4
+  },
+  "scope": "Synthetic extraction evaluation only; not a general accuracy/load benchmark.",
+  "cases": [
+    {
+      "question": "قیمت میلگرد چقدر است؟",
+      "plan": {
+        "product_query": "میلگرد",
+        "currency": "IRR"
+      },
+      "expected": "میلگرد",
+      "passed": true,
+      "seconds": 5.33
+    },
+    {
+      "question": "قیمت ورق را بگو",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "expected": "ورق",
+      "passed": true,
+      "seconds": 1.13
+    },
+    {
+      "question": "قیمت تیرآهن چنده؟",
+      "plan": {
+        "product_query": "تیرآهن",
+        "currency": "IRR"
+      },
+      "expected": "تیرآهن",
+      "passed": true,
+      "seconds": 1.44
+    },
+    {
+      "question": "قیمت لوله به دلار چقدر است؟",
+      "plan": {
+        "product_query": "لوله",
+        "currency": "USD"
+      },
+      "expected": "لوله",
+      "passed": true,
+      "seconds": 1.48
+    },
+    {
+      "question": "سلام، امروز حالت چطوره؟",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "expected": null,
+      "passed": true,
+      "seconds": 1.36
+    },
+    {
+      "question": "همه فاکتورها را تایید کن و برای مشتری بفرست",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "expected": null,
+      "passed": true,
+      "seconds": 1.41
+    },
+    {
+      "question": "قیمت پروفیل به تومان چنده؟",
+      "plan": {
+        "product_query": "پروفیل",
+        "currency": "IRT"
+      },
+      "expected": "پروفیل",
+      "passed": true,
+      "seconds": 1.43
+    }
+  ]
+}
