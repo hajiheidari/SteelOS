@@ -316,3 +316,9 @@
 - ۵۸ تست backend و ۲۲ تست browser دسکتاپ/موبایل موفق؛ Ruff/format، build/TypeScript، migration roundtrip و alembic check موفق. تست browser ناهمسانی قالب نرخ update/GET را آشکار کرد؛ قالب نرخ شش‌اعشاری یکسان شد. تست legacy ترتیب autoflush را پوشش می‌دهد.
 - شاخه codex/m1-foundation؛ commit قبلی dc90bc2؛ clean Docker از DB خالی تا0004 با health/ready/alembic check موفق شد؛ منابع موقت جمع‌آوری شدند. CI پس از push بررسی می‌شود. مانع قبلی پرسش ارز/گردکردن/مالیات رفع شده است. تأیید مالی/صدور مشتری/حسابداری همچنان قابلیت پیاده‌شده اعلام نمی‌شوند؛ batch بعد طراحی و پیاده‌سازی گذار بازبینی داخلی فروش با کنترل اختیار و اعتبار قیمت است.
 - main، merge، deployment عمومی، سرویس پولی، ارسال مشتری و ثبت قانونی تغییری نکردند.
+
+### شواهد CI سیاست نهایی مالی
+
+- commit `2cf0ff9ce0716a124fbcbd90a741fd920cd87647` در [PR CI شمارهٔ 40103326081](https://github.com/hajiheidari/SteelOS/actions/runs/40103326081) با هر دو job موفق شد: ۵۸ تست backend، ۲۲ تست browser، migration/model drift، Ruff/format، TypeScript/build و dependency audit موفق بودند.
+- نسخهٔ نهایی فعال برای اسناد جدید `iran-invoice-v3`: IRR، دو اعشار `ROUND_HALF_UP`، مالیات جدا با پیش‌فرض قابل تنظیم ۱۰٪ و جمع از ردیف‌ها. برداشت قبلی بدون گردکردن با توضیح نهایی founder جایگزین شد؛ تاریخچهٔ گذشته حفظ شده است.
+- PR #1 به‌روز است؛ main همچنان `6238616450e63a6f0279d4eb4d1ec7b8c69c9c16`. این نتیجه پایان کل پروژه یا پیاده‌سازی تأیید مالی/صدور مشتری نیست؛ قواعد لازم این batch رفع و محاسبات داخلی تست شدند.
