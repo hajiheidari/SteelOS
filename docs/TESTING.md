@@ -167,3 +167,7 @@ all75 assistant tests pass when opting into the installed actual local model. Th
 production-build browser tests pass on desktop/mobile. Synthetic extraction evaluation16/16
 is recorded in evidence/local-assistant-word-ranges-2026-10-24.json; it is a small regression
 set rather than a broad Persian language benchmark. Previous counts above are historical.
+
+Word-range implementation2425273 passed both PR CI jobs40123749493:139 backend tests,
+2 opt-in actual-model skips,24 production-build browser tests, migration/model drift,
+Ruff/format, TypeScript/build and dependency audits. Actual-model tests ran separately75/75.
