@@ -8,7 +8,7 @@ from typing import Annotated
 from app.schemas import Code, Dimension, Input
 from fastapi import HTTPException
 from pydantic import Field, ValidationError, field_validator, model_validator
-from sqlalchemy import Numeric, and_, case, cast, func, or_
+from sqlalchemy import Numeric, case, cast, func, or_
 from sqlalchemy.dialects.postgresql import JSONB
 
 DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -81,8 +81,6 @@ def alternatives(dimension):
 def apply(stmt, model, attributes):
     for key, dimension in attributes.items():
         if isinstance(dimension, SearchRange):
-            lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.min)}
-            upper = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)}
             attribute = cast(model.attributes, JSONB)[key]
             text = attribute["value"].astext
             # CASE protects the cast even if PostgreSQL reorders WHERE predicates.
@@ -91,19 +89,18 @@ def apply(stmt, model, attributes):
                 (text.op("~")(r"^[0-9]{1,20}(\.[0-9]{1,6})?$"), cast(text, Numeric())),
                 else_=None,
             )
-            stmt = stmt.where(
-                or_(
-                    *[
-                        and_(
-                            attribute["unit"].astext == unit,
-                            func.jsonb_typeof(attribute["value"]) == "string",
-                            number >= lower[unit],
-                            number <= upper[unit],
-                        )
-                        for unit in lower
-                    ]
-                )
+            lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.min)}
+            upper = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)}
+            # Select one compatible unit branch before evaluating bounds. Unknown units fail.
+            # The nested decimal CASE still protects malformed JSON independently of WHERE order.
+            matched = case(
+                *[
+                    (attribute["unit"].astext == unit, number.between(lower[unit], upper[unit]))
+                    for unit in lower
+                ],
+                else_=False,
             )
+            stmt = stmt.where(func.jsonb_typeof(attribute["value"]) == "string", matched)
             continue
         stmt = stmt.where(
             or_(

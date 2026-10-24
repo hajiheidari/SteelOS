@@ -91,3 +91,8 @@ PostgreSQL compares stored string measurements through a regex-guarded CASE nume
 never a cast relying on WHERE evaluation order. JSON type checks exclude non-string values.
 Existing tenant predicates/count/pagination remain in the same query. No migration is needed;
 range scans need future performance measurement before large-catalog production adoption.
+
+Measured catalog range comparisons now select a compatible unit with CASE before checking
+its bounds. The inner bounded numeric CASE and JSON string guard remain intact. Synthetic
+query plans and performance limits are documented in CATALOG_SEARCH_PERFORMANCE.md; observed
+warm-cache medians are not an API SLO or evidence that tenant scans have been eliminated.

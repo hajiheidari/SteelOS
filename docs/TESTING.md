@@ -144,3 +144,11 @@ Final comparison-guard CI40117392872 passed124 backend tests (2 actual-model tes
 skipped),24 desktop/mobile browser tests, migrations/model drift, formatting, build/typecheck
 and dependency checks. Local full backend execution also passed124 tests. Prior counts above
 are historical; the14-case actual local-model extraction evidence belongs to this range batch.
+
+## Opt-in catalog query measurement
+
+See CATALOG_SEARCH_PERFORMANCE.md for the isolated `_benchmark` database command, recorded
+10000-product query plans and baseline/selected/discarded measurements. The harness asserts
+scope/count/page correctness and rollback, with no flaky timing gate or ordinary CI seed.
+Range regression coverage additionally checks dimensionless units, incompatible kg vs length,
+missing attributes, tiny metre thresholds and maximum-scale bounds after unit-branch selection.

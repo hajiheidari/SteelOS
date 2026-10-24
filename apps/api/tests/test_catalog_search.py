@@ -102,6 +102,24 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
             "/api/v1/products", headers=tokens[0], params={"attributes": json.dumps(bound)}
         )
         assert result.status_code == 200 and result.json()["total"] == expected
+    for key, lo, hi, unit, expected in (
+        ("custom_measure", "2", "3", "none", 3),
+        ("custom_measure", "2", "3", "kg", 0),
+        ("thickness", "2", "3", "kg", 0),
+        ("missing", "1", "4", "mm", 0),
+        ("thickness", "0.000001", "0.000002", "m", 0),
+        ("thickness", "99999999999999", "99999999999999.999999", "m", 0),
+    ):
+        response = client.get(
+            "/api/v1/products",
+            headers=tokens[0],
+            params={
+                "attributes": json.dumps(
+                    {key: {"min": {"value": lo, "unit": unit}, "max": {"value": hi, "unit": unit}}}
+                )
+            },
+        )
+        assert response.status_code == 200 and response.json()["total"] == expected
     filters = {
         "thickness": {"value": "۲٫۰۰۰۰۰۰", "unit": "mm"},
         "width": {"value": "۱٬۲۰۰", "unit": "mm"},
