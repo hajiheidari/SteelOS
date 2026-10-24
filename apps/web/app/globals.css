@@ -494,3 +494,23 @@ footer {
     min-width: 150px;
   }
 }
+
+.remote-select {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.remote-select .toolbar {
+  margin: 0;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+.remote-select .toolbar button {
+  padding: 4px 10px;
+  min-height: 36px;
+}
+.remote-select input,
+.remote-select select {
+  width: 100%;
+  min-width: 0;
+}

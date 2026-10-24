@@ -7,6 +7,8 @@ import {
   type Row,
 } from "./workspace-schema";
 
+import { RemoteSelect } from "./remote-select";
+
 type Tab = "balances" | "lots" | "drafts" | "entries" | "reservations";
 const tabs: Record<Tab, string> = {
   balances: "موجودی محاسبه‌شده",
@@ -36,28 +38,14 @@ function localTime(date: Date) {
     .toISOString()
     .slice(0, 16);
 }
-async function all(resource: string): Promise<Row[]> {
-  const items: Row[] = [];
-  for (let offset = 0; ; offset += 100) {
-    const data = await api(`${resource}?limit=100&offset=${offset}`);
-    items.push(...data.items);
-    if (items.length >= data.total) return items;
-  }
-}
 
 export function InventoryWorkspace({ role }: { role: string }) {
   const [tab, setTab] = useState<Tab>("balances");
   const [offset, setOffset] = useState(0);
   const [total, setTotal] = useState(0);
   const [warehouse, setWarehouse] = useState("");
+  const [warehouseOption, setWarehouseOption] = useState<Row | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
-  const [products, setProducts] = useState<Row[]>([]);
-  const [parties, setParties] = useState<Row[]>([]);
-  const [warehouses, setWarehouses] = useState<Row[]>([]);
-  const [locations, setLocations] = useState<Row[]>([]);
-  const [lots, setLots] = useState<Row[]>([]);
-  const [drafts, setDrafts] = useState<Row[]>([]);
-  const [reservations, setReservations] = useState<Row[]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,9 +55,11 @@ export function InventoryWorkspace({ role }: { role: string }) {
     action: "post" | "reject";
   } | null>(null);
   const [ownerKind, setOwnerKind] = useState("company");
-  const [productId, setProductId] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<Row | null>(null);
+  const [formEpoch, setFormEpoch] = useState(0);
   const [kind, setKind] = useState("receipt");
-  const [lotId, setLotId] = useState("");
+  const [lot, setLot] = useState<Row | null>(null);
+  const lotId = lot?.id || "";
   const [quantity, setQuantity] = useState("");
   const [expiry, setExpiry] = useState(() =>
     localTime(new Date(Date.now() + 3600000)),
@@ -78,57 +68,27 @@ export function InventoryWorkspace({ role }: { role: string }) {
   const retry = useRef({ signature: "", key: "" });
   const admin = role === "admin";
   const writer = role !== "viewer";
-  const product = (id: unknown) =>
-    String(products.find((p) => p.id === id)?.name || "—");
   const owner = (row: Row) =>
     row.owner_kind === "company"
       ? "کالای شرکت"
-      : String(
-          parties.find((p) => p.id === row.owner_party_id)?.name ||
-            "مالک شخص ثالث",
-        );
-  const lotLabel = (id: unknown) => {
-    const row = lots.find((l) => l.id === id);
-    return row
-      ? `${row.code} · ${product(row.product_id)} · ${owner(row)}`
-      : String(id || "—");
-  };
-  const locationLabel = (id: unknown) => {
-    const row = locations.find((l) => l.id === id);
-    return row
-      ? `${warehouses.find((w) => w.id === row.warehouse_id)?.name} / ${row.name}`
+      : String(row.owner_name || "مالک شخص ثالث");
+  const lotLabel = (row: Row) =>
+    `${row.lot_code || row.code} · ${row.product_name || "—"} · ${owner(row)}`;
+  const locationLabel = (row: Row, prefix = "") =>
+    row[prefix + "location_name"]
+      ? `${row[prefix + "warehouse_name"] || "—"} / ${row[prefix + "location_name"]}`
       : "—";
-  };
-  const lot = lots.find((l) => l.id === lotId);
   const load = useCallback(async () => {
     const request = ++sequence.current;
     setLoading(true);
     setError("");
     try {
-      const [p, people, w, l, b, d, r] = await Promise.all(
-        [
-          "products",
-          "parties",
-          "warehouses",
-          "locations",
-          "inventory/lots",
-          "inventory/drafts",
-          "inventory/reservations",
-        ].map(all),
-      );
       const suffix =
         warehouse && tab !== "lots" ? `&warehouse_id=${warehouse}` : "";
       const data = await api(
         `inventory/${tab}?limit=25&offset=${offset}${suffix}`,
       );
       if (request !== sequence.current) return;
-      setProducts(p);
-      setParties(people);
-      setWarehouses(w);
-      setLocations(l);
-      setLots(b);
-      setDrafts(d);
-      setReservations(r);
       setRows(data.items);
       setTotal(data.total);
     } catch (e) {
@@ -172,15 +132,16 @@ export function InventoryWorkspace({ role }: { role: string }) {
     const f = new FormData(form);
     const data = {
       code: f.get("code"),
-      product_id: productId,
-      unit: products.find((p) => p.id === productId)?.unit,
+      product_id: selectedProduct?.id,
+      unit: selectedProduct?.unit,
       owner_kind: ownerKind,
       owner_party_id: ownerKind === "party" ? f.get("owner_party_id") : null,
     };
     void run(async () => {
       await api("inventory/lots", "POST", data, key("lot", data));
       form.reset();
-      setProductId("");
+      setSelectedProduct(null);
+      setFormEpoch((n) => n + 1);
       setOwnerKind("company");
     });
   }
@@ -207,15 +168,11 @@ export function InventoryWorkspace({ role }: { role: string }) {
       await api("inventory/drafts", "POST", data, key("draft", data));
       form.reset();
       setQuantity("");
-      setLotId("");
+      setLot(null);
+      setFormEpoch((n) => n + 1);
       setKind("receipt");
     });
   }
-  const locationOptions = locations.map((l) => (
-    <option key={l.id} value={l.id}>
-      {locationLabel(l.id)}
-    </option>
-  ));
   return (
     <>
       <p className="info">
@@ -263,7 +220,11 @@ export function InventoryWorkspace({ role }: { role: string }) {
         <section className="card">
           <h2>ثبت lot با مالک مشخص</h2>
           <form className="form-grid" onSubmit={submitLot}>
-            <fieldset className="form-grid full" disabled={busy}>
+            <fieldset
+              key={formEpoch}
+              className="form-grid full"
+              disabled={busy}
+            >
               <label>
                 کد lot (لاتین)
                 <input
@@ -273,23 +234,13 @@ export function InventoryWorkspace({ role }: { role: string }) {
                   pattern="[A-Za-z0-9_.-]+"
                 />
               </label>
-              <label>
-                کالای lot
-                <select
-                  required
-                  value={productId}
-                  onChange={(e) => setProductId(e.target.value)}
-                >
-                  <option value="">انتخاب کنید</option>
-                  {products
-                    .filter((p) => p.active)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {String(p.name)}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              <RemoteSelect
+                label="کالای lot"
+                resource="products?active=true"
+                required
+                value={selectedProduct?.id || ""}
+                onChange={setSelectedProduct}
+              />
               <label>
                 نوع مالک
                 <select
@@ -301,24 +252,14 @@ export function InventoryWorkspace({ role }: { role: string }) {
                 </select>
               </label>
               {ownerKind === "party" && (
-                <label>
-                  مالک شخص ثالث
-                  <select name="owner_party_id" required>
-                    <option value="">انتخاب کنید</option>
-                    {parties
-                      .filter((p) => p.active)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {String(p.name)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <RemoteSelect
+                  label="مالک شخص ثالث"
+                  resource="parties?active=true"
+                  name="owner_party_id"
+                  required
+                />
               )}
-              <p>
-                واحد ثابت lot:{" "}
-                {display(products.find((p) => p.id === productId)?.unit)}
-              </p>
+              <p>واحد ثابت lot: {display(selectedProduct?.unit)}</p>
               <button disabled={busy}>ثبت lot</button>
             </fieldset>
           </form>
@@ -328,22 +269,19 @@ export function InventoryWorkspace({ role }: { role: string }) {
         <section className="card">
           <h2>پیش‌نویس عملیات انبار</h2>
           <form className="form-grid" onSubmit={submitDraft}>
-            <fieldset className="form-grid full" disabled={busy}>
-              <label>
-                lot عملیات
-                <select
-                  value={lotId}
-                  required
-                  onChange={(e) => setLotId(e.target.value)}
-                >
-                  <option value="">انتخاب کنید</option>
-                  {lots.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {lotLabel(l.id)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <fieldset
+              key={formEpoch}
+              className="form-grid full"
+              disabled={busy}
+            >
+              <RemoteSelect
+                label="lot عملیات"
+                resource="inventory/lots"
+                required
+                value={lotId}
+                optionLabel={lotLabel}
+                onChange={setLot}
+              />
               <label>
                 نوع عملیات
                 <select
@@ -376,77 +314,55 @@ export function InventoryWorkspace({ role }: { role: string }) {
               {["dispatch", "transfer", "block", "unblock", "reserve"].includes(
                 kind,
               ) && (
-                <label>
-                  مکان مبدأ
-                  <select name="from_location_id" required>
-                    <option value="">انتخاب کنید</option>
-                    {locationOptions}
-                  </select>
-                </label>
+                <RemoteSelect
+                  label="مکان مبدأ"
+                  resource="locations"
+                  name="from_location_id"
+                  required
+                  optionLabel={(row) => `${row.warehouse_name} / ${row.name}`}
+                />
               )}
               {["receipt", "transfer"].includes(kind) && (
-                <label>
-                  مکان مقصد
-                  <select name="to_location_id" required>
-                    <option value="">انتخاب کنید</option>
-                    {locationOptions}
-                  </select>
-                </label>
+                <RemoteSelect
+                  label="مکان مقصد"
+                  resource="locations"
+                  name="to_location_id"
+                  required
+                  optionLabel={(row) => `${row.warehouse_name} / ${row.name}`}
+                />
               )}
               {["release", "fulfill"].includes(kind) && (
-                <label>
-                  رزرو مرتبط
-                  <select name="reservation_id" required>
-                    <option value="">انتخاب کنید</option>
-                    {reservations
-                      .filter(
-                        (r) =>
-                          r.lot_id === lotId &&
-                          String(r.remaining) !== "0.000" &&
-                          String(r.remaining) !== "0",
-                      )
-                      .map((r) => (
-                        <option key={r.id} value={r.id}>
-                          {String(r.reference)} · باقی‌مانده{" "}
-                          {display(r.remaining)}
-                          {r.expired ? " · منقضی" : ""}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <RemoteSelect
+                  key={`${kind}-${lotId}`}
+                  label="رزرو مرتبط"
+                  name="reservation_id"
+                  required
+                  resource={
+                    lotId
+                      ? `inventory/reservations?lot_id=${lotId}&remaining_only=true${kind === "fulfill" ? "&unexpired_only=true" : ""}`
+                      : ""
+                  }
+                  optionLabel={(row) =>
+                    `${row.reference} · باقی‌مانده ${display(row.remaining)}${row.expired ? " · منقضی" : ""}`
+                  }
+                />
               )}
               {kind === "reversal" && (
-                <label>
-                  گردش اصلی برای برگشت
-                  <select
-                    name="reverses_id"
-                    required
-                    defaultValue=""
-                    onChange={(e) =>
-                      setQuantity(
-                        String(
-                          drafts.find((d) => d.id === e.target.value)
-                            ?.quantity || "",
-                        ),
-                      )
-                    }
-                  >
-                    <option value="">انتخاب کنید</option>
-                    {drafts
-                      .filter(
-                        (d) =>
-                          d.lot_id === lotId &&
-                          d.status === "posted" &&
-                          d.kind !== "reversal",
-                      )
-                      .map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {String(d.reference)} · {kinds[String(d.kind)]} ·{" "}
-                          {display(d.quantity)}
-                        </option>
-                      ))}
-                  </select>
-                </label>
+                <RemoteSelect
+                  key={lotId}
+                  label="گردش اصلی برای برگشت"
+                  name="reverses_id"
+                  required
+                  resource={
+                    lotId
+                      ? `inventory/drafts?lot_id=${lotId}&reversible_only=true`
+                      : ""
+                  }
+                  optionLabel={(row) =>
+                    `${row.reference} · ${kinds[String(row.kind)]} · ${display(row.quantity)}`
+                  }
+                  onChange={(row) => setQuantity(String(row?.quantity || ""))}
+                />
               )}
               {kind === "reserve" && (
                 <label>
@@ -475,24 +391,21 @@ export function InventoryWorkspace({ role }: { role: string }) {
       <section className="card">
         <div className="toolbar">
           {tab !== "lots" && (
-            <label>
-              فیلتر انبار
-              <select
-                disabled={busy}
-                value={warehouse}
-                onChange={(e) => {
-                  setWarehouse(e.target.value);
-                  setOffset(0);
-                }}
-              >
-                <option value="">همهٔ انبارهای مجاز</option>
-                {warehouses.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {String(w.name)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <RemoteSelect
+              label="فیلتر انبار"
+              resource="warehouses"
+              disabled={busy}
+              value={warehouse}
+              selectedOption={warehouseOption}
+              emptyLabel="همهٔ انبارهای مجاز"
+              onChange={(row) => {
+                if ((row?.id || "") === warehouse) return;
+                sequence.current += 1;
+                setWarehouse(row?.id || "");
+                setWarehouseOption(row);
+                setOffset(0);
+              }}
+            />
           )}
           <span>{display(total)} رکورد</span>
           <button
@@ -565,17 +478,17 @@ export function InventoryWorkspace({ role }: { role: string }) {
                   {tab === "lots" ? (
                     <>
                       <td>{String(row.code)}</td>
-                      <td>{product(row.product_id)}</td>
+                      <td>{String(row.product_name || "—")}</td>
                       <td>{owner(row)}</td>
                       <td>{display(row.unit)}</td>
                     </>
                   ) : tab === "balances" ? (
                     <>
                       <td>
-                        {String(row.code)} · {product(row.product_id)}
+                        {String(row.code)} · {String(row.product_name || "—")}
                       </td>
                       <td>{owner(row)}</td>
-                      <td>{locationLabel(row.location_id)}</td>
+                      <td>{locationLabel(row)}</td>
                       <td>{display(row.on_hand)}</td>
                       <td>{display(row.blocked)}</td>
                       <td>{display(row.reserved)}</td>
@@ -587,11 +500,11 @@ export function InventoryWorkspace({ role }: { role: string }) {
                   ) : tab === "drafts" ? (
                     <>
                       <td>{String(row.reference)}</td>
-                      <td>{lotLabel(row.lot_id)}</td>
+                      <td>{lotLabel(row)}</td>
                       <td>{kinds[String(row.kind)]}</td>
                       <td>{display(row.quantity)}</td>
-                      <td>{locationLabel(row.from_location_id)}</td>
-                      <td>{locationLabel(row.to_location_id)}</td>
+                      <td>{locationLabel(row, "from_")}</td>
+                      <td>{locationLabel(row, "to_")}</td>
                       <td>
                         <span className="badge">
                           {statuses[String(row.status)]}
@@ -626,14 +539,9 @@ export function InventoryWorkspace({ role }: { role: string }) {
                     </>
                   ) : tab === "entries" ? (
                     <>
-                      <td>
-                        {String(
-                          drafts.find((d) => d.id === row.draft_id)
-                            ?.reference || row.draft_id,
-                        )}
-                      </td>
-                      <td>{lotLabel(row.lot_id)}</td>
-                      <td>{locationLabel(row.location_id)}</td>
+                      <td>{String(row.draft_reference || row.draft_id)}</td>
+                      <td>{lotLabel(row)}</td>
+                      <td>{locationLabel(row)}</td>
                       <td>{display(row.on_hand_delta)}</td>
                       <td>{display(row.blocked_delta)}</td>
                       <td>{display(row.reserved_delta)}</td>
@@ -642,8 +550,8 @@ export function InventoryWorkspace({ role }: { role: string }) {
                   ) : (
                     <>
                       <td>{String(row.reference)}</td>
-                      <td>{lotLabel(row.lot_id)}</td>
-                      <td>{locationLabel(row.location_id)}</td>
+                      <td>{lotLabel(row)}</td>
+                      <td>{locationLabel(row)}</td>
                       <td>{display(row.quantity)}</td>
                       <td>{display(row.remaining)}</td>
                       <td>{display(row.expires_at)}</td>
@@ -689,13 +597,12 @@ export function InventoryWorkspace({ role }: { role: string }) {
           </h2>
           <p>
             {String(confirm.row.reference)} · {kinds[String(confirm.row.kind)]}{" "}
-            · {display(confirm.row.quantity)}{" "}
-            {display(lots.find((l) => l.id === confirm.row.lot_id)?.unit)}
+            · {display(confirm.row.quantity)} {display(confirm.row.unit)}
           </p>
-          <p>{lotLabel(confirm.row.lot_id)}</p>
+          <p>{lotLabel(confirm.row)}</p>
           <p>
-            مبدأ: {locationLabel(confirm.row.from_location_id)} · مقصد:{" "}
-            {locationLabel(confirm.row.to_location_id)}
+            مبدأ: {locationLabel(confirm.row, "from_")} · مقصد:{" "}
+            {locationLabel(confirm.row, "to_")}
           </p>
           <p className="muted">
             گردش ثبت‌شده قابل ویرایش یا حذف نیست؛ اصلاح آن با پیش‌نویس برگشت و

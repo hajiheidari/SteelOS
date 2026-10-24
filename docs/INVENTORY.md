@@ -94,3 +94,28 @@ can share these validation locks. Warehouse is locked before location, matching 
 edits. Warehouse grant checks used by mutations also hold a shared grant lock: a preceding
 revocation is awaited and denied, while a mutation already holding the grant finishes
 before revocation. This policy does not retroactively cancel committed drafts or history.
+
+## Bounded inventory reads and form search
+
+Inventory lists and balances include page-scoped presentation fields: lot_code,
+product_name, owner_name, owner_kind, unit, location_name/warehouse_name and corresponding
+from_/to_ names. Entry draft_reference is null when the whole draft is not visible (for
+example a transfer to an ungranted warehouse). Name projection preserves tenant and
+warehouse scope and never returns unrelated master lists. Location list responses also
+include the accessible warehouse_name. Single-record/write responses remain unchanged.
+
+List `q` is limited to 200 characters, treats `%`/`_` literally, and matches lot code,
+product name or owner name for lots, and reference for drafts/reservations. Nonempty
+entry search is unsupported (422). Reservation-only filters `remaining_only` and
+`unexpired_only` select outstanding holds and current expiry respectively. Draft-only
+`reversible_only` selects posted originals without a posted reversal; availability and
+other reversal dependencies are still validated at posting. Unsupported filter/resource
+combinations return 422. Filters never grant authority.
+
+Inventory form selects fetch 25 options at a time, with native select controls, server
+search and explicit next/previous buttons. Selected values survive searching, paging and
+warehouse-filter tab changes. Late search responses are ignored. The workspace reads only
+its current table page, rather than downloading every product/party/location/lot/history
+page. Reservation remaining quantities are aggregated for the current page in one query;
+a database-query budget test covers a 25-row page. This is bounded request/query coverage,
+not a production benchmark for arbitrary ledger size.

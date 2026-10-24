@@ -247,8 +247,25 @@ def register(resource, model, schema):
             .offset(offset)
             .limit(limit)
         ).all()
+        items = [serialize(row) for row in rows]
+        if model is m.Location:
+            warehouse_ids = {row.warehouse_id for row in rows}
+            names = (
+                {
+                    str(row.id): row.name
+                    for row in db.scalars(
+                        accessible(scoped(m.Warehouse, ctx), m.Warehouse, ctx).where(
+                            m.Warehouse.id.in_(warehouse_ids)
+                        )
+                    )
+                }
+                if warehouse_ids
+                else {}
+            )
+            for item in items:
+                item["warehouse_name"] = names.get(str(item["warehouse_id"]))
         return {
-            "items": [serialize(row) for row in rows],
+            "items": items,
             "total": count,
             "offset": offset,
             "limit": limit,

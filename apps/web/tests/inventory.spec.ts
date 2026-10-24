@@ -70,7 +70,7 @@ test("inventory lifecycle enforces posting, reservations, transfers and reversal
     .click();
   await page.getByRole("button", { name: "lot و مالکیت", exact: true }).click();
   await page.getByLabel("کد lot").fill("LOT-" + suffix);
-  await page.getByLabel("کالای lot").selectOption(product.id);
+  await page.getByLabel("کالای lot", { exact: true }).selectOption(product.id);
   await page.getByRole("button", { name: "ثبت lot", exact: true }).click();
   await expect(
     page.getByRole("row").filter({ hasText: "LOT-" + suffix }),
@@ -78,11 +78,11 @@ test("inventory lifecycle enforces posting, reservations, transfers and reversal
   await page
     .getByRole("button", { name: "پیش‌نویس و گردش‌ها", exact: true })
     .click();
-  await page.getByLabel("lot عملیات").selectOption({
+  await page.getByLabel("lot عملیات", { exact: true }).selectOption({
     label: "LOT-" + suffix + " · کالا " + suffix + " · کالای شرکت",
   });
   await page.getByLabel("مقدار عملیات").fill("۱۲٫۵۰۰");
-  await page.getByLabel("مکان مقصد").selectOption(location.id);
+  await page.getByLabel("مکان مقصد", { exact: true }).selectOption(location.id);
   await page.getByLabel("مرجع عملیات").fill("رسید " + suffix);
   await page.getByRole("button", { name: "ثبت پیش‌نویس", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "رسید " + suffix });
@@ -137,17 +137,24 @@ test("inventory lifecycle enforces posting, reservations, transfers and reversal
     } = {},
   ) {
     await page.getByLabel("نوع عملیات").selectOption(kind);
-    await page.getByLabel("lot عملیات").selectOption(lot.id);
+    await page.getByLabel("lot عملیات", { exact: true }).selectOption(lot.id);
     if (kind !== "reversal")
       await page.getByLabel("مقدار عملیات").fill(quantity);
     if (options.from)
-      await page.getByLabel("مکان مبدأ").selectOption(options.from);
-    if (options.to) await page.getByLabel("مکان مقصد").selectOption(options.to);
+      await page
+        .getByLabel("مکان مبدأ", { exact: true })
+        .selectOption(options.from);
+    if (options.to)
+      await page
+        .getByLabel("مکان مقصد", { exact: true })
+        .selectOption(options.to);
     if (options.reservation)
-      await page.getByLabel("رزرو مرتبط").selectOption(options.reservation);
+      await page
+        .getByLabel("رزرو مرتبط", { exact: true })
+        .selectOption(options.reservation);
     if (options.reverses)
       await page
-        .getByLabel("گردش اصلی برای برگشت")
+        .getByLabel("گردش اصلی برای برگشت", { exact: true })
         .selectOption(options.reverses);
     await page.getByLabel("مرجع عملیات").fill(reference + suffix);
     await page
@@ -251,4 +258,113 @@ test("inventory lifecycle enforces posting, reservations, transfers and reversal
     invalid.getByRole("cell", { name: "رد شده", exact: true }),
   ).toBeVisible();
   expect((await position(location.id)).available).toBe("10.000");
+});
+
+test("inventory lookup stays bounded, retains selection and ignores stale search", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.getByLabel("ایمیل", { exact: true }).fill("browser@example.test");
+  await page
+    .getByLabel("رمز عبور", { exact: true })
+    .fill("Browser-test-only-123");
+  await page
+    .getByLabel("شناسه سازمان")
+    .fill("00000000-0000-0000-0000-000000000001");
+  await page.getByRole("button", { name: "ورود", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "نمای کلی", exact: true }),
+  ).toBeVisible();
+  const stamp = Date.now().toString();
+  async function warehouse(code: string) {
+    const response = await page.request.post("/api/backend/warehouses", {
+      headers: {
+        "Idempotency-Key": crypto.randomUUID(),
+        Origin: "http://127.0.0.1:3000",
+      },
+      data: { code, name: code, city: "تهران", address: "آزمون محدودیت" },
+    });
+    expect(response.status()).toBe(201);
+    return response.json();
+  }
+  const target = await warehouse("target-" + stamp);
+  for (let index = 0; index < 27; index++)
+    await warehouse(`bounded-${stamp}-${index}`);
+  await page.waitForLoadState("networkidle");
+  const reads: URL[] = [];
+  page.on("request", (request) => {
+    if (
+      request.resourceType() === "fetch" &&
+      request.method() === "GET" &&
+      request.url().includes("/api/backend/")
+    )
+      reads.push(new URL(request.url()));
+  });
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "عملیات و موجودی انبار", exact: true })
+    .click();
+  const select = page.getByLabel("فیلتر انبار", { exact: true });
+  await expect(select.locator("option")).toHaveCount(26);
+  expect(
+    reads.every((url) => url.searchParams.get("limit") === "25"),
+  ).toBeTruthy();
+  expect(
+    reads.some((url) =>
+      /products|parties|locations|inventory\/(lots|drafts|reservations)/.test(
+        url.pathname,
+      ),
+    ),
+  ).toBeFalsy();
+  await page
+    .getByRole("button", { name: "گزینه‌های بعدی فیلتر انبار", exact: true })
+    .click();
+  await expect(select.locator(`option[value="${target.id}"]`)).toHaveCount(1);
+  await select.selectOption(target.id);
+  await page.getByRole("button", { name: "lot و مالکیت", exact: true }).click();
+  await page
+    .getByRole("button", { name: "موجودی محاسبه‌شده", exact: true })
+    .click();
+  await expect(select).toHaveValue(target.id);
+  let release!: () => void;
+  let started!: () => void;
+  let completed!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const captured = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  const finished = new Promise<void>((resolve) => {
+    completed = resolve;
+  });
+  await page.route("**/api/backend/warehouses?**", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("q") !== "old-search")
+      return route.continue();
+    started();
+    await gate;
+    await route.fulfill({
+      json: {
+        items: [{ id: "stale", name: "پاسخ قدیمی" }],
+        total: 1,
+        offset: 0,
+        limit: 25,
+      },
+    });
+    completed();
+  });
+  const search = page.getByLabel("جست‌وجوی فیلتر انبار", { exact: true });
+  try {
+    await search.fill("old-search");
+    await captured;
+    await search.fill(target.name);
+    await expect(select.locator("option")).toHaveCount(2);
+    await expect(select).toHaveValue(target.id);
+  } finally {
+    release();
+  }
+  await finished;
+  await expect(select.locator('option[value="stale"]')).toHaveCount(0);
+  await expect(select).toHaveValue(target.id);
 });

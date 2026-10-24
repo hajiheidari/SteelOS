@@ -110,3 +110,7 @@ to create, full update, admin deletion and pricing decisions.
 See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
 role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
 M1 historical boundaries describe the foundation before this approved extension.
+
+Inventory paged read projections and `q`, `remaining_only`, `unexpired_only`,
+`reversible_only` filters are documented in [INVENTORY.md](INVENTORY.md). These are
+additive read contracts; no posting or authorization rule changes.

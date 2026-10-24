@@ -528,3 +528,130 @@ def test_idempotent_replay_does_not_restore_revoked_warehouse_access(inventory, 
     assert client.get("/api/v1/" + resource, headers=tokens[0]).json()["total"] == (
         3 if resource == "locations" else 1
     )
+
+
+def test_paged_inventory_names_search_and_operational_filters(inventory, monkeypatch):
+    env = inventory
+    client, tokens, _, users, warehouses, locations, party, lot, _ = env
+    receipt = draft(env, "receipt", "10", reference="Reference_100%")
+    post(env, receipt)
+    draft(env, "receipt", "1", reference="ReferenceX100abc")
+    result = client.get(
+        "/api/v1/inventory/drafts", headers=tokens[0], params={"q": "_100%", "limit": 1}
+    ).json()
+    assert result["total"] == 1 and len(result["items"]) == 1
+    row = result["items"][0]
+    assert row["lot_code"] == lot["code"] and row["owner_name"] == party["name"]
+    assert (
+        row["to_location_name"] == locations[0]["name"]
+        and row["to_warehouse_name"] == warehouses[0]["name"]
+    )
+    lots = client.get("/api/v1/inventory/lots", headers=tokens[0], params={"q": "lot-a"}).json()
+    assert lots["total"] == 1 and lots["items"][0]["product_name"]
+    for term in (lots["items"][0]["product_name"], party["name"]):
+        assert (
+            client.get("/api/v1/inventory/lots", headers=tokens[0], params={"q": term}).json()[
+                "total"
+            ]
+            == 1
+        )
+    entry = client.get("/api/v1/inventory/entries", headers=tokens[0]).json()["items"][0]
+    assert entry["draft_reference"] == "Reference_100%"
+    assert entry["location_name"] == locations[0]["name"]
+    hold = draft(env, "reserve", "3")
+    reservation_id = post(env, hold)["reservation_id"]
+    query = {"lot_id": lot["id"], "remaining_only": True, "unexpired_only": True}
+    assert (
+        client.get("/api/v1/inventory/reservations", headers=tokens[0], params=query).json()[
+            "total"
+        ]
+        == 1
+    )
+    future = datetime.now(UTC) + timedelta(hours=2)
+    monkeypatch.setattr(service, "now", lambda db: future)
+    assert (
+        client.get("/api/v1/inventory/reservations", headers=tokens[0], params=query).json()[
+            "total"
+        ]
+        == 0
+    )
+    query.pop("unexpired_only")
+    assert (
+        client.get("/api/v1/inventory/reservations", headers=tokens[0], params=query).json()[
+            "total"
+        ]
+        == 1
+    )
+    post(env, draft(env, "release", "3", reservation_id=reservation_id))
+    assert (
+        client.get("/api/v1/inventory/reservations", headers=tokens[0], params=query).json()[
+            "total"
+        ]
+        == 0
+    )
+    reversible = {"lot_id": lot["id"], "reversible_only": True}
+    before = client.get("/api/v1/inventory/drafts", headers=tokens[0], params=reversible).json()
+    assert receipt["id"] in {item["id"] for item in before["items"]}
+    post(env, draft(env, "reversal", "10", reverses_id=receipt["id"]))
+    after = client.get("/api/v1/inventory/drafts", headers=tokens[0], params=reversible).json()
+    assert receipt["id"] not in {item["id"] for item in after["items"]}
+    for params in ({"remaining_only": True}, {"unexpired_only": True}):
+        assert (
+            client.get("/api/v1/inventory/lots", headers=tokens[0], params=params).status_code
+            == 422
+        )
+    assert (
+        client.get(
+            "/api/v1/inventory/reservations", headers=tokens[0], params={"reversible_only": True}
+        ).status_code
+        == 422
+    )
+    assert (
+        client.get("/api/v1/inventory/lots", headers=tokens[0], params={"q": "x" * 201}).status_code
+        == 422
+    )
+    # Names resolve only through visible positions. A partial transfer cannot disclose
+    # the other warehouse or its draft reference through ledger projections.
+    post(env, draft(env, "receipt", "10"))
+    transfer = draft(env, "transfer", "2", reference="Private transfer reference")
+    post(env, transfer)
+    create(
+        client,
+        tokens[0],
+        "warehouse-access",
+        {"user_id": users[2], "warehouse_id": warehouses[0]["id"]},
+    )
+    visible = client.get("/api/v1/inventory/entries", headers=tokens[2]).json()["items"]
+    partial = next(item for item in visible if item["draft_id"] == transfer["id"])
+    assert partial["draft_reference"] is None and partial["warehouse_name"] == warehouses[0]["name"]
+    assert warehouses[1]["name"] not in str(visible)
+    assert (
+        client.get("/api/v1/inventory/lots", headers=tokens[1], params={"q": "lot"}).json()["total"]
+        == 0
+    )
+
+
+def test_reservation_page_uses_bounded_database_queries(inventory):
+    from sqlalchemy import event
+
+    env = inventory
+    client, tokens, *_ = env
+    post(env, draft(env, "receipt", "100"))
+    for index in range(26):
+        post(env, draft(env, "reserve", "1", reference=f"Hold {index}"))
+    queries = []
+
+    def count_select(connection, cursor, statement, parameters, context, many):
+        if statement.lstrip().upper().startswith("SELECT"):
+            queries.append(statement)
+
+    event.listen(engine(), "before_cursor_execute", count_select)
+    try:
+        response = client.get("/api/v1/inventory/reservations?limit=25", headers=tokens[0])
+    finally:
+        event.remove(engine(), "before_cursor_execute", count_select)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 26 and len(data["items"]) == 25
+    assert all(Decimal(row["remaining"]) == 1 for row in data["items"])
+    assert len(queries) <= 15, "A page must not issue a separate query for each reservation"

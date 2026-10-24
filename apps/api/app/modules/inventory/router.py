@@ -3,12 +3,13 @@ from uuid import UUID
 from app import models as m
 from app.db import database
 from app.modules.inventory import service as domain
+from app.modules.inventory.presentation import describe
 from app.modules.inventory.schemas import DraftInput, LotInput
 from app.modules.resources import audit, get_row, scoped, serialize
 from app.security import Context, authorize_write, context
 from fastapi import APIRouter, Depends, Header, Query
-from sqlalchemy import case, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import case, func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 router = APIRouter(prefix="/inventory", tags=["inventory"])
 Key = Header(..., min_length=1, max_length=100)
@@ -111,12 +112,68 @@ def register_list(path, model):
         product_id: UUID | None = None,
         warehouse_id: UUID | None = None,
         status: str | None = None,
+        q: str = Query("", max_length=200),
+        remaining_only: bool = False,
+        unexpired_only: bool = False,
+        reversible_only: bool = False,
         ctx: Context = Depends(context),
         db: Session = Depends(database),
     ):
         from fastapi import HTTPException
 
         stmt = domain.visible(scoped(model, ctx), model, ctx)
+        if q.strip():
+            column = model.code if model is m.StockLot else getattr(model, "reference", None)
+            if column is None:
+                raise HTTPException(422, "Unsupported inventory search")
+            match = column.icontains(q.strip(), autoescape=True)
+            if model is m.StockLot:
+                match = or_(
+                    match,
+                    model.product_id.in_(
+                        select(m.Product.id).where(
+                            m.Product.organization_id == ctx.organization_id,
+                            m.Product.name.icontains(q.strip(), autoescape=True),
+                        )
+                    ),
+                    model.owner_party_id.in_(
+                        select(m.Party.id).where(
+                            m.Party.organization_id == ctx.organization_id,
+                            m.Party.name.icontains(q.strip(), autoescape=True),
+                        )
+                    ),
+                )
+            stmt = stmt.where(match)
+        if remaining_only or unexpired_only:
+            if model is not m.StockReservation:
+                raise HTTPException(422, "Reservation filter requires reservations")
+            if remaining_only:
+                remaining = (
+                    select(func.coalesce(func.sum(m.StockEntry.reserved_delta), 0))
+                    .where(
+                        m.StockEntry.organization_id == ctx.organization_id,
+                        m.StockEntry.reservation_id == model.id,
+                    )
+                    .scalar_subquery()
+                )
+                stmt = stmt.where(remaining > 0)
+            if unexpired_only:
+                stmt = stmt.where(model.expires_at > domain.now(db))
+        if reversible_only:
+            if model is not m.StockDraft:
+                raise HTTPException(422, "Reversal filter requires drafts")
+            reversal = aliased(m.StockDraft)
+            stmt = stmt.where(
+                model.status == "posted",
+                model.kind != "reversal",
+                ~select(reversal.id)
+                .where(
+                    reversal.organization_id == ctx.organization_id,
+                    reversal.reverses_id == model.id,
+                    reversal.status == "posted",
+                )
+                .exists(),
+            )
         for field, value in (("lot_id", lot_id), ("product_id", product_id), ("status", status)):
             if value is not None:
                 if not hasattr(model, field):
@@ -124,8 +181,6 @@ def register_list(path, model):
                 stmt = stmt.where(getattr(model, field) == value)
         if warehouse_id:
             if model is m.StockDraft:
-                from sqlalchemy import or_
-
                 stmt = stmt.where(
                     or_(
                         model.from_warehouse_id == warehouse_id,
@@ -140,15 +195,32 @@ def register_list(path, model):
         rows = db.scalars(
             stmt.order_by(model.created_at.desc(), model.id).offset(offset).limit(limit)
         ).all()
+        remaining, at = {}, None
+        if model is m.StockReservation and rows:
+            at = domain.now(db)
+            remaining = dict(
+                db.execute(
+                    select(m.StockEntry.reservation_id, func.sum(m.StockEntry.reserved_delta))
+                    .where(
+                        m.StockEntry.organization_id == ctx.organization_id,
+                        m.StockEntry.reservation_id.in_([row.id for row in rows]),
+                    )
+                    .group_by(m.StockEntry.reservation_id)
+                ).all()
+            )
         items = []
         for row in rows:
             item = serialize(row)
             if model is m.StockReservation:
-                remaining = domain.reservation_remaining(db, ctx, row.id)
-                item["remaining"] = str(remaining)
-                item["expired"] = row.expires_at <= domain.now(db)
+                item["remaining"] = str(remaining.get(row.id, domain.ZERO))
+                item["expired"] = row.expires_at <= at
             items.append(item)
-        return {"items": items, "total": total, "offset": offset, "limit": limit}
+        return {
+            "items": describe(db, ctx, items, lot_rows=model is m.StockLot),
+            "total": total,
+            "offset": offset,
+            "limit": limit,
+        }
 
     def read_row(record_id: UUID, ctx: Context = Depends(context), db: Session = Depends(database)):
         return serialize(domain.record(db, model, ctx, record_id))
@@ -224,4 +296,10 @@ def balances(
         item = {key: str(value) if value is not None else None for key, value in row.items()}
         item["available"] = str(row["on_hand"] - row["blocked"] - row["reserved"])
         items.append(item)
-    return {"items": items, "total": total, "offset": offset, "limit": limit, "as_of": at}
+    return {
+        "items": describe(db, ctx, items),
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "as_of": at,
+    }
