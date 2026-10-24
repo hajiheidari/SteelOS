@@ -127,3 +127,13 @@ Product list items additionally contain `category_rules` for editing technical d
 without downloading the whole catalog. These are read projections; write and single-record
 contracts stay unchanged. Warehouse grant labels include tenant member email only for
 admin-authorized grant lists. No foreign labels bypass organization/warehouse scope.
+
+## Bounded foundation reads
+
+`GET /organization/members` is admin-only and uses limit 1–100 (default 25),
+nonnegative offset, total and literal case-insensitive email `q` (maximum 200 characters).
+Items include id (alias of user_id), user_id, email and role; clients must page explicitly.
+Generic domain lists include tenant/warehouse-scoped `display_names` for the current page.
+Product list items include `category_rules` so editors can load dimensions without a complete
+catalog download. Write and single-record contracts remain unchanged. Grant labels expose
+tenant member email only to admin-authorized grant lists.

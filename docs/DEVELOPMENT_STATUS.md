@@ -255,3 +255,17 @@
 - ۱۸ تست browser کامل موفق؛ دو تست هدفمند تازه نیز روی desktop/mobile مدیریت کاربر، جست‌وجوی grant، ثبت و revoke واقعی را پاس کردند (مجموع فعلی ۲۰ تست). شکست نخست price workflow از selector مبهم پس از افزودن کادر search بود و با combobox دقیق اصلاح شد؛ نقص محصول گزارش نشد.
 - کلیک روی navigation همان نمای بدون تغییر، دیگر بارگذاری فعال را invalidate و جدول را بی‌دلیل پاک نمی‌کند. تغییر schema/dependency/main/merge/deployment/paid service وجود ندارد.
 - ادامهٔ کار: CI همین بسته و طراحی draft داخلی معاملات با مرز صریحِ محاسبات نهایی، مالکیت موجودی و حسابداری؛ هیچ قابلیت مالی تأییدشده بدون قاعدهٔ کسب‌وکار معرفی نمی‌شود.
+
+### نتیجهٔ CI دریافت محدود انبار
+
+- `bb6a80e` با هر دو اجرای [PR CI شمارهٔ 40085349940](https://github.com/hajiheidari/SteelOS/actions/runs/40085349940) و push موفق شد؛ ۴۰ تست backend و ۱۶ تست browser و migration/build/audit پاس شدند.
+
+## فرم‌های foundation و تنظیمات با جست‌وجوی صفحه‌بندی‌شده — 2026-10-24
+
+- شاخه `codex/m1-foundation`؛ مبنا `bb6a80e`؛ commit همراه تاریخچهٔ گزارش ثبت می‌شود.
+- Home دیگر قبل از هر جدول، تمام catalog/products/warehouses/sources/locations را دریافت نمی‌کند؛ dashboard فقط شمارنده‌های limit=1 و جدول صفحهٔ limit=25 جاری را می‌گیرد.
+- فرم کالا/شناسه/قیمت/مکان از RemoteSelect استفاده می‌کند؛ category_rules و display_names همان صفحه، ویرایش انتخاب خارج از صفحهٔ اول را ممکن می‌کند و قواعد ابعاد حفظ می‌شوند. والد مکان بر اساس warehouse فیلتر و warehouse مکان موجود در فرم immutable است.
+- اعضا limit/offset/total و جست‌وجوی literal ایمیل دارند؛ id alias همان user_id است. جدول کاربران و grantها pagination مستقل و فرم grant جست‌وجوی کاربر/انبار دارد؛ labelهای وابسته tenant/grant scope را حفظ می‌کنند.
+- هر ۴۲ تست backend موفق؛ Ruff/format، TypeScript و build تولیدی موفق. ۱۸ تست browser کامل و دو تست هدفمند تازهٔ مدیریت کاربر/grant روی desktop/mobile موفق شدند؛ مجموعهٔ فعلی ۲۰ تست است. دو شکست نخست فقط selector مبهم «منبع قیمت» پس از افزودن search بودند و با combobox دقیق اصلاح شدند.
+- تست‌ها شامل بیش از یک صفحهٔ کاربران، underscore literal، عدم افشای tenant دیگر، ویرایش گروه خارج از صفحهٔ اول با ابعاد الزامی و ثبت/revoke grant واقعی‌اند. navigation همان نمای بدون تغییر، بارگذاری فعال را invalidate نمی‌کند.
+- schema/dependency/main/merge/deployment/paid service تغییر نکرده‌اند. ادامهٔ کار: CI و پیش‌نویس داخلی فروش طبق SALES_DRAFT_SCOPE.md؛ سؤال دربارهٔ گردکردن/مالیات برای مرحلهٔ تأیید مالی مطرح شده و پاسخ فرض نشده است.
