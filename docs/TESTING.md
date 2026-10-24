@@ -211,3 +211,19 @@ Exclusive-bound implementation9f9a61b passed both PR CI jobs40133189700:178 back
 2 actual-model opt-in skips,24 desktop/mobile browser tests, migration/model drift,
 Ruff/format, TypeScript/build and dependency audits.113 actual-model assistant tests and
 21 synthetic extraction cases were run separately; CI downloads no weights or paid services.
+
+## Registered product identifier search
+
+Two new API regressions failed against the previous head: product q ignored registered
+identifier values, and identifier-list q ignored its value entirely. They pass after the
+fix, exercising multiple matching aliases without count inflation, pagination, literal
+percent/underscore/backslash, case-insensitive lookup, tenant/viewer scope, active/dimension
+filters, unchanged SKU search and immediate rename/delete visibility. Assistant domain tests
+check exact approved price evidence, zero cross-tenant matches and no business writes.
+New desktop/mobile browser scenarios search both catalog and identifier pages through real
+APIs; existing assistant scenarios additionally query an alias with technical filters.
+
+Local validation:181 backend passed,2 actual-model opt-in skips; separate opt-in assistant
+run114 passed;26 desktop/mobile browser tests passed after backend database tests. Ruff,
+format and TypeScript passed. Provider/grammar did not change; no new model accuracy
+benchmark is claimed for identifier intent.

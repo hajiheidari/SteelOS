@@ -258,6 +258,7 @@ def register(resource, model, schema):
                     "name",
                     "code",
                     "sku",
+                    "value",
                     "registration_id",
                     "provenance",
                     "delivery_location",
@@ -267,9 +268,20 @@ def register(resource, model, schema):
             ]
             if fields:
                 escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                stmt = stmt.where(
-                    or_(*(field.ilike(f"%{escaped}%", escape="\\") for field in fields))
-                )
+                pattern = f"%{escaped}%"
+                predicates = [field.ilike(pattern, escape="\\") for field in fields]
+                if model is m.Product:
+                    # Correlated EXISTS preserves one product row/count even with many aliases.
+                    predicates.append(
+                        select(m.ProductIdentifier.id)
+                        .where(
+                            m.ProductIdentifier.organization_id == ctx.organization_id,
+                            m.ProductIdentifier.product_id == m.Product.id,
+                            m.ProductIdentifier.value.ilike(pattern, escape="\\"),
+                        )
+                        .exists()
+                    )
+                stmt = stmt.where(or_(*predicates))
         for key, value in (
             ("category_id", category_id),
             ("manufacturer_id", manufacturer_id),

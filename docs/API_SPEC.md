@@ -37,7 +37,7 @@ Roles are a fixed, documented M1 permission matrix, not configurable role tables
   accepts `{status: "approved"|"rejected"}`, admin only, pending observations only.
 - `GET /audit-events`: admin-only tenant-scoped paginated audit history.
 
-Filters: `q` searches name/code/SKU/registration ID where supported, `kind`, `role`
+Filters: `q` searches name/code/SKU/registration ID or identifier value where supported, `kind`, `role`
 (parties), `product_id`, `warehouse_id`, `status`, `category_id`, `manufacturer_id`,
 `grade_id`, `standard_id`, `unit`, `active`. Unsupported typed filters return 422.
 Sort: `created_at` (default), `name`, `code`, `sku`, `observed_at` where supported;
@@ -239,3 +239,10 @@ is2<x≤3mm. Both endpoints are still required; equal physical bounds with any e
 are422. Assistant filters omit default-true flags and retain false flags; legacy inclusive
 serialization is unchanged. Two adjacent opposite comparisons on the same attribute joined
 by و/and map to this contract. Other repeated constraints request clarification.
+
+Product q additionally matches values from registered product-identifiers in the current
+organization, case-insensitively as a literal substring. %, _ and backslash remain literal,
+not client-controlled LIKE patterns. Correlated EXISTS avoids duplicate product rows/counts
+when multiple identifiers match. Existing technical/active/reference filters still combine
+with AND. product-identifiers q searches its value; product_id/kind filters remain independent.
+Identifier rename/delete is reflected on the next read; uniqueness and stored values are unchanged.

@@ -58,6 +58,10 @@ test("read-only sales assistant displays grounded API prices and unsupported int
       width: { value: "1200", unit: "mm" },
     },
   });
+  const alias = "ALT-" + stamp;
+  for (const kind of ["barcode", "vendor"]) {
+    await create("product-identifiers", { product_id: product.id, kind, value: alias });
+  }
   const source = await create("price-sources", {
     code: "ai-" + stamp,
     name: "منبع دستیار " + stamp,
@@ -138,6 +142,11 @@ test("read-only sales assistant displays grounded API prices and unsupported int
   await expect(
     result.getByText("مشخصات کالا:", { exact: false }),
   ).toContainText("۱۲۰۰");
+  await page.getByLabel("سؤال فروش", { exact: true }).fill(alias + " ضخامت۲mm عرض۱٫۲m");
+  await submit.click();
+  await expect(result.getByText(`جست‌وجو برای «${alias}»`, { exact: false })).toBeVisible();
+  await expect(result.getByRole("heading", { level: 3 })).toHaveCount(1);
+  await expect(result.getByText("شناسهٔ شاهد قیمت:", { exact: false })).toContainText(price.id);
   await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت از دو تا سه میلیمتر عرض۱٫۲m");
   await submit.click();
   await expect(result.getByRole("heading", { level: 3 })).toHaveCount(2);

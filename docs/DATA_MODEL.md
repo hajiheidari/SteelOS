@@ -112,3 +112,8 @@ numeric extraction additionally excludes invalid nonpositive legacy values from 
 min_inclusive/max_inclusive are query-only flags, both default true; they are never stored
 on products. Equal bounds with an excluded end are invalid. No ledger, monetary precision,
 product identity or existing dimension value changes when an interval excludes an endpoint.
+
+Product identifiers remain unique by organization/kind/value, with existing tenant/product FKs.
+Searching them neither normalizes nor changes identity/uniqueness. Multiple matching aliases
+must not duplicate their product in list totals. Alias edits/deletion affect future lookups;
+price/stock product references and historical snapshots keep their original product IDs.

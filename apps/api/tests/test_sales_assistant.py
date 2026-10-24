@@ -12,6 +12,7 @@ from app.config import Settings
 from app.db import engine
 from app.modules.assistant import provider, tools
 from app.modules.assistant.schemas import SearchPlan
+from conftest import create
 from fastapi import HTTPException
 from pydantic import ValidationError
 from sqlalchemy import func, select
@@ -362,3 +363,43 @@ def test_provider_has_a_total_deadline_not_just_per_chunk_timeout(monkeypatch):
     with pytest.raises(HTTPException) as error:
         asyncio.run(provider.plan("ورق", config, transport=httpx.MockTransport(slow)))
     assert error.value.status_code == 503
+
+
+def test_assistant_identifier_lookup_preserves_exact_price_and_does_not_expose_aliases(
+    sales, monkeypatch
+):
+    client, tokens, *_rest, price, data, payload = sales
+    enabled(monkeypatch)
+    alias = "SUPPLIER-ALIAS-2026"
+    for kind in ("barcode", "vendor"):
+        create(
+            client,
+            tokens[0],
+            "product-identifiers",
+            {"product_id": data["product_id"], "kind": kind, "value": alias},
+        )
+
+    async def planner(question, config):
+        assert question == alias
+        return SearchPlan(product_query=alias, currency="IRR")
+
+    monkeypatch.setattr(provider, "plan", planner)
+    response = client.post(
+        "/api/v1/sales-assistant/query", headers=tokens[2], json={"question": alias + " ضخامت۲mm"}
+    )
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["product_total"] == 1 and result["products"][0]["id"] == data["product_id"]
+    assert result["products"][0]["prices"][0]["id"] == price["id"]
+    assert result["products"][0]["prices"][0]["amount"] == data["amount"]
+    assert result["financial_approval"] is False and result["read_only"] is True
+    assert "identifiers" not in result["products"][0]
+    other = client.post(
+        "/api/v1/sales-assistant/query", headers=tokens[1], json={"question": alias + " ضخامت۲mm"}
+    ).json()
+    assert other["products"] == [] and other["product_total"] == 0
+    with Session(engine()) as db:
+        assert db.scalar(select(func.count()).select_from(m.ProductIdentifier)) == 2
+        assert db.scalar(select(func.count()).select_from(m.PriceObservation)) == 1
+        assert db.scalar(select(func.count()).select_from(m.SalesDraft)) == 0
+        assert db.scalar(select(func.count()).select_from(m.StockEntry)) == 0

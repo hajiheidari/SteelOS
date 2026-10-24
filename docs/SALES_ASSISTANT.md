@@ -56,7 +56,7 @@ User-entered question text is processed locally. There is no conversation memory
 
 The fixed tool registry supports only:
 
-- catalog.search: GET products, active=true, literal q, limit5,offset0.
+- catalog.search: GET products, active=true, literal q (name/SKU/registered identifier value), limit5,offset0.
 - prices.current: GET price-observations for each returned product, approved_only=true,
   selected currency, observed_at descending, limit5,offset0.
 
@@ -221,3 +221,9 @@ clarification without inference/domain reads. No implicit conjunction or bound t
 
 Response/request filter serialization omits default true flags, preserving old inclusive
 response shapes; false flags remain explicit. The Persian UI shows both endpoint operators.
+
+Registered identifier lookup now works through the same fixed catalog API tool. Multiple
+matching identifiers still yield one product; the assistant projects its original product
+identity/price evidence, not a dump of identifier records. This adds no model permission or
+claim of barcode intent accuracy; domain/API tests and CI browser provider fixtures exercise
+lookup correctness independently of model interpretation.
