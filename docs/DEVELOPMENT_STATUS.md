@@ -273,3 +273,16 @@
 - مکانیزم idempotency از inventory به helper مشترک منتقل شد؛ قرارداد inventory ثابت است. جست‌وجوی provenance/delivery و فیلتر currency برای انتخاب قیمت اضافه شد.
 - محدودیت این batch: UI در حال ساخت است؛ قواعد واقعی مالیات/گردکردن هنوز پاسخ فرض‌شده ندارند و financial_approval همواره false است. main/merge/deployment/paid service تغییر نکرده‌اند.
 - نتیجهٔ نهایی محلی backend این batch: هر ۴۹ تست شامل migration roundtrip/model drift موفق؛ Ruff/format موفق. ادامه با UI و CI انجام می‌شود.
+
+### نتیجهٔ CI backend فروش
+
+- commit `22cd32a3fe53a2c8e69d514344dd17ac6b77f781` با هر دو اجرای push و [PR CI شمارهٔ 40087175461](https://github.com/hajiheidari/SteelOS/actions/runs/40087175461) موفق شد: ۴۹ تست backend و مجموعهٔ قبلی ۲۰ browser، migration/model drift، lint/build/audit پاس شدند.
+
+## رابط فارسی پیش‌نویس فروش و پذیرش مستقل — 2026-10-24
+
+- صفحهٔ پیش‌نویس فروش به API واقعی متصل است: انتخاب مشتری customer فعال، کالای فعال، قیمت approved/valid در ارز سند، مقدار با ارقام فارسی، ثبت/ویرایش expected_version، مشاهدهٔ نسخهٔ قبلی، دریافت وضعیت جاری قیمت و لغو با تأیید صریح.
+- جزئیات منشأ، واحد، tax_included و delivery snapshot نمایش داده می‌شوند؛ محاسبهٔ مبلغ در مرورگر انجام نمی‌شود و برآورد خام نه‌اعشاری از سرور می‌آید. financial_approval=false، ارسال مشتری/خروجی مالی نهایی/تغییر موجودی وجود ندارد. ورود Enter در کادر جست‌وجوی انتخاب‌گر، فرم مادر را ثبت نمی‌کند.
+- هر ۲۲ تست browser روی build تولیدی و backend تازه در desktop/mobile موفق شدند؛ سناریوی فروش قیمت pending را نمی‌پذیرد، precision را بررسی می‌کند، revision قدیمی را حفظ و هشدار revoke منبع را نشان می‌دهد و تعداد stock entries را قبل/بعد ثابت نگه می‌دارد.
+- build/TypeScript و بررسی دیداری mobile با viewport390 موفق؛ عرض کل صفحه390 باقی ماند. Docker Compose با image تازه و volume مستقل از DB خالی تا migration0003 اجرا شد؛ health/ready/alembic check موفق و container/volume آزمایشی حذف شدند.
+- دامنهٔ کلی پروژه پایان‌یافته اعلام نمی‌شود. سؤال لازم دربارهٔ گردکردن مبلغ/نحوهٔ مالیات همچنان باز است؛ بدون پاسخ وارد تأیید مالی یا customer issuance نمی‌شویم. ادامهٔ مستقل: CI رابط، بازبینی ایمنی و مستندات همین draft.
+- شاخه همان `codex/m1-foundation` و PR #1؛ main/merge/deployment/paid services تغییر نکرده‌اند.

@@ -18,6 +18,7 @@ import {
 } from "./workspace-schema";
 import { Editor } from "./record-editor";
 import { RemoteSelect } from "./remote-select";
+import { SalesDraftsWorkspace } from "./sales-drafts-workspace";
 import { InventoryWorkspace } from "./inventory-workspace";
 
 export default function Home() {
@@ -77,7 +78,7 @@ export default function Home() {
   }, [me]);
   const load = useCallback(async () => {
     if (!me || latestView.current !== viewKey) return;
-    if (page === "inventory") {
+    if (page === "inventory" || page === "sales-drafts") {
       setLoading(false);
       setError("");
       return;
@@ -344,6 +345,8 @@ export default function Home() {
           )}
           {page === "inventory" ? (
             <InventoryWorkspace role={me.role} />
+          ) : page === "sales-drafts" ? (
+            <SalesDraftsWorkspace role={me.role} />
           ) : page === "dashboard" ? (
             <>
               <div className="stats">

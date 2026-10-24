@@ -59,3 +59,16 @@ Tests cover snapshots, exact large-number arithmetic through DB/HTTP, source/exp
 customer roles, explicit units, tenant isolation/FKs, replay, immutable history, terminal
 cancellation, optimistic concurrency and absence of stock effects. UI delivery status is
 reported in DEVELOPMENT_STATUS.md; this document does not imply final financial approval.
+
+## Persian workspace
+
+The sales-draft page uses real APIs and bounded searchable customer/product/price selects.
+Only currently approved, unexpired prices in the selected currency are offered. Explicit
+price units, tax-inclusion and delivery conditions are displayed. Exact raw estimates are
+server-calculated. Native search Enter does not submit its surrounding form.
+
+Users can create/edit internal drafts, view immutable historical versions, reload current
+price/customer checks and cancel with explicit confirmation. Historical views show the
+original check time and cannot be edited. There are no financial approval, customer export
+or send controls. Browser tests on desktop/mobile verify the full lifecycle, snapshot
+history, source-approval revocation warnings and unchanged stock entry count.

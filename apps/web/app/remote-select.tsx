@@ -85,6 +85,9 @@ export function RemoteSelect({
       <input
         aria-label={`جست‌وجوی ${label}`}
         placeholder="جست‌وجوی گزینه‌ها…"
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.preventDefault();
+        }}
         value={query}
         disabled={disabled || !resource}
         maxLength={200}

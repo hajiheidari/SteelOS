@@ -37,6 +37,7 @@ export const roles = [
 export const titles: Record<string, string> = {
   dashboard: "نمای کلی",
   inventory: "عملیات و موجودی انبار",
+  "sales-drafts": "پیش‌نویس فروش",
   products: "کالاها",
   "catalog-references": "تعاریف کاتالوگ",
   "product-identifiers": "شناسه‌های کالا",
@@ -80,6 +81,19 @@ export const errorMessages: Record<number, string> = {
   503: "ارتباط با پایگاه داده یا سرور برقرار نیست.",
 };
 
+const salesErrors: Record<string, string> = {
+  "Sales draft version conflict":
+    "سند توسط کاربر دیگری تغییر کرده است؛ آخرین نسخه را دریافت کنید.",
+  "Cancelled sales draft cannot be changed": "سند لغوشده قابل ویرایش نیست.",
+  "An active customer party is required": "یک مشتری فعال انتخاب کنید.",
+  "A currently approved and valid price is required":
+    "قیمت باید اکنون معتبر و از منبع مجاز باشد؛ قیمت جدید انتخاب کنید.",
+  "Sales product is inactive": "کالای انتخاب‌شده غیرفعال است.",
+  "All draft prices must use the draft currency":
+    "ارز تمام ردیف‌ها باید با ارز سند یکسان باشد.",
+  "Piece quantities must be whole numbers": "مقدار با واحد عدد باید صحیح باشد.",
+};
+
 const inventoryErrors: Record<string, string> = {
   "Insufficient available stock or invalid resulting position":
     "موجودی قابل استفاده کافی نیست یا نتیجهٔ عملیات با موجودی سازگار نیست.",
@@ -119,7 +133,9 @@ export async function api(
     throw new Error(
       (result.status === 400 && path === "auth/password"
         ? "رمز عبور فعلی درست نیست."
-        : (path.startsWith("inventory/") &&
+        : (path.startsWith("sales-drafts") &&
+            salesErrors[data.error?.message]) ||
+          (path.startsWith("inventory/") &&
             inventoryErrors[data.error?.message]) ||
           errorMessages[result.status] ||
           "عملیات ناموفق بود.") + (details ? ` (${details})` : ""),

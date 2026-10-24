@@ -6,8 +6,9 @@ Persian RTL workspace. Implementation/acceptance results in DEVELOPMENT_STATUS.m
 Acceptance remains gated by actual CI execution and review; do not infer completion from scope.
 
 M2 approved warehouse scope: append-only stock/ownership/reservation operations and
-transactional availability; implemented contracts in INVENTORY.md. Purchases/sales/quotes
-and approved-price revalidation for trading remain future separately scoped work.
+transactional availability; implemented contracts in INVENTORY.md. Internal non-binding sales drafts with price snapshots/revisions are implemented (SALES_DRAFTS.md).
+Financial approval/issuance, purchases/sales contracts and trading settlement remain future
+work; tax/rounding rules require the founder’s actual workflow.
 M3: proprietary double-entry accounting, official requirements research and parallel reconciliation.
 M4: deeper CRM, quoting and controlled sales agent workflows.
 M5: approved research/market/education/marketing assistance.

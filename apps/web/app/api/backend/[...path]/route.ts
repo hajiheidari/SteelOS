@@ -6,6 +6,7 @@ const cookieName = "steelos_session";
 const resources = new Set([
   "auth",
   "inventory",
+  "sales-drafts",
   "organization",
   "catalog-references",
   "products",

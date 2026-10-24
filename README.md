@@ -4,7 +4,9 @@ Persian RTL steel trading foundation. Modular FastAPI/SQLAlchemy backend, Postgr
 Next.js/TypeScript workspace. M1 features and automated GitHub Actions checks pass; the milestone is ready
 for founder acceptance review. The subsequently approved warehouse operations extension
 adds ownership-aware lots, immutable stock movements and reservations; see
-[Inventory contracts](docs/INVENTORY.md). No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
+[Inventory contracts](docs/INVENTORY.md). Internal sales drafts with immutable revisions
+and exact unrounded estimates are available; [scope and financial limits](docs/SALES_DRAFTS.md).
+No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
 
 ## Clean local setup
 
