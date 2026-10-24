@@ -153,6 +153,23 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
         "bound": {"value": "2", "unit": "mm"},
     }
     assert not compared["needs_clarification"]
+    combined = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "ورق ضخامت>۲mm و ضخامت<=۳mm عرض۱٫۲m"},
+    ).json()
+    assert [row["id"] for row in combined["products"]] == [products[1]["id"]]
+    assert combined["dimensions"]["thickness"] == {
+        "min": {"value": "2", "unit": "mm"},
+        "max": {"value": "3", "unit": "mm"},
+        "min_inclusive": False,
+    }
+    empty_interval = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "ورق ضخامت>۲mm و ضخامت<۳mm"},
+    ).json()
+    assert empty_interval["products"] == [] and not empty_interval["needs_clarification"]
     words = client.post(
         "/api/v1/sales-assistant/query",
         headers=tokens[0],
@@ -172,6 +189,7 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
         "ورق ضخامت۲mm نباشد",
         "ورق ضخامت از۲ تا۳mm نباشد",
         "ورق ضخامت ازدو تا سه kg",
+        "ورق ضخامت>۳mm و ضخامت<۲mm",
         "ورق ضخامت>۲mm نباشد",
         "ورق ضخامت>=۲mm یا عرض۳mm",
         "ورق ضخامت از سه تا دو میلیمتر",
@@ -237,6 +255,15 @@ def test_real_model_and_domain_api_preserve_exact_dimension_constraints(sales, m
         json={"question": "قیمت ورق ضخامت بیشتر از۲mm"},
     )
     assert no_match.status_code == 200 and no_match.json()["products"] == []
+    combined = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "قیمت ورق ضخامت>=۱mm و ضخامت<۳mm"},
+    )
+    assert combined.status_code == 200, combined.text
+    assert combined.json()["dimensions"]["thickness"]["max_inclusive"] is False
+    assert combined.json()["products"][0]["prices"][0]["id"] == price["id"]
+    assert combined.json()["products"][0]["prices"][0]["amount"] == data["amount"]
 
 
 def test_local_model_cannot_substitute_a_generated_product_term():
@@ -393,3 +420,52 @@ def test_explicit_comparison_extraction(question, op):
 )
 def test_ambiguous_comparisons_stop_before_search(question):
     assert dimensions.extract(question).needs_clarification
+
+
+@pytest.mark.parametrize(
+    "question,lower,upper",
+    [
+        ("ورق ضخامت>۲mm و ضخامت<۳mm", False, False),
+        ("ورق ضخامت>=۲mm و ضخامت<۳mm", True, False),
+        ("ورق ضخامت>۲mm و ضخامت<=۳mm", False, True),
+        ("ورق ضخامت>=۲mm و ضخامت<=۳mm", True, True),
+        ("ورق ضخامت<۳mm و ضخامت>=۲mm", True, False),
+        ("ورق ضخامت بیشتر از دو میلیمتر و ضخامت حداکثر سه میلیمتر", False, True),
+        ("sheet thickness>2mm and thickness<3mm", False, False),
+    ],
+)
+def test_adjacent_opposite_comparisons_merge_only_with_explicit_conjunction(question, lower, upper):
+    result = dimensions.extract(question)
+    assert not result.needs_clarification and result.question in ("ورق", "sheet")
+    interval = result.attributes["thickness"]
+    assert interval.min.value == 2 and interval.max.value == 3
+    assert interval.min_inclusive is lower and interval.max_inclusive is upper
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "ورق ضخامت>۳mm و ضخامت<۲mm",
+        "ورق ضخامت>۲mm و ضخامت<=۲mm",
+        "ورق ضخامت>=۲mm و ضخامت<۲mm",
+        "ورق ضخامت>۲mm ضخامت<۳mm",
+        "ورق ضخامت>۲mm یا ضخامت<۳mm",
+        "ورق ضخامت>۲mm و ضخامت>۳mm",
+        "ورق ضخامت<۳mm و ضخامت<۲mm",
+        "ورق ضخامت>۲mm و ضخامت<۳mm و ضخامت<۴mm",
+        "ورق ضخامت>۲mm و عرض۱m و ضخامت<۳mm",
+        "ورق ضخامت>۲mm و ضخامت<۳mm نباشد",
+        "ورق ضخامت۲mm و ضخامت<۳mm",
+    ],
+)
+def test_unsupported_or_contradictory_combined_constraints_require_clarification(question):
+    assert dimensions.extract(question).needs_clarification
+
+
+def test_equal_inclusive_combined_bounds_retain_legacy_serialization():
+    result = dimensions.extract("ورق ضخامت>=۲mm و ضخامت<=۲mm")
+    assert not result.needs_clarification and result.question == "ورق"
+    assert result.attributes["thickness"].model_dump(mode="json", exclude_defaults=True) == {
+        "min": {"value": "2", "unit": "mm"},
+        "max": {"value": "2", "unit": "mm"},
+    }

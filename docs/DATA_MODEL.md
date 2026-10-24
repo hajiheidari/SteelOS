@@ -108,3 +108,7 @@ by guarded query extraction. No schema migration accompanies range search.
 One-sided dimension comparisons are query-only contracts with an explicit positive bound,
 not new persisted dimensions. No artificial minimum/maximum sentinel is stored. Guarded
 numeric extraction additionally excludes invalid nonpositive legacy values from comparisons.
+
+min_inclusive/max_inclusive are query-only flags, both default true; they are never stored
+on products. Equal bounds with an excluded end are invalid. No ledger, monetary precision,
+product identity or existing dimension value changes when an interval excludes an endpoint.

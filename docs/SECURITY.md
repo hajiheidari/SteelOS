@@ -140,3 +140,8 @@ Unsupported comparison/approximation/negation markers on named dimensions stop i
 and domain retrieval. Regressions specifically cover missing-unit comparisons and negated
 exact/range constraints, which previously could lose or invert the user's numeric intent.
 Explicit one-sided gt/gte/lt/lte operators are now validated by a fixed enum and bound schema; unsupported markers outside consumed valid comparison spans still stop search. Disjunction is rejected rather than silently treated as AND.
+
+Exclusive interval flags are strict JSON booleans, with exact numeric endpoint predicates.
+Only two adjacent opposite comparisons joined by explicit و/and can merge; other repeats,
+OR, negation and contradictory bounds stop inference/data lookup. No silent bound tightening,
+epsilon or synthetic endpoint is introduced. Existing tenant scope and SQL CASE guards remain.

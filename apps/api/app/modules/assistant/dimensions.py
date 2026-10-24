@@ -122,23 +122,44 @@ class Extraction:
 
 def extract(question):
     text = question.translate(DIGITS)
-    attributes, spans = {}, []
+    attributes, spans, comparison_ends = {}, [], {}
     ambiguous = False
     for key in KEY.finditer(text):
         name = NAMES[key.group().lower()]
         comparison = COMPARISON.match(text, key.end())
         if comparison is not None:
             try:
-                if name in attributes:
-                    raise ValueError("Repeated dimension")
                 op = re.sub(r"[\s‌]+", " ", comparison["op"])
-                attributes[name] = SearchComparison(
+                candidate = SearchComparison(
                     op=COMPARISON_OPS[op],
                     bound=SearchDimension(
                         value=decimal_value(comparison["value"]), unit=unit_code(comparison["unit"])
                     ),
                 )
-                spans.append((key.start(), comparison.end()))
+                start = key.start()
+                if name in attributes:
+                    previous = attributes[name]
+                    if not isinstance(previous, SearchComparison):
+                        raise ValueError("Repeated dimension")
+                    start = comparison_ends[name]
+                    if not re.fullmatch(
+                        r"[\s‌،,]*(?:و|and)[\s‌،,]*", text[start : key.start()], re.I
+                    ):
+                        raise ValueError("Explicit adjacent conjunction required")
+                    is_lower = candidate.op in ("gt", "gte")
+                    if is_lower == (previous.op in ("gt", "gte")):
+                        raise ValueError("Opposite bounds required")
+                    lower, upper = (candidate, previous) if is_lower else (previous, candidate)
+                    attributes[name] = SearchRange(
+                        min=lower.bound,
+                        max=upper.bound,
+                        min_inclusive=lower.op == "gte",
+                        max_inclusive=upper.op == "lte",
+                    )
+                else:
+                    attributes[name] = candidate
+                comparison_ends[name] = comparison.end()
+                spans.append((start, comparison.end()))
             except (ValidationError, ValueError):
                 ambiguous = True
             continue

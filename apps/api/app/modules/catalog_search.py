@@ -8,8 +8,8 @@ from typing import Annotated, Literal
 
 from app.schemas import Code, Dimension, Input
 from fastapi import HTTPException
-from pydantic import Field, ValidationError, field_validator, model_validator
-from sqlalchemy import Numeric, case, cast, func, or_
+from pydantic import Field, StrictBool, ValidationError, field_validator, model_validator
+from sqlalchemy import Numeric, and_, case, cast, func, or_
 from sqlalchemy.dialects.postgresql import JSONB
 
 DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -33,12 +33,18 @@ class SearchDimension(Dimension):
 class SearchRange(Input):
     min: SearchDimension
     max: SearchDimension
+    min_inclusive: StrictBool = True
+    max_inclusive: StrictBool = True
 
     @model_validator(mode="after")
     def ordered(self):
         lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(self.min)}
         if self.max.unit not in lower or lower[self.max.unit] > self.max.value:
             raise ValueError("Range bounds must be ordered and use compatible units")
+        if lower[self.max.unit] == self.max.value and not (
+            self.min_inclusive and self.max_inclusive
+        ):
+            raise ValueError("Exclusive equal bounds form an empty interval")
         return self
 
 
@@ -107,10 +113,16 @@ def apply(stmt, model, attributes):
                 upper = {
                     item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)
                 }
-                branches = [
-                    (attribute["unit"].astext == unit, number.between(lower[unit], upper[unit]))
-                    for unit in lower
-                ]
+                branches = []
+                for unit in lower:
+                    predicate = number.between(lower[unit], upper[unit])
+                    if not (dimension.min_inclusive and dimension.max_inclusive):
+                        lower_op = ge if dimension.min_inclusive else gt
+                        upper_op = le if dimension.max_inclusive else lt
+                        predicate = and_(
+                            lower_op(number, lower[unit]), upper_op(number, upper[unit])
+                        )
+                    branches.append((attribute["unit"].astext == unit, predicate))
             else:
                 # Legacy/imported zero values are not valid positive technical dimensions.
                 stmt = stmt.where(number > 0)

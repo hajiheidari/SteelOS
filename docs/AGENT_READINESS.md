@@ -34,7 +34,7 @@
 The local read-only assistant additionally supports explicit numeric inclusive dimension
 ranges (از…تا / بین…و) and displays both bounds. Real local synthetic extraction evaluation
 matched14/14 including a valid and reversed range. This is a small regression set, not a
-production-language or throughput benchmark; combined exclusive two-bound ranges and number words beyond the finite grammar remain
+production-language or throughput benchmark; number words beyond the finite grammar remain
 unsupported. No new model tools or write permissions were added.
 
 بازهٔ حروفی در همان دستور زبان محدود یک تا ده/نیم/«و نیم» نیز پیاده شد؛ مدل اعداد
@@ -44,3 +44,7 @@ unsupported. No new model tools or write permissions were added.
 مقایسهٔ یک‌طرفهٔ صریح ابعاد با gt/gte/lt/lte و عبارت‌های بیشتر از/کمتر از/حداقل/حداکثر
 پیاده شد؛ مرز مثبت و واحد لازم‌اند. نفی، تقریب و یا/or تفسیر حدسی نمی‌شوند. این قابلیت
 فقط فیلتر خواندن است و ابزار مالی/ثبت/پیام جدیدی به دستیار نمی‌دهد.
+
+بازهٔ دوطرفه با شمول مستقل هر حد و ادغام دو مقایسهٔ مجاورِ مخالف با «و/and» پیاده شد.
+شرط متناقض، OR، حد هم‌جهت، شرط سوم یا بدون اتصال صریح تفسیر نمی‌شود. اختیارهای
+دستیار همچنان فقط‌خواندنی‌اند؛ هیچ قیمت یا موجودی با این قابلیت نوشته نمی‌شود.

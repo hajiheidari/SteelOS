@@ -27,7 +27,7 @@ const comparisonLabels: Record<ComparisonOp, string> = {
 };
 type DimensionFilter =
   | Measurement
-  | { min: Measurement; max: Measurement }
+  | { min: Measurement; max: Measurement; min_inclusive?: boolean; max_inclusive?: boolean }
   | { op: ComparisonOp; bound: Measurement };
 function measurement(value: Measurement) {
   return `${display(value.value)} ${value.unit === "none" ? "" : value.unit}`;
@@ -47,7 +47,9 @@ function Dimensions({ value, title }: { value: unknown; title: string }) {
             {"op" in dimension
               ? `${comparisonLabels[dimension.op]} ${measurement(dimension.bound)}`
               : "min" in dimension
-              ? `از ${measurement(dimension.min)} تا ${measurement(dimension.max)} (شامل دو حد)`
+              ? dimension.min_inclusive === false || dimension.max_inclusive === false
+                ? `${dimension.min_inclusive === false ? "بیشتر از" : "حداقل"} ${measurement(dimension.min)} و ${dimension.max_inclusive === false ? "کمتر از" : "حداکثر"} ${measurement(dimension.max)}`
+                : `از ${measurement(dimension.min)} تا ${measurement(dimension.max)} (شامل دو حد)`
               : measurement(dimension)}
           </bdi>
         </span>

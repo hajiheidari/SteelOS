@@ -191,3 +191,18 @@ Comparison implementation4d0f9cf passed both PR CI jobs40129040543:158 backend t
 2 opt-in skips,24 desktop/mobile browser tests, migration/model drift, Ruff/format,
 TypeScript/build and dependency audits.94 actual-local-model assistant tests and18 synthetic
 extraction cases were run separately; no weights are downloaded or model service required in CI.
+
+## Inclusive/exclusive two-bound intervals
+
+Database regressions exercise all four endpoint modes against2/2.5/3mm products stored in
+mm/cm/m categories, foreign-organization duplicates and paginated counts/results. Validation
+rejects nonboolean flags, reversed/incompatible bounds and equal physical bounds with an
+excluded endpoint. Parser/API regressions cover explicit conjunction, reversed clause order,
+word bounds, unchanged inclusive response shapes, contradictory/repeated/nonadjacent/OR
+conditions and no unconstrained fallback. Browser coverage checks2<x≤3 returns only3mm.
+
+Local exclusive-bound batch:178 backend tests passed,2 actual-model tests skipped by default;
+113 assistant tests passed with the installed actual local model, and24 production-build
+browser tests passed. Expanded synthetic actual-model evaluation21/21 is recorded in
+ evidence/local-assistant-exclusive-ranges-2026-10-25.json (Tehran date). This small regression
+set is not a general language accuracy/production-readiness benchmark. Earlier counts are historical.

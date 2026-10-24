@@ -23,5 +23,5 @@ assistant is implemented/tested; broader/writable agents remain future work (SAL
 
 The local sales assistant now has deterministic explicit dimension extraction and exact
 length-equivalent catalog filters, with clarification rather than dropping constraints.
-Broader dimension grammar, combined exclusive two-bound ranges, inferred/synonymous names and large-scale evaluation
+Broader dimension grammar, inferred/synonymous names and large-scale evaluation
 remain future work; current details/evidence are in SALES_ASSISTANT.md.

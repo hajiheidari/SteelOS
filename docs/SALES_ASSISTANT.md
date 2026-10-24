@@ -107,7 +107,7 @@ These small tests establish connectivity/basic extraction,
 not broad Persian accuracy, production load capacity or immunity to misinterpreted intent.
 Read-only hard limits still apply even if a model produces a misleading search term.
 
-Pending: combined exclusive two-bound ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
+Pending: broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
 operating limits, optional citation-based prose, agent service-principal lifecycle if needed,
 and separately authorized proposal/write workflows. OCR/research/marketing/channel agents
 are not implemented. No production deployment is included.
@@ -132,7 +132,7 @@ JSON strings and exact Decimal-derived alternatives, not unsafe casts of arbitra
 Wrong/absent attributes return no matches; filters are never dropped to produce an answer.
 Other resource endpoints reject the attributes filter with422.
 
-Unknown/missing units, repeated dimensions, unsupported range forms or number-word forms outside the finite grammar or bare
+Unknown/missing units, unsupported repeated dimensions, unsupported range forms or number-word forms outside the finite grammar or bare
 measurements without an attribute name yield needs_clarification=true and no product/price
 reads or model call. This is a conservative explicit grammar, not a general natural-language
 measurement parser. General questions about available dimensions without numeric constraints
@@ -160,8 +160,8 @@ request clarification. The same finite number words also work in inclusive range
 ### Inclusive dimension ranges
 
 The product API also accepts `{"thickness":{"min":{"value":"2","unit":"mm"},"max":{"value":"3","unit":"mm"}}}`
-in the existing attributes parameter. Both endpoints are required, positive and inclusive;
-equal bounds are allowed. Bounds may use compatible mm/cm/m units; kg/none require the
+in the existing attributes parameter. Both endpoints are required and positive, with inclusive defaults;
+equal bounds are allowed only when both are inclusive. Bounds may use compatible mm/cm/m units; kg/none require the
 same unit. Reversed or incompatible bounds are422. Exact and range filters can be mixed
 with AND within the existing8-key/4096-character limits. No quantities or prices convert.
 
@@ -169,7 +169,7 @@ The assistant recognizes explicit numeric or finite Persian number-word ranges, 
 including optional units on the lower bound (otherwise the final unit applies to both).
 It extracts ranges before inference and displays both bounds and inclusive semantics.
 Missing/invalid bounds and unsupported forms request clarification; no criterion is dropped.
-Combined exclusive two-bound ranges, number words outside the finite grammar and arbitrary tolerances remain unsupported.
+Number words outside the finite grammar and arbitrary tolerances remain unsupported.
 Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
 strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
 The query may scan tenant catalog rows; CATALOG_SEARCH_PERFORMANCE.md records an isolated10,000-product query measurement. Larger and concurrent/API performance benchmarks remain pending.
@@ -201,5 +201,23 @@ The assistant supports named dimensions followed by >, >=, <, <=, ≥, ≤, بی
 use the same finite grammar. The UI displays the operator beside its bound. Only consumed
 operator spans are accepted; negation, approximation or an incomplete operator still stops
 inference/search. Disjunction یا/or is not interpreted as AND and requests clarification.
-Repeated constraints on the same attribute require clarification rather than implicit merging.
-An explicit inclusive از…تا range remains the supported two-bound form.
+Only two adjacent opposite comparisons on one attribute joined explicitly by و/and can merge into a range; other repeated constraints request clarification.
+An explicit از…تا range retains its inclusive defaults.
+
+### Explicit inclusive/exclusive two-bound intervals
+
+The existing min/max object accepts optional strict JSON booleans min_inclusive and
+max_inclusive, both default true. False excludes that endpoint; units remain independent
+and exactly compatible. Equal physical bounds with either endpoint excluded return422.
+Boolean strings/numbers/null, incompatible/reversed bounds and extra fields are rejected.
+No epsilon, floating-point tolerance or fabricated endpoint is used.
+
+The assistant merges exactly two adjacent opposite comparisons for the same named attribute
+only with explicit و/and: `ضخامت>۲mm و ضخامت<=۳mm` becomes lower2 exclusive, upper3 inclusive.
+Order may be reversed and finite Persian number words/compatible units are supported.
+The connector is consumed before model inference. Same-direction, nonadjacent, third,
+exact-plus-comparison, missing-connective, OR, contradictory or negated constraints require
+clarification without inference/domain reads. No implicit conjunction or bound tightening occurs.
+
+Response/request filter serialization omits default true flags, preserving old inclusive
+response shapes; false flags remain explicit. The Persian UI shows both endpoint operators.

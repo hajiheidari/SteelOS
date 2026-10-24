@@ -236,7 +236,7 @@ def register(resource, model, schema):
             None,
             min_length=2,
             max_length=4096,
-            description="Products only: JSON object of up to8 exact {value,unit} inclusive {min:{value,unit},max:{value,unit}}, or {op:gt|gte|lt|lte,bound:{value,unit}} attribute filters; AND semantics; mm/cm/m equivalence.",
+            description="Products only: JSON object of up to8 exact {value,unit} {min:{value,unit},max:{value,unit},min_inclusive?:bool,max_inclusive?:bool}, or {op:gt|gte|lt|lte,bound:{value,unit}} attribute filters; AND semantics; mm/cm/m equivalence.",
         ),
         approved_only: bool = False,
         tax_included: bool | None = None,

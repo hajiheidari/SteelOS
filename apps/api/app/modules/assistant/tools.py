@@ -58,7 +58,7 @@ async def search(
                         {
                             "attributes": json.dumps(
                                 {
-                                    key: value.model_dump(mode="json")
+                                    key: value.model_dump(mode="json", exclude_defaults=True)
                                     for key, value in attributes.items()
                                 }
                             )
@@ -100,7 +100,8 @@ async def search(
         "product_total": total,
         "query": plan.product_query,
         "dimensions": {
-            key: value.model_dump(mode="json") for key, value in (attributes or {}).items()
+            key: value.model_dump(mode="json", exclude_defaults=True)
+            for key, value in (attributes or {}).items()
         },
         "needs_clarification": needs_clarification,
         "currency": plan.currency,

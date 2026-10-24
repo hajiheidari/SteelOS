@@ -225,6 +225,42 @@ INVALID_FILTERS = [
             }
         }
     ),
+    json.dumps(
+        {
+            "width": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "0.2", "unit": "cm"},
+                "min_inclusive": False,
+            }
+        }
+    ),
+    json.dumps(
+        {
+            "width": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "3", "unit": "mm"},
+                "max_inclusive": "false",
+            }
+        }
+    ),
+    json.dumps(
+        {
+            "width": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "3", "unit": "mm"},
+                "min_inclusive": 0,
+            }
+        }
+    ),
+    json.dumps(
+        {
+            "width": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "3", "unit": "mm"},
+                "max_inclusive": None,
+            }
+        }
+    ),
     "{",
     "[]",
     "null",
@@ -259,3 +295,60 @@ def test_attribute_filter_is_not_silently_accepted_on_other_resources(world):
     client, tokens, *_ = world
     response = client.get("/api/v1/parties", headers=tokens[0], params={"attributes": "{}"})
     assert response.status_code == 422
+
+
+def test_exclusive_range_boundaries_mixed_units_pagination_and_tenant_scope(world):
+    client, tokens, *_ = world
+    categories, products = {}, []
+    for index, (organization, unit, value) in enumerate(
+        ((0, "mm", "2"), (0, "cm", "0.25"), (0, "m", "0.003"), (0, "mm", "1"), (1, "mm", "2.5"))
+    ):
+        key = (organization, unit)
+        if key not in categories:
+            categories[key] = create(
+                client,
+                tokens[organization],
+                "catalog-references",
+                {
+                    "kind": "category",
+                    "code": "exclusive-" + unit,
+                    "name": "ورق محدوده",
+                    "attribute_rules": {"thickness": {"unit": unit, "required": True}},
+                },
+            )
+        products.append(
+            create(
+                client,
+                tokens[organization],
+                "products",
+                {
+                    "sku": f"EDGE-{index}",
+                    "name": "ورق محدوده",
+                    "category_id": categories[key]["id"],
+                    "unit": "kg",
+                    "attributes": {"thickness": {"value": value, "unit": unit}},
+                },
+            )
+        )
+    for lower, upper, expected in (
+        (True, True, {0, 1, 2}),
+        (False, True, {1, 2}),
+        (True, False, {0, 1}),
+        (False, False, {1}),
+    ):
+        filters = {
+            "thickness": {
+                "min": {"value": "0.2", "unit": "cm"},
+                "max": {"value": "0.003", "unit": "m"},
+                "min_inclusive": lower,
+                "max_inclusive": upper,
+            }
+        }
+        params = {"attributes": json.dumps(filters)}
+        page = client.get("/api/v1/products", headers=tokens[2], params={**params, "limit": 1})
+        assert page.status_code == 200 and page.json()["total"] == len(expected)
+        assert len(page.json()["items"]) == 1
+        full = client.get("/api/v1/products", headers=tokens[0], params=params).json()
+        assert {row["id"] for row in full["items"]} == {products[index]["id"] for index in expected}
+        other = client.get("/api/v1/products", headers=tokens[1], params=params).json()
+        assert other["total"] == 1 and other["items"][0]["id"] == products[4]["id"]

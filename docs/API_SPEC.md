@@ -202,7 +202,7 @@ is accepted;422. Other resources reject this parameter. Example width1.2m matche
 
 Assistant POST still accepts question only. The server extracts explicit named length
 constraints independently from the model; response adds dimensions and needs_clarification.
-Ambiguous/missing/repeated/unsupported dimensions return no results and skip inference/data
+Ambiguous/missing/unsupported repeated/unsupported dimensions return no results and skip inference/data
 reads (session authorization is still rechecked). Exact no-match never retries without filters.
 Model product query must be copied from the remaining question, not generated/translated.
 Results remain scoped, read-only, bounded and financially unapproved.
@@ -215,7 +215,7 @@ Unsupported compound number words request clarification without model or domain 
 Inclusive product dimension ranges use the existing attributes filter, e.g.
 `{"thickness":{"min":{"value":"0.2","unit":"cm"},"max":{"value":"3","unit":"mm"}}}`.
 Both positive bounds are required; compatible length units are compared exactly. Equal
-bounds are valid; reversed/incompatible bounds return422. Each attribute is either an exact
+bounds are valid only with inclusive endpoints; reversed/incompatible bounds return422. Each attribute is either an exact
 value/unit or min/max object (no mixed/extra fields), and all attributes combine with AND.
 Assistant dimensions responses preserve this min/max structure. Persian numeric or finite number-word از…تا / بین…و
 with named attributes are supported; omitted lower unit inherits the explicit upper unit.
@@ -231,4 +231,11 @@ Decimal(20,6) dimension contract. No null/implicit endpoint, extra fields, float
 arbitrary operator or mixed exact/range/comparison object. Compatible length-unit conversion
 is exact; kg/none only compare to the same unit. Different attribute keys combine with AND.
 Assistant responses preserve {op,bound}; explicit Persian phrases and symbols are parsed before
-inference. Negation/approximation, disjunction and repeated constraints on a key require clarification.
+inference. Negation/approximation and disjunction require clarification. Only an explicitly connected adjacent opposite-comparison pair can merge on one key; other repeats require clarification.
+
+Two-bound objects accept min_inclusive/max_inclusive strict booleans, default true. Example:
+`{"thickness":{"min":{"value":"2","unit":"mm"},"max":{"value":"3","unit":"mm"},"min_inclusive":false}}`
+is2<x≤3mm. Both endpoints are still required; equal physical bounds with any excluded end
+are422. Assistant filters omit default-true flags and retain false flags; legacy inclusive
+serialization is unchanged. Two adjacent opposite comparisons on the same attribute joined
+by و/and map to this contract. Other repeated constraints request clarification.

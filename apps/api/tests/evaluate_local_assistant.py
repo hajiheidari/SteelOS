@@ -62,6 +62,40 @@ DIMENSION_CASES = (
     ("ورق ضخامت از۳ تا۲mm", None, "IRR", {}, True),
     ("ورق2mm", None, "IRR", {}, True),
     (
+        "قیمت ورق ضخامت>۲mm و ضخامت<۳mm",
+        "ورق",
+        "IRR",
+        {
+            "thickness": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "3", "unit": "mm"},
+                "min_inclusive": False,
+                "max_inclusive": False,
+            }
+        },
+        False,
+    ),
+    (
+        "قیمت ورق ضخامت بیشتر از دو میلیمتر و ضخامت حداکثر سه میلیمتر",
+        "ورق",
+        "IRR",
+        {
+            "thickness": {
+                "min": {"value": "2", "unit": "mm"},
+                "max": {"value": "3", "unit": "mm"},
+                "min_inclusive": False,
+            }
+        },
+        False,
+    ),
+    (
+        "قیمت ورق ضخامت>=۲mm و ضخامت<=۲mm",
+        "ورق",
+        "IRR",
+        {"thickness": {"min": {"value": "2", "unit": "mm"}, "max": {"value": "2", "unit": "mm"}}},
+        False,
+    ),
+    (
         "قیمت ورق ضخامت بیشتر از۲mm",
         "ورق",
         "IRR",
@@ -99,7 +133,8 @@ async def main(output=None):
             else await plan(extraction.question, config)
         )
         filters = {
-            key: value.model_dump(mode="json") for key, value in extraction.attributes.items()
+            key: value.model_dump(mode="json", exclude_defaults=True)
+            for key, value in extraction.attributes.items()
         }
         ok = (
             result.product_query == term

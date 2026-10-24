@@ -106,3 +106,10 @@ A typed operator enum selects a fixed Python/SQLAlchemy comparison, with no miss
 sentinel or interpolated SQL. Assistant extraction records consumed valid operator spans;
 unsupported markers remaining outside them prevent inference and retrieval. Domain writes,
 tenant authorization and monetary calculations are unchanged.
+
+Range bounds have independent strict-boolean inclusivity flags with inclusive defaults.
+Inclusive predicates keep the existing BETWEEN branch; excluded endpoints use exact numeric
+comparisons inside the same compatible-unit CASE. No schema change or epsilon arithmetic.
+The assistant merges only an explicitly connected adjacent opposite-bound pair, consuming
+its connector before inference. Default flags are omitted from filter serialization so prior
+inclusive responses retain their shape. Unsupported compositions remain clarification-only.
