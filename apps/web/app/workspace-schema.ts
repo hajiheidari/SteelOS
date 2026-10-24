@@ -38,6 +38,7 @@ export const titles: Record<string, string> = {
   dashboard: "نمای کلی",
   inventory: "عملیات و موجودی انبار",
   "sales-drafts": "پیش‌نویس فروش",
+  "sales-assistant": "دستیار فروش",
   products: "کالاها",
   "catalog-references": "تعاریف کاتالوگ",
   "product-identifiers": "شناسه‌های کالا",
@@ -82,6 +83,14 @@ export const errorMessages: Record<number, string> = {
 };
 
 const salesErrors: Record<string, string> = {
+  "Local sales model is not configured":
+    "مدل محلی دستیار فروش هنوز تنظیم نشده است.",
+  "Local sales model is unavailable or returned an invalid plan":
+    "مدل محلی در دسترس نیست یا جست‌وجوی معتبری تشخیص نداد؛ دوباره تلاش کنید.",
+  "Sales assistant is busy; retry shortly":
+    "دستیار فروش مشغول است؛ کمی بعد دوباره تلاش کنید.",
+  "Sales domain data is temporarily unavailable":
+    "داده‌های فروش فعلاً در دسترس نیستند؛ دوباره تلاش کنید.",
   "This sales draft version has already been reviewed":
     "این نسخه قبلاً بازبینی شده است؛ آخرین نسخه را دریافت کنید.",
   "Internal review requires IRR and a configured monetary policy":

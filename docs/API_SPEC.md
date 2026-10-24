@@ -177,3 +177,16 @@ GET /sales-drafts/{id}/reviews: paginated summaries, limit25,max100,offset.
 GET /sales-drafts/{id}/reviews/{review_id}: immutable evidence; tenant scoped404.
 Detail adds internal_review and internal_review_usable (current eligibility); list adds only
 a bounded current-version summary. Review is internal evidence and never customer issuance.
+
+### Read-only local sales assistant
+
+Authenticated GET /sales-assistant/status: configured/provider/model, availability unchecked
+or disabled, read_only=true, fixed tool names and financial_approval=false. Configured does
+not assert provider readiness. POST /sales-assistant/query accepts only question (2–1000 chars).
+One validated local model extraction (product_query≤120|null,currency), then fixed GET calls
+to scoped products/current approved prices (max5 products ×5 prices). No client/model URL,
+organization ID, method, mutation or paging override is accepted. Returns source cards with
+exact decimal strings, provenance/timestamps/delivery/tax flag, retrieval interval and totals.
+Null query means unsupported intent; no invented answer or quote.503 when disabled/model
+invalid/unavailable,429 at per-worker concurrency2. Session is rechecked before returning data.
+Successful reads audit actor/org without question text. Details/setup in SALES_ASSISTANT.md.

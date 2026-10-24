@@ -54,6 +54,9 @@ jobs:
       DATABASE_URL: postgresql+psycopg://steelos:steelos@localhost:5432/steelos_test
       PYTHONPATH: apps/api
       PLAYWRIGHT_PRODUCTION: "1"
+      # Deterministic local HTTP fixture for browser tests; no model download/API bill.
+      ASSISTANT_PROVIDER: ollama
+      ASSISTANT_OLLAMA_URL: http://127.0.0.1:11435
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -70,6 +73,7 @@ jobs:
       - run: python -m pip install -r apps/api/requirements.txt
       - run: cd apps/api && alembic upgrade head
       - run: python apps/api/tests/seed_e2e.py
+      - run: python apps/api/tests/assistant_mock_server.py > /tmp/steelos-assistant-mock.log 2>&1 &
       - run: uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/steelos-api.log 2>&1 &
       - run: npm ci && npm run typecheck && npm run build && npm audit --audit-level=moderate
         working-directory: apps/web

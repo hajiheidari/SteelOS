@@ -67,3 +67,13 @@ sales drafts. Current usability is derived, not a stored approval flag; price ex
 new version invalidates it. Domain master locks and the draft-row lock serialize acceptance
 against changes. No financial issuance or agent execution is implied. AGENT_READINESS.md
 tracks implemented prerequisites and unimplemented AI adapters/principals/tools explicitly.
+
+The first model-connected assistant is a bounded local intent extractor plus controlled API
+retrieval, not a free-form authority on domain data. Assistant modules separate schemas,
+local provider, fixed read-only tools and router. Its domain client calls existing APIs with
+current user authorization; only audit recording touches persistence. No model gets domain
+credentials/results or an arbitrary tool/URL chooser. Returned facts come from domain source
+cards with original timestamps/units/provenance. Stateless requests avoid conversation memory;
+local provider is optional/default-disabled, with a resource-limited Compose profile and no new
+mandatory dependencies. Production agents, writable proposals and broader quality evaluation
+remain separate work. See SALES_ASSISTANT.md and AGENT_READINESS.md.

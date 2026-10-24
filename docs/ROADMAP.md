@@ -18,4 +18,5 @@ M6: approved external integrations, official tax validation and operational hard
 No paid services, main merge or public deployment without founder authorization. No sensitive
 agent database writes. New infrastructure requires a concrete validated need.
 
-AI agent readiness is tracked in AGENT_READINESS.md; no model-connected agent is implemented yet.
+AI readiness is tracked in AGENT_READINESS.md. A limited local-model read-only sales search
+assistant is implemented/tested; broader/writable agents remain future work (SALES_ASSISTANT.md).

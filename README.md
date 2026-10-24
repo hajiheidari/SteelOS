@@ -9,6 +9,8 @@ and configurable separate tax are available. Iranian monetary amounts use IRR an
 two-place ROUND_HALF_UP; raw rate/quantity evidence remains exact. See [scope and financial limits](docs/SALES_DRAFTS.md).
 Version-bound internal reviews are available; financial/customer issuance remains planned.
 [AI agent readiness](docs/AGENT_READINESS.md) distinguishes prerequisites from unimplemented agents.
+The optional [local sales assistant](docs/SALES_ASSISTANT.md) searches products/current prices
+with a free local model and fixed read-only tools. It is disabled by default; no paid API is required.
 No production deployment is included. See [development status](docs/DEVELOPMENT_STATUS.md).
 
 ## Clean local setup

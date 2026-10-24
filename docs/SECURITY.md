@@ -110,3 +110,18 @@ are append-only with tenant/version FKs and a current-draft PostgreSQL trigger; 
 idempotency share the transaction. Accepted internal review is not financial approval and
 cannot issue/send a quotation. There is no implemented agent identity/runtime yet; see
 AGENT_READINESS.md. Do not give future agents human administrator session tokens.
+
+The optional sales assistant has a fixed read-only tool registry and no model-executable HTTP
+or SQL interface. Local Ollama URLs/model are server-configured/validated; no paid provider,
+public endpoint URL, redirects, arbitrary model name or API keys are supported. Only question
+text and a static extraction schema reach the model, never token/tenant/domain results. The
+user's token remains in server-side domain API calls; current session is checked on every read
+and finally before returning results, including revocation during inference. Only catalog and
+approved/current price fields are projected; no CRM contacts, warehouse balances or journals.
+One extraction call, bounded tokens/response/time/data calls, concurrency2 per worker; no
+unbounded loops or automatic model pulls. Read-only is enforced structurally even for an
+administrator's user session. No separate agent principal or background agent exists yet.
+Queries/answers are not persisted in audits; HTTP-client URL INFO and raw Uvicorn access
+logs are suppressed in favor of structured request metadata.
+Local model debug request logging must remain disabled for business data. CI's loopback-only
+mock provider refuses non-_test databases and is not application inference. See SALES_ASSISTANT.md.

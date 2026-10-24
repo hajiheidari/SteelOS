@@ -82,3 +82,19 @@ new edits invalidating current usability, immutable evidence/update-delete guard
 price rejection, expiry during snapshot (no orphan audit/idempotency), concurrent reviewers
 (one201/one409), and zero stock effects. The browser sales workflow accepts version1,
 edits version2, records a rejection after source revocation, and preserves revision history.
+
+## Local-model read-only sales assistant
+
+Current backend suite:77 passed, one opt-in local-model integration test skipped by default.
+The opt-in actual-model API test also passed separately, with exact PostgreSQL price evidence;
+7 synthetic Persian extraction cases matched. CI does not download weights or require paid
+services: the browser provider fixture is a loopback-only _test-guarded HTTP server, clearly
+separate from actual-model evaluation. New tests cover tenant isolation, bounded fixed tools,
+no business writes, pending/expired/source-revoked prices, live session revocation during
+inference, URL/model allowlists, malformed/oversized/redirected provider output, per-worker
+concurrency and total deadline, and absence of question/search text in application logs.
+See SALES_ASSISTANT.md for opt-in commands and limits of the small actual-model evaluation.
+
+The sales assistant UI adds two real-API browser scenarios (desktop/mobile): exact price
+evidence/source rendering, unsupported intent and unchanged draft count. Current browser
+suite:24 passing. Raw synthetic local-model evidence is in evidence/local-assistant-2026-10-24.json.

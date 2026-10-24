@@ -17,6 +17,7 @@ import {
   sessionExpiredEvent,
 } from "./workspace-schema";
 import { TaxPolicySettings } from "./tax-policy-settings";
+import { SalesAssistantWorkspace } from "./sales-assistant-workspace";
 import { Editor } from "./record-editor";
 import { RemoteSelect } from "./remote-select";
 import { SalesDraftsWorkspace } from "./sales-drafts-workspace";
@@ -79,7 +80,7 @@ export default function Home() {
   }, [me]);
   const load = useCallback(async () => {
     if (!me || latestView.current !== viewKey) return;
-    if (page === "inventory" || page === "sales-drafts") {
+    if (["inventory", "sales-drafts", "sales-assistant"].includes(page)) {
       setLoading(false);
       setError("");
       return;
@@ -344,7 +345,9 @@ export default function Home() {
               در حال دریافت اطلاعات…
             </p>
           )}
-          {page === "inventory" ? (
+          {page === "sales-assistant" ? (
+            <SalesAssistantWorkspace />
+          ) : page === "inventory" ? (
             <InventoryWorkspace role={me.role} />
           ) : page === "sales-drafts" ? (
             <SalesDraftsWorkspace role={me.role} />

@@ -7,6 +7,7 @@ const resources = new Set([
   "auth",
   "inventory",
   "sales-drafts",
+  "sales-assistant",
   "organization",
   "catalog-references",
   "products",

@@ -13,6 +13,7 @@ from starlette.exceptions import HTTPException
 
 from app.config import settings
 from app.db import SCHEMA_REVISION, engine
+from app.modules.assistant.router import router as assistant
 from app.modules.identity import router as identity
 from app.modules.inventory.router import router as inventory
 from app.modules.resources import router as resources
@@ -20,6 +21,10 @@ from app.modules.sales.router import router as sales
 
 logger = logging.getLogger("steelos")
 logging.basicConfig(level=logging.INFO, format="%(message)s")
+# Internal assistant reads include search terms; HTTP client INFO URLs must not log them.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+# Structured events below replace raw URL access logs, which include search strings.
+logging.getLogger("uvicorn.access").disabled = True
 app = FastAPI(title="SteelOS API", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +36,7 @@ app.include_router(identity, prefix="/api/v1")
 app.include_router(inventory, prefix="/api/v1")
 app.include_router(resources, prefix="/api/v1")
 app.include_router(sales, prefix="/api/v1")
+app.include_router(assistant, prefix="/api/v1")
 
 
 def error(request, status, code, message, details=None):
