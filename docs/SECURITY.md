@@ -130,7 +130,7 @@ Assistant numeric dimension constraints are extracted/validated by deterministic
 inference; model omission cannot relax them. Typed filters pass only through the controlled
 product API, scoped before filtering/count/pagination. Up to8 Code attributes, bounded JSON,
 Decimal/units and duplicate-key checks; all values are SQLAlchemy JSONB bind data, never SQL
-identifiers/expressions. Canonical alternatives avoid casting corrupt/untrusted JSON to numeric.
+identifiers/expressions. Exact-match canonical alternatives avoid numeric casts. Range comparisons put numeric casts inside CASE guarded by a bounded decimal regex, and require JSON string values; malformed/oversized JSON values cannot trigger a cast failure.
 Ambiguity yields no data reads/model call; no-match never broadens criteria. A model-generated
 query not copied from the question is rejected with a generic provider error. UI renders original
 attribute/price evidence as escaped text. No new mutable permissions, external service or model

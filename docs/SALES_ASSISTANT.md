@@ -107,7 +107,7 @@ These small tests establish connectivity/basic extraction,
 not broad Persian accuracy, production load capacity or immunity to misinterpreted intent.
 Read-only hard limits still apply even if a model produces a misleading search term.
 
-Pending: ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
+Pending: open/exclusive ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
 operating limits, optional citation-based prose, agent service-principal lifecycle if needed,
 and separately authorized proposal/write workflows. OCR/research/marketing/channel agents
 are not implemented. No production deployment is included.
@@ -126,13 +126,13 @@ The public product API accepts an optional attributes JSON query (≤4096 charac
 At most8 extensible attribute keys, AND semantics, positive Decimal(20,6) values, no floats/
 booleans/duplicate JSON keys. The generic catalog filter supports every valid catalog Code
 key and the existing Dimension units, not only the five assistant names. mm/cm/m compare
-exact physical equivalence; kg/none require the same unit. No tolerance/ranges, guessed
+exact physical equivalence; kg/none require the same unit. No tolerance, guessed
 unit, price-unit conversion or inventory mutation occurs. Comparisons use canonical catalog
 JSON strings and exact Decimal-derived alternatives, not unsafe casts of arbitrary JSON.
 Wrong/absent attributes return no matches; filters are never dropped to produce an answer.
 Other resource endpoints reject the attributes filter with422.
 
-Unknown/missing units, repeated dimensions, unsupported ranges or number-word forms outside the finite grammar or bare
+Unknown/missing units, repeated dimensions, unsupported range forms or number-word forms outside the finite grammar or bare
 measurements without an attribute name yield needs_clarification=true and no product/price
 reads or model call. This is a conservative explicit grammar, not a general natural-language
 measurement parser. General questions about available dimensions without numeric constraints
@@ -155,4 +155,21 @@ Named dimensions also accept یک through ده, نیم, and an integer from that
 by و نیم, including ZWNJ separators. For example ضخامت دو و نیم میلی‌متر becomes
 exactly2.5mm before inference. Values are explicit Decimal constants; the model does not
 interpret number words. Unsupported compound numbers (such as بیست or دو و سه), fractions
-and ranges request clarification. Catalog API contracts remain decimal strings.
+and ranges using number words request clarification. Catalog API contracts remain decimal strings.
+
+### Inclusive dimension ranges
+
+The product API also accepts `{"thickness":{"min":{"value":"2","unit":"mm"},"max":{"value":"3","unit":"mm"}}}`
+in the existing attributes parameter. Both endpoints are required, positive and inclusive;
+equal bounds are allowed. Bounds may use compatible mm/cm/m units; kg/none require the
+same unit. Reversed or incompatible bounds are422. Exact and range filters can be mixed
+with AND within the existing8-key/4096-character limits. No quantities or prices convert.
+
+The assistant recognizes explicit numeric `ضخامت از۲ تا۳mm` / `ضخامت بین۲ و۳mm`,
+including optional units on the lower bound (otherwise the final unit applies to both).
+It extracts ranges before inference and displays both bounds and inclusive semantics.
+Missing/invalid bounds and unsupported forms request clarification; no criterion is dropped.
+Number-word ranges, open/exclusive comparisons and arbitrary tolerances remain unsupported.
+Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
+strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
+The query may scan tenant catalog rows; a large-catalog performance benchmark is still pending.

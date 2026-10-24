@@ -40,7 +40,9 @@ def test_explicit_dimension_extraction_is_exact_and_preserves_other_text():
         "ورق عرض2kg",
         "ورق عرض 2inch",
         "ورق ضخامت2mm ضخامت3mm",
-        "ورق عرض از1000 تا1200میلیمتر",
+        "ورق عرض از1200 تا1000میلیمتر",
+        "ورق عرض از1000 تا1200",
+        "ورق عرض ازدو تاسه میلیمتر",
         "ورق2mm",
         "ورق2میل",
         "ورق وزن2kg",
@@ -132,6 +134,14 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
     ).json()
     assert [row["id"] for row in spelled["products"]] == [products[0]["id"]]
     assert not spelled["needs_clarification"]
+    ranged = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "ورق ضخامت از۲ تا۳mm عرض۱٫۲m"},
+    ).json()
+    assert {row["id"] for row in ranged["products"]} == {products[0]["id"], products[1]["id"]}
+    assert ranged["dimensions"]["thickness"]["min"] == {"value": "2", "unit": "mm"}
+    assert not ranged["needs_clarification"]
     calls.clear()
     unclear = client.post(
         "/api/v1/sales-assistant/query", headers=tokens[0], json={"question": "ورق ضخامت2"}
@@ -212,3 +222,14 @@ def test_persian_word_dimensions_are_exact(words, expected):
     assert result.question == "قیمت ورق"
     assert result.attributes["thickness"].value == Decimal(expected)
     assert result.attributes["thickness"].unit == "mm"
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["قیمت ورق ضخامت از۲ تا۳ میلیمتر", "قیمت ورق ضخامت بین۲ و۳mm", "قیمت ورق ضخامت از۰٫۲cm تا۳mm"],
+)
+def test_inclusive_range_extraction(question):
+    result = dimensions.extract(question)
+    assert not result.needs_clarification and result.question == "قیمت ورق"
+    assert result.attributes["thickness"].max.value == 3
+    assert result.attributes["thickness"].max.unit == "mm"

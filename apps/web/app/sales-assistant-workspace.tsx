@@ -17,9 +17,14 @@ const dimensionLabels: Record<string, string> = {
   diameter: "قطر",
   height: "ارتفاع",
 };
+type Measurement = { value: string; unit: string };
+type DimensionFilter = Measurement | { min: Measurement; max: Measurement };
+function measurement(value: Measurement) {
+  return `${display(value.value)} ${value.unit === "none" ? "" : value.unit}`;
+}
 function Dimensions({ value, title }: { value: unknown; title: string }) {
   const entries = Object.entries(
-    (value || {}) as Record<string, { value: string; unit: string }>,
+    (value || {}) as Record<string, DimensionFilter>,
   );
   return entries.length ? (
     <p>
@@ -29,8 +34,9 @@ function Dimensions({ value, title }: { value: unknown; title: string }) {
           {index > 0 && " · "}
           {dimensionLabels[key] || key}:{" "}
           <bdi>
-            {display(dimension.value)}{" "}
-            {dimension.unit === "none" ? "" : dimension.unit}
+            {"min" in dimension
+              ? `از ${measurement(dimension.min)} تا ${measurement(dimension.max)} (شامل دو حد)`
+              : measurement(dimension)}
           </bdi>
         </span>
       ))}

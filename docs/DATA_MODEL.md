@@ -99,3 +99,8 @@ current-version usability. No financial-approval, stock or accounting row is cre
 Product attribute search compares canonical JSON value/unit pairs. Length-unit equivalence
 is derived for search only (mm/cm/m); other units require equality. No stored specification,
 quantity, price or balance changes. Search adds no tables/migration; schema remains0005.
+
+Inclusive dimension search ranges are query contracts, not new stored product attributes.
+Products retain one canonical positive decimal string and unit per dimension. Range bounds
+never rewrite dimensions or create stock/price conversions; invalid legacy JSON is excluded
+by guarded query extraction. No schema migration accompanies range search.

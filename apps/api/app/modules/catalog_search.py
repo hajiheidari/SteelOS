@@ -7,8 +7,8 @@ from typing import Annotated
 
 from app.schemas import Code, Dimension, Input
 from fastapi import HTTPException
-from pydantic import Field, ValidationError, field_validator
-from sqlalchemy import cast, or_
+from pydantic import Field, ValidationError, field_validator, model_validator
+from sqlalchemy import Numeric, and_, case, cast, func, or_
 from sqlalchemy.dialects.postgresql import JSONB
 
 DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -29,8 +29,20 @@ class SearchDimension(Dimension):
         return value
 
 
+class SearchRange(Input):
+    min: SearchDimension
+    max: SearchDimension
+
+    @model_validator(mode="after")
+    def ordered(self):
+        lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(self.min)}
+        if self.max.unit not in lower or lower[self.max.unit] > self.max.value:
+            raise ValueError("Range bounds must be ordered and use compatible units")
+        return self
+
+
 class AttributeFilters(Input):
-    attributes: Annotated[dict[Code, SearchDimension], Field(max_length=8)]
+    attributes: Annotated[dict[Code, SearchDimension | SearchRange], Field(max_length=8)]
 
 
 def unique_pairs(pairs):
@@ -68,6 +80,31 @@ def alternatives(dimension):
 
 def apply(stmt, model, attributes):
     for key, dimension in attributes.items():
+        if isinstance(dimension, SearchRange):
+            lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.min)}
+            upper = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)}
+            attribute = cast(model.attributes, JSONB)[key]
+            text = attribute["value"].astext
+            # CASE protects the cast even if PostgreSQL reorders WHERE predicates.
+            # Bounded canonical strings only: malformed/imported JSON never raises a cast error.
+            number = case(
+                (text.op("~")(r"^[0-9]{1,20}(\.[0-9]{1,6})?$"), cast(text, Numeric())),
+                else_=None,
+            )
+            stmt = stmt.where(
+                or_(
+                    *[
+                        and_(
+                            attribute["unit"].astext == unit,
+                            func.jsonb_typeof(attribute["value"]) == "string",
+                            number >= lower[unit],
+                            number <= upper[unit],
+                        )
+                        for unit in lower
+                    ]
+                )
+            )
+            continue
         stmt = stmt.where(
             or_(
                 *[

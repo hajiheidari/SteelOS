@@ -85,3 +85,9 @@ Assistant recognized linear names are deliberately narrower than the catalog's e
 attributes. Ambiguity stops data retrieval; no unconstrained fallback exists. This preserves
 business constraints even when a small local model misinterprets language. No migration or
 change to stored dimensions, financial precision, inventory units or ownership is needed.
+
+Catalog search additionally supports inclusive ranges. Bound equivalence uses Decimal;
+PostgreSQL compares stored string measurements through a regex-guarded CASE numeric cast,
+never a cast relying on WHERE evaluation order. JSON type checks exclude non-string values.
+Existing tenant predicates/count/pagination remain in the same query. No migration is needed;
+range scans need future performance measurement before large-catalog production adoption.

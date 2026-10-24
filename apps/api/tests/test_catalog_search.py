@@ -46,6 +46,62 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
                 },
             )
         )
+    interval = {
+        "thickness": {"min": {"value": "0.2", "unit": "cm"}, "max": {"value": "3", "unit": "mm"}}
+    }
+    ranged = client.get(
+        "/api/v1/products",
+        headers=tokens[2],
+        params={"attributes": json.dumps(interval), "limit": 1},
+    ).json()
+    assert ranged["total"] == 3 and len(ranged["items"]) == 1
+    foreign = client.get(
+        "/api/v1/products", headers=tokens[1], params={"attributes": json.dumps(interval)}
+    ).json()
+    assert foreign["total"] == 1 and foreign["items"][0]["id"] == rows[3]["id"]
+    # Missing or corrupted legacy JSON must not cause a PostgreSQL numeric cast failure.
+    from app.db import engine
+    from app.models import Product
+    from sqlalchemy import update
+
+    for raw in (
+        {"value": "not-numeric", "unit": "mm"},
+        {"value": "1e999999", "unit": "mm"},
+        {"value": ["2"], "unit": "mm"},
+        {"value": "9" * 100, "unit": "mm"},
+        {"value": 2, "unit": "mm"},
+        {"value": None, "unit": "mm"},
+    ):
+        with engine().begin() as conn:
+            conn.execute(
+                update(Product)
+                .where(Product.id == rows[2]["id"])
+                .values(attributes={"thickness": raw})
+            )
+        safe = client.get(
+            "/api/v1/products", headers=tokens[0], params={"attributes": json.dumps(interval)}
+        )
+        assert safe.status_code == 200 and safe.json()["total"] == 2
+    with engine().begin() as conn:
+        conn.execute(
+            update(Product)
+            .where(Product.id == rows[2]["id"])
+            .values(
+                attributes={
+                    "thickness": {"value": "3", "unit": "mm"},
+                    "width": {"value": "1200", "unit": "mm"},
+                    "custom_measure": {"value": "3", "unit": "none"},
+                }
+            )
+        )
+    for lo, hi, expected in (("2.000001", "2.999999", 0), ("2", "2", 2), ("3", "3", 1)):
+        bound = {
+            "thickness": {"min": {"value": lo, "unit": "mm"}, "max": {"value": hi, "unit": "mm"}}
+        }
+        result = client.get(
+            "/api/v1/products", headers=tokens[0], params={"attributes": json.dumps(bound)}
+        )
+        assert result.status_code == 200 and result.json()["total"] == expected
     filters = {
         "thickness": {"value": "۲٫۰۰۰۰۰۰", "unit": "mm"},
         "width": {"value": "۱٬۲۰۰", "unit": "mm"},
@@ -87,6 +143,13 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
 
 
 INVALID_FILTERS = [
+    json.dumps(
+        {"width": {"min": {"value": "3", "unit": "mm"}, "max": {"value": "2", "unit": "mm"}}}
+    ),
+    json.dumps(
+        {"width": {"min": {"value": "2", "unit": "kg"}, "max": {"value": "3", "unit": "mm"}}}
+    ),
+    json.dumps({"width": {"min": {"value": "2", "unit": "mm"}}}),
     "{",
     "[]",
     "null",

@@ -30,3 +30,9 @@
 
 راه‌اندازی، محدودیت‌ها و آزمون‌ها در [SALES_ASSISTANT.md](SALES_ASSISTANT.md) هستند.
 هیچ deployment عمومی، سرویس پولی یا ارسال مشتری انجام نشده است.
+
+The local read-only assistant additionally supports explicit numeric inclusive dimension
+ranges (از…تا / بین…و) and displays both bounds. Real local synthetic extraction evaluation
+matched14/14 including a valid and reversed range. This is a small regression set, not a
+production-language or throughput benchmark; open/exclusive and number-word ranges remain
+unsupported. No new model tools or write permissions were added.

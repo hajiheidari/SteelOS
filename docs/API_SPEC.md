@@ -211,3 +211,11 @@ Assistant named dimensions additionally accept a finite Persian number-word gram
 یک..ده, نیم, and integer + و نیم (whitespace/ZWNJ). These become exact decimal-string
 attribute filters before inference; generic product API input remains decimal strings.
 Unsupported compound number words request clarification without model or domain reads.
+
+Inclusive product dimension ranges use the existing attributes filter, e.g.
+`{"thickness":{"min":{"value":"0.2","unit":"cm"},"max":{"value":"3","unit":"mm"}}}`.
+Both positive bounds are required; compatible length units are compared exactly. Equal
+bounds are valid; reversed/incompatible bounds return422. Each attribute is either an exact
+value/unit or min/max object (no mixed/extra fields), and all attributes combine with AND.
+Assistant dimensions responses preserve this min/max structure. Persian numeric از…تا / بین…و
+with named attributes are supported; omitted lower unit inherits the explicit upper unit.

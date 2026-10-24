@@ -122,3 +122,15 @@ or financial calculation is introduced by this parser extension.
 Final number-word extension suite:108 passed,2 opt-in model tests skipped by default;
 24 production-build browser tests pass in PR CI40111717238. Both CI jobs, migration/model
 drift, formatting, build/typecheck and dependency checks passed. Earlier counts are historical.
+
+## Inclusive catalog ranges
+
+Range regressions cover both inclusive endpoints, equal bounds, interior nonmatches,
+mm/cm/m equivalence, mixing exact/range attributes, pagination and tenant scope. Reversed,
+missing or incompatible bounds are rejected. Legacy JSON strings, exponents, arrays,
+oversized numbers, JSON numeric values and nulls are exercised against guarded SQL casts.
+Assistant tests cover از…تا / بین…و, mixed bound units, invalid/missing/reversed ranges,
+API result preservation and no relaxed criteria. Browser scenarios display two matching
+boundary products and explicitly label inclusive limits. Synthetic actual-local-model
+evaluation matched14/14 cases; evidence/local-assistant-ranges-2026-10-24.json retains outputs.
+The prior number-word case now expects supported extraction; historical artifacts are unchanged.

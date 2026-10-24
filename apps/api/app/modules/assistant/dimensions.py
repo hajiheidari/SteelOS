@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.modules.catalog_search import DIGITS, SearchDimension
+from app.modules.catalog_search import DIGITS, SearchDimension, SearchRange
 from pydantic import ValidationError
 
 NAMES = {
@@ -42,12 +42,31 @@ VALUE = re.compile(
     + r")(?![\w‌])",
     re.I,
 )
+RANGE = re.compile(
+    r"[\s‌]*(?:از|بین)[\s‌]*(?P<lower>"
+    + NUMBER
+    + r")[\s‌]*(?:(?P<lower_unit>"
+    + UNIT
+    + r")[\s‌]*)?(?:تا|و)[\s‌]*(?P<upper>"
+    + NUMBER
+    + r")[\s‌]*(?P<unit>"
+    + UNIT
+    + r")(?![\w‌])",
+    re.I,
+)
+
+
+def unit_code(value):
+    unit = re.sub(r"[\s‌-]", "", value).lower()
+    return {"میلیمتر": "mm", "سانتیمتر": "cm", "متر": "m"}.get(unit, unit)
+
+
 MEASUREMENT = re.compile(
     NUMBER + r"[\s‌]*(?:" + UNIT + r"|میل|kg|کیلوگرم|کیلو|گرم|tonne|تن|inch|اینچ|درجه)(?![\w‌])", re.I
 )
 
 ATTEMPT = re.compile(
-    r"[\s‌]*(?:[:=+0-9.٫-]|(?:از|بین|حداکثر|حداقل|یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|نیم|بیست|سی|چهل|صد|one|two|three)(?=$|[\s‌]))",
+    r"[\s‌]*(?:[:=+0-9.٫-]|(?:از|بین|حداکثر|حداقل|یک|دو|سه|چهار|پنج|شش|هفت|هشت|نه|ده|نیم|بیست|سی|چهل|صد|one|two|three)(?=$|[\s‌0-9]))",
     re.I,
 )
 
@@ -55,7 +74,7 @@ ATTEMPT = re.compile(
 @dataclass
 class Extraction:
     question: str
-    attributes: dict[str, SearchDimension]
+    attributes: dict[str, SearchDimension | SearchRange]
     needs_clarification: bool
 
 
@@ -64,8 +83,24 @@ def extract(question):
     attributes, spans = {}, []
     ambiguous = False
     for key in KEY.finditer(text):
-        value = VALUE.match(text, key.end())
         name = NAMES[key.group().lower()]
+        interval = RANGE.match(text, key.end())
+        if interval is not None:
+            try:
+                if name in attributes:
+                    raise ValueError("Repeated dimension")
+                attributes[name] = SearchRange(
+                    min=SearchDimension(
+                        value=interval["lower"],
+                        unit=unit_code(interval["lower_unit"] or interval["unit"]),
+                    ),
+                    max=SearchDimension(value=interval["upper"], unit=unit_code(interval["unit"])),
+                )
+                spans.append((key.start(), interval.end()))
+            except (ValidationError, ValueError):
+                ambiguous = True
+            continue
+        value = VALUE.match(text, key.end())
         if value is None:
             # A general question about available dimensions does not assert a numeric filter.
             if ATTEMPT.match(text, key.end()) or re.match(
@@ -78,8 +113,7 @@ def extract(question):
         if name in attributes:
             ambiguous = True
             continue
-        unit = re.sub(r"[\s‌-]", "", value["unit"]).lower()
-        unit = {"میلیمتر": "mm", "سانتیمتر": "cm", "متر": "m"}.get(unit, unit)
+        unit = unit_code(value["unit"])
         try:
             raw = value["value"]
             if raw[0] not in "0123456789":
