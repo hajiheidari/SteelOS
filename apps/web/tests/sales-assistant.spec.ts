@@ -33,13 +33,30 @@ test("read-only sales assistant displays grounded API prices and unsupported int
     kind: "category",
     name,
     code: "ai-" + stamp,
+    attribute_rules: {
+      thickness: { unit: "mm", required: true },
+      width: { unit: "mm", required: true },
+    },
   });
   const product = await create("products", {
     category_id: category.id,
     sku: "AI-" + stamp,
     name,
     unit: "kg",
-    attributes: {},
+    attributes: {
+      thickness: { value: "2", unit: "mm" },
+      width: { value: "1200", unit: "mm" },
+    },
+  });
+  await create("products", {
+    category_id: category.id,
+    sku: "NOMATCH-" + stamp,
+    name,
+    unit: "kg",
+    attributes: {
+      thickness: { value: "3", unit: "mm" },
+      width: { value: "1200", unit: "mm" },
+    },
   });
   const source = await create("price-sources", {
     code: "ai-" + stamp,
@@ -81,7 +98,9 @@ test("read-only sales assistant displays grounded API prices and unsupported int
     exact: true,
   });
   await expect(submit).toBeEnabled();
-  await page.getByLabel("سؤال فروش", { exact: true }).fill(name);
+  await page
+    .getByLabel("سؤال فروش", { exact: true })
+    .fill(name + " ضخامت۲mm عرض۱٫۲m");
   const answerResponse = page.waitForResponse(
     (response) =>
       response.url().endsWith("/sales-assistant/query") &&
@@ -93,6 +112,12 @@ test("read-only sales assistant displays grounded API prices and unsupported int
   const answer = await response.json();
   expect(answer.read_only).toBe(true);
   expect(answer.financial_approval).toBe(false);
+  expect(answer.product_total).toBe(1);
+  expect(answer.dimensions).toEqual({
+    thickness: { value: "2", unit: "mm" },
+    width: { value: "1.2", unit: "m" },
+  });
+  expect(answer.needs_clarification).toBe(false);
   expect(answer.products[0].prices[0].amount).toBe("987654.123456");
   const result = page.getByRole("region", { name: "نتیجهٔ دستیار فروش" });
   await expect(
@@ -107,6 +132,18 @@ test("read-only sales assistant displays grounded API prices and unsupported int
   await expect(result.getByText("منبع:", { exact: false })).toContainText(
     source.name,
   );
+  await expect(
+    result.getByText("مشخصات جست‌وجو:", { exact: false }),
+  ).toContainText("عرض");
+  await expect(
+    result.getByText("مشخصات کالا:", { exact: false }),
+  ).toContainText("۱۲۰۰");
+  await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت۲");
+  await submit.click();
+  await expect(
+    page.getByText("عدد و واحد ابعاد را دقیق بنویسید", { exact: false }),
+  ).toBeVisible();
+  await expect(result.getByRole("heading", { level: 3 })).toHaveCount(0);
   await page.getByLabel("سؤال فروش", { exact: true }).fill("سلام");
   await submit.click();
   await expect(

@@ -8,6 +8,7 @@ from uuid import UUID
 from app import models as m
 from app import schemas as s
 from app.db import database
+from app.modules import catalog_search
 from app.security import Context, authorize_write, context, digest, permit
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.encoders import jsonable_encoder
@@ -231,6 +232,12 @@ def register(resource, model, schema):
         product_id: UUID | None = None,
         warehouse_id: UUID | None = None,
         status: str | None = None,
+        attributes: str | None = Query(
+            None,
+            min_length=2,
+            max_length=4096,
+            description="Products only: JSON object of up to8 exact attribute filters {key:{value:decimal string,unit}}; AND semantics; mm/cm/m equivalence.",
+        ),
         approved_only: bool = False,
         tax_included: bool | None = None,
         currency: str | None = Query(None, pattern="^(IRR|IRT|USD|EUR)$"),
@@ -240,6 +247,10 @@ def register(resource, model, schema):
         if admin_only:
             permit(ctx, admin=True)
         stmt = accessible(scoped(model, ctx), model, ctx)
+        if attributes is not None:
+            if model is not m.Product:
+                raise HTTPException(422, "Unsupported filter: attributes")
+            stmt = catalog_search.apply(stmt, model, catalog_search.parse(attributes))
         if q:
             fields = [
                 getattr(model, key)

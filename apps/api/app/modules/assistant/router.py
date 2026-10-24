@@ -2,8 +2,8 @@ import asyncio
 
 from app.config import settings
 from app.db import database
-from app.modules.assistant import provider, tools
-from app.modules.assistant.schemas import Question
+from app.modules.assistant import dimensions, provider, tools
+from app.modules.assistant.schemas import Question, SearchPlan
 from app.modules.resources import audit
 from app.security import Context, context
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -40,8 +40,19 @@ async def query(
     if slots.locked():
         raise HTTPException(429, "Sales assistant is busy; retry shortly")
     async with slots:
-        plan = await provider.plan(payload.question, config)
-        result = await tools.search(request.app, request.headers["authorization"], plan)
+        extraction = dimensions.extract(payload.question)
+        plan = (
+            SearchPlan(product_query=None)
+            if extraction.needs_clarification
+            else await provider.plan(extraction.question, config)
+        )
+        result = await tools.search(
+            request.app,
+            request.headers["authorization"],
+            plan,
+            attributes=extraction.attributes,
+            needs_clarification=extraction.needs_clarification,
+        )
         audit(db, ctx, "assistant_query", "sales-assistant", ctx.user_id)
         db.commit()
         return {**result, "mode": "local_model", "model": config.assistant_model}

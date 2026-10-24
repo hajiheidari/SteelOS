@@ -1,5 +1,6 @@
 """Fixed read-only tool registry. Model/user cannot choose a URL, method, tenant or limit."""
 
+import json
 from datetime import UTC, datetime
 
 import httpx
@@ -32,7 +33,9 @@ async def get(client, path, params=None):
     return response.json()
 
 
-async def search(app, authorization, plan: SearchPlan):
+async def search(
+    app, authorization, plan: SearchPlan, *, attributes=None, needs_clarification=False
+):
     started = datetime.now(UTC)
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
@@ -42,7 +45,7 @@ async def search(app, authorization, plan: SearchPlan):
     ) as client:
         rows = []
         total = 0
-        if plan.product_query:
+        if plan.product_query and not needs_clarification:
             products = await get(
                 client,
                 "products",
@@ -51,6 +54,18 @@ async def search(app, authorization, plan: SearchPlan):
                     "active": "true",
                     "limit": 5,
                     "offset": 0,
+                    **(
+                        {
+                            "attributes": json.dumps(
+                                {
+                                    key: value.model_dump(mode="json")
+                                    for key, value in attributes.items()
+                                }
+                            )
+                        }
+                        if attributes
+                        else {}
+                    ),
                 },
             )
             total = products["total"]
@@ -84,6 +99,10 @@ async def search(app, authorization, plan: SearchPlan):
         "products": rows,
         "product_total": total,
         "query": plan.product_query,
+        "dimensions": {
+            key: value.model_dump(mode="json") for key, value in (attributes or {}).items()
+        },
+        "needs_clarification": needs_clarification,
         "currency": plan.currency,
         "retrieval_started_at": started.isoformat(),
         "retrieval_finished_at": datetime.now(UTC).isoformat(),

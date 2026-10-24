@@ -20,3 +20,8 @@ agent database writes. New infrastructure requires a concrete validated need.
 
 AI readiness is tracked in AGENT_READINESS.md. A limited local-model read-only sales search
 assistant is implemented/tested; broader/writable agents remain future work (SALES_ASSISTANT.md).
+
+The local sales assistant now has deterministic explicit dimension extraction and exact
+length-equivalent catalog filters, with clarification rather than dropping constraints.
+Broader dimension grammar, ranges, inferred/synonymous names and large-scale evaluation
+remain future work; current details/evidence are in SALES_ASSISTANT.md.

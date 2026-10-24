@@ -190,3 +190,19 @@ exact decimal strings, provenance/timestamps/delivery/tax flag, retrieval interv
 Null query means unsupported intent; no invented answer or quote.503 when disabled/model
 invalid/unavailable,429 at per-worker concurrency2. Session is rechecked before returning data.
 Successful reads audit actor/org without question text. Details/setup in SALES_ASSISTANT.md.
+
+### Exact product attribute filters and assistant dimensions
+
+GET /products accepts attributes=<JSON object>, max4096 characters, max8 Code keys. Each
+value is {value:positive decimal string,unit:mm|cm|m|kg|none}, with existing20-digit/6-place
+bounds. All predicates are ANDed with existing tenant/q/reference/active filters and applied
+before pagination/count. mm/cm/m match exact equivalence; kg/none only the same unit. No
+float/bool, malformed/grouped/duplicate-key JSON, unsupported unit or arbitrary SQL expression
+is accepted;422. Other resources reject this parameter. Example width1.2m matches1200mm.
+
+Assistant POST still accepts question only. The server extracts explicit named length
+constraints independently from the model; response adds dimensions and needs_clarification.
+Ambiguous/missing/repeated/unsupported dimensions return no results and skip inference/data
+reads (session authorization is still rechecked). Exact no-match never retries without filters.
+Model product query must be copied from the remaining question, not generated/translated.
+Results remain scoped, read-only, bounded and financially unapproved.

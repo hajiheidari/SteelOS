@@ -111,3 +111,40 @@ Pending: richer dimension-aware search, broader quality/abuse evaluation, organi
 operating limits, optional citation-based prose, agent service-principal lifecycle if needed,
 and separately authorized proposal/write workflows. OCR/research/marketing/channel agents
 are not implemented. No production deployment is included.
+
+## Exact technical dimensions (implemented)
+
+The server extracts explicit named linear dimensions before model inference: thickness/ضخامت,
+width/عرض, length/طول, diameter/قطر and height/ارتفاع. Supported syntax is a name followed
+by a positive decimal number and mm/cm/m (also میلیمتر/میلی‌متر, سانتیمتر, متر), with optional
+colon/equal separator. Persian/Arabic digits and valid Persian grouping/decimal separators
+are normalized exactly. The remaining product-name question goes to the model; numeric
+constraints never depend on a model retaining or reconstructing them.
+
+The public product API accepts an optional attributes JSON query (≤4096 characters), e.g.:
+`{"thickness":{"value":"2","unit":"mm"},"width":{"value":"1.2","unit":"m"}}`.
+At most8 extensible attribute keys, AND semantics, positive Decimal(20,6) values, no floats/
+booleans/duplicate JSON keys. The generic catalog filter supports every valid catalog Code
+key and the existing Dimension units, not only the five assistant names. mm/cm/m compare
+exact physical equivalence; kg/none require the same unit. No tolerance/ranges, guessed
+unit, price-unit conversion or inventory mutation occurs. Comparisons use canonical catalog
+JSON strings and exact Decimal-derived alternatives, not unsafe casts of arbitrary JSON.
+Wrong/absent attributes return no matches; filters are never dropped to produce an answer.
+Other resource endpoints reject the attributes filter with422.
+
+Unknown/missing units, repeated dimensions, unsupported ranges/spelled-out values or bare
+measurements without an attribute name yield needs_clarification=true and no product/price
+reads or model call. This is a conservative explicit grammar, not a general natural-language
+measurement parser. General questions about available dimensions without numeric constraints
+are not turned into exact filters. Clarification responses do not establish a price/currency
+selection. Valid responses include dimensions (user-derived filters) and needs_clarification;
+the Persian UI displays understood constraints alongside the actual product attributes.
+
+Model-generated product terms must copy a substring from the remaining question (case/space
+normalization only); spelling changes, invented synonyms or translation produce a sanitized503,
+not a different catalog lookup. Initial actual-model evaluation matched10/12 scenarios: two
+misspelled ورق as وارق. Exact-copy enforcement and prompt examples corrected the evaluated
+cases; the rerun matched12/12. Both initial/final synthetic artifacts are retained under
+[evidence](evidence/local-assistant-dimensions-2026-10-24.json), alongside the initial artifact.
+An opt-in actual-model API test also matches0.2cm against stored2mm and returns the exact
+approved DB price. These results do not establish general language accuracy or production readiness.

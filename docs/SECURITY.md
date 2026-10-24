@@ -125,3 +125,13 @@ Queries/answers are not persisted in audits; HTTP-client URL INFO and raw Uvicor
 logs are suppressed in favor of structured request metadata.
 Local model debug request logging must remain disabled for business data. CI's loopback-only
 mock provider refuses non-_test databases and is not application inference. See SALES_ASSISTANT.md.
+
+Assistant numeric dimension constraints are extracted/validated by deterministic code before
+inference; model omission cannot relax them. Typed filters pass only through the controlled
+product API, scoped before filtering/count/pagination. Up to8 Code attributes, bounded JSON,
+Decimal/units and duplicate-key checks; all values are SQLAlchemy JSONB bind data, never SQL
+identifiers/expressions. Canonical alternatives avoid casting corrupt/untrusted JSON to numeric.
+Ambiguity yields no data reads/model call; no-match never broadens criteria. A model-generated
+query not copied from the question is rejected with a generic provider error. UI renders original
+attribute/price evidence as escaped text. No new mutable permissions, external service or model
+access to tokens/domain data was introduced.

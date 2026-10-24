@@ -95,3 +95,7 @@ revisions, accepted/rejected decision, note, reviewer, timestamp and evidence JS
 One decision per version. Trigger prevents update/delete and insertion against any noncurrent
 or cancelled draft. Editing/cancelling the header preserves prior reviews but invalidates
 current-version usability. No financial-approval, stock or accounting row is created.
+
+Product attribute search compares canonical JSON value/unit pairs. Length-unit equivalence
+is derived for search only (mm/cm/m); other units require equality. No stored specification,
+quantity, price or balance changes. Search adds no tables/migration; schema remains0005.

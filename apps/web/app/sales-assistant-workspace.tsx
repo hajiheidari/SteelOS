@@ -10,6 +10,34 @@ const currencies: Record<string, string> = {
   EUR: "یورو",
 };
 
+const dimensionLabels: Record<string, string> = {
+  thickness: "ضخامت",
+  width: "عرض",
+  length: "طول",
+  diameter: "قطر",
+  height: "ارتفاع",
+};
+function Dimensions({ value, title }: { value: unknown; title: string }) {
+  const entries = Object.entries(
+    (value || {}) as Record<string, { value: string; unit: string }>,
+  );
+  return entries.length ? (
+    <p>
+      {title}:{" "}
+      {entries.map(([key, dimension], index) => (
+        <span key={key}>
+          {index > 0 && " · "}
+          {dimensionLabels[key] || key}:{" "}
+          <bdi>
+            {display(dimension.value)}{" "}
+            {dimension.unit === "none" ? "" : dimension.unit}
+          </bdi>
+        </span>
+      ))}
+    </p>
+  ) : null;
+}
+
 export function SalesAssistantWorkspace() {
   const [status, setStatus] = useState<Row | null>(null);
   const [question, setQuestion] = useState("");
@@ -91,7 +119,13 @@ export function SalesAssistantWorkspace() {
             بازهٔ خواندن داده: {display(answer.retrieval_started_at)} تا{" "}
             {display(answer.retrieval_finished_at)}
           </p>
-          {answer.query == null ? (
+          <Dimensions value={answer.dimensions} title="مشخصات جست‌وجو" />
+          {answer.needs_clarification ? (
+            <p role="status">
+              عدد و واحد ابعاد را دقیق بنویسید؛ مثلاً «ورق، ضخامت ۲ میلی‌متر،
+              عرض ۱۲۰۰ میلی‌متر». شرط مبهم حذف نمی‌شود و جست‌وجو انجام نشده است.
+            </p>
+          ) : answer.query == null ? (
             <p>
               در این مرحله فقط جست‌وجوی کالا و قیمت پشتیبانی می‌شود؛ نام کالا را
               در سؤال مشخص کنید.
@@ -113,6 +147,7 @@ export function SalesAssistantWorkspace() {
               <h3>
                 {String(product.name)} · <bdi>{String(product.sku)}</bdi>
               </h3>
+              <Dimensions value={product.attributes} title="مشخصات کالا" />
               {product.prices.length === 0 && (
                 <p>قیمت تأییدشده و معتبر در این ارز یافت نشد.</p>
               )}

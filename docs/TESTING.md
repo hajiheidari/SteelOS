@@ -98,3 +98,18 @@ See SALES_ASSISTANT.md for opt-in commands and limits of the small actual-model 
 The sales assistant UI adds two real-API browser scenarios (desktop/mobile): exact price
 evidence/source rendering, unsupported intent and unchanged draft count. Current browser
 suite:24 passing. Raw synthetic local-model evidence is in evidence/local-assistant-2026-10-24.json.
+
+## Exact catalog dimensions and grounded model extraction
+
+Current suite:99 backend tests pass, with2 opt-in actual-model tests skipped by default.
+Both actual-model tests passed in a separate35-test assistant run. The expanded local
+synthetic evaluation matched12/12 cases; the initial10/12 artifact remains alongside the
+final evidence to document the spelling failure and the copied-term guard that addressed it.
+This small evaluation is not a production accuracy benchmark.
+
+New regressions cover exact mm/cm/m equivalence, AND filters, extensible attributes,
+tenant scope and pagination, invalid/duplicate/deep JSON, malformed grouping, float/bool
+rejection, ambiguous dimensions skipping inference/search, no broadening on zero matches,
+and model terms absent from the question being rejected. Existing desktop/mobile assistant
+flows now assert exact dimensional filtering, source attributes and clarification with no
+business writes. No migration is needed; alembic check reports no model drift.

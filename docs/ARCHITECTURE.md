@@ -77,3 +77,11 @@ cards with original timestamps/units/provenance. Stateless requests avoid conver
 local provider is optional/default-disabled, with a resource-limited Compose profile and no new
 mandatory dependencies. Production agents, writable proposals and broader quality evaluation
 remain separate work. See SALES_ASSISTANT.md and AGENT_READINESS.md.
+
+Technical search is split into deterministic measurement extraction, optional local product-term
+extraction and exact catalog filtering. Generic catalog_search supports bounded extensible
+attribute keys, canonical Decimal comparisons and mm/cm/m equivalence before pagination.
+Assistant recognized linear names are deliberately narrower than the catalog's extensible
+attributes. Ambiguity stops data retrieval; no unconstrained fallback exists. This preserves
+business constraints even when a small local model misinterprets language. No migration or
+change to stored dimensions, financial precision, inventory units or ownership is needed.
