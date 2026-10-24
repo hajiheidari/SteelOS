@@ -472,3 +472,9 @@
 - اجرای کامل۱۸۱ backend passed و۲ opt-in skipped؛ Ruff/format و TypeScript موفق‌اند. اجرای جداگانهٔ۱۱۴ تست دستیار با فعال‌بودن تست‌های مدل واقعی و سپس هر۲۶ تست مرورگر دسکتاپ/موبایل (صفحهٔ محصول، صفحهٔ شناسه و دستیار) بدون تداخل DB موفق شدند. provider یا دستور زبان مدل تغییر نکرد و ادعای تشخیص عمومی barcode توسط مدل مطرح نمی‌شود.
 - index، migration، dependency، زیرساخت یا دسترسی جدید اضافه نشد. سنجش بار متن/شناسه برای catalog بزرگ ادعا نشده؛ این اصلاح قرارداد جست‌وجوی موجود را عملی می‌کند. batch بعد ارزیابی شکاف واقعی بعدی در دامنهٔ مصوب است.
 - همان PR #1؛ main، merge، deployment عمومی، سرویس پولی، پیام مشتری و ثبت قانونی بدون تغییر‌اند.
+
+### شواهد نهایی CI جست‌وجوی شناسه
+
+- commit `7ae58145db8f6909e010a24cfa3407a8d7abf1ad` در [CI شمارهٔ40137930093](https://github.com/hajiheidari/SteelOS/actions/runs/40137930093) با هر دو job موفق شد:۱۸۱ backend،۲ opt-in skipped،۲۶ desktop/mobile browser، migration/model drift، Ruff/format، TypeScript/build و dependency audit. نتیجه از اتصال GitHub خوانده شد.
+- اجرای جداگانهٔ۱۱۴ تست دستیار با opt-in مدل واقعی موفق بود؛ provider موقت تست متوقف شد و API محلی با کد نهایی به مدل واقعی وصل است؛ readiness موفق. این batch benchmark جدید کیفیت مدل یا catalog بزرگ ارائه نمی‌کند.
+- همان PR #1 و codex/m1-foundation؛ main بدون تغییر، بدون merge، deployment عمومی، هزینهٔ سرویس، پیام مشتری یا ثبت قانونی. ارزیابی شکاف واقعی بعدی در دامنهٔ مصوب ادامهٔ کار است؛ آماده‌بودن کل roadmap یا ایجنت‌های نوشتنی ادعا نمی‌شود.

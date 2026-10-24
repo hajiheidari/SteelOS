@@ -227,3 +227,7 @@ Local validation:181 backend passed,2 actual-model opt-in skips; separate opt-in
 run114 passed;26 desktop/mobile browser tests passed after backend database tests. Ruff,
 format and TypeScript passed. Provider/grammar did not change; no new model accuracy
 benchmark is claimed for identifier intent.
+
+Identifier-search implementation7ae5814 passed both PR CI jobs40137930093:181 backend,
+2 opt-in skips,26 desktop/mobile browser, migration/model drift, Ruff/format,
+TypeScript/build and dependency audits. Separate opt-in assistant run114 passed.
