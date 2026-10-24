@@ -339,3 +339,63 @@ def test_sales_customer_policy_unit_precision_and_tenant_foreign_keys(sales):
         )
         with pytest.raises(IntegrityError):
             db.commit()
+
+
+@pytest.mark.parametrize("master", ["source", "product", "customer"])
+def test_sales_create_waits_for_master_revocation_without_partial_writes(sales, master):
+    from time import monotonic, sleep
+
+    client, tokens, _, _, customer, source, price, _, payload = sales
+    table, field, row_id = {
+        "source": ("price_sources", "approved", source["id"]),
+        "product": ("products", "active", price["product_id"]),
+        "customer": ("parties", "active", customer["id"]),
+    }[master]
+    with engine().connect() as blocker:
+        transaction = blocker.begin()
+        blocker.execute(text(f"UPDATE {table} SET {field}=false WHERE id=:id"), {"id": row_id})
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            request = pool.submit(
+                client.post,
+                "/api/v1/sales-drafts",
+                headers={**tokens[0], "Idempotency-Key": "sales-race"},
+                json=payload,
+            )
+            try:
+                deadline = monotonic() + 5
+                with engine().connect() as observer:
+                    while monotonic() < deadline:
+                        observer.commit()
+                        waiting = observer.scalar(
+                            text("""SELECT EXISTS (SELECT 1 FROM pg_stat_activity
+                            WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE :query)"""),
+                            {"query": "%" + table + "%"},
+                        )
+                        if waiting or request.done():
+                            break
+                        sleep(0.01)
+                    else:
+                        pytest.fail("Sales creation did not execute")
+            finally:
+                transaction.commit()
+            response = request.result(timeout=5)
+    assert response.status_code == 409, response.text
+    with Session(engine()) as db:
+        assert db.scalar(select(func.count()).select_from(m.SalesDraft)) == 0
+        assert db.scalar(select(func.count()).select_from(m.SalesDraftRevision)) == 0
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(m.IdempotencyRecord)
+                .where(m.IdempotencyRecord.key == "sales-race")
+            )
+            == 0
+        )
+        assert (
+            db.scalar(
+                select(func.count())
+                .select_from(m.AuditEvent)
+                .where(m.AuditEvent.resource == "sales-drafts")
+            )
+            == 0
+        )

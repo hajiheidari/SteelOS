@@ -286,3 +286,11 @@
 - build/TypeScript و بررسی دیداری mobile با viewport390 موفق؛ عرض کل صفحه390 باقی ماند. Docker Compose با image تازه و volume مستقل از DB خالی تا migration0003 اجرا شد؛ health/ready/alembic check موفق و container/volume آزمایشی حذف شدند.
 - دامنهٔ کلی پروژه پایان‌یافته اعلام نمی‌شود. سؤال لازم دربارهٔ گردکردن مبلغ/نحوهٔ مالیات همچنان باز است؛ بدون پاسخ وارد تأیید مالی یا customer issuance نمی‌شویم. ادامهٔ مستقل: CI رابط، بازبینی ایمنی و مستندات همین draft.
 - شاخه همان `codex/m1-foundation` و PR #1؛ main/merge/deployment/paid services تغییر نکرده‌اند.
+
+### CI رابط و بازبینی هم‌زمانی فروش
+
+- commit `e87f73598beb2bb450eee29e60d1b644b87c772c` با هر دو اجرای [PR CI شمارهٔ 40087727276](https://github.com/hajiheidari/SteelOS/actions/runs/40087727276) و push موفق شد؛ ۴۹ تست backend و ۲۲ تست browser و همهٔ بررسی‌ها سبز بودند.
+- سه تست تازهٔ تراکنش واقعی برای revoke منبع، غیرفعال‌کردن کالا و مشتری در حین create اضافه شد؛ هر سه 409 و عدم ایجاد header/revision/audit/idempotency را تأیید می‌کنند. مجموعهٔ نهایی محلی ۵۲ تست backend موفق، Ruff/format موفق.
+- وضعیت فعلی: دریافت محدود و جست‌وجوی صفحات انبار/foundation/settings، حفظ هویت فنی قیمت و draft داخلی فروش با UI و تاریخچه پیاده شده‌اند. طرح و محدودیت‌های SALES_DRAFTS.md/SALES_DRAFT_SCOPE.md مرجع است؛ پایان کل پروژه یا تأیید پیش‌فاکتور مشتری اعلام نمی‌شود.
+- مانع واقعی مرحلهٔ مالی بعد: قاعدهٔ کسب‌وکار برای گردکردن هر ردیف/جمع و درج/تفکیک مالیات هنوز دریافت نشده است. سؤال مشخص از founder مطرح شده؛ پاسخ یا مجوز از گذشت زمان استنتاج نمی‌شود. کارهای مستقل این batch شامل API/UI/tests/migration/clean setup/CI/docs انجام شدند؛ customer issuance تا تعیین این قاعده آغاز نمی‌شود.
+- main همچنان `6238616450e63a6f0279d4eb4d1ec7b8c69c9c16`؛ شاخه `codex/m1-foundation` و همان PR #1؛ هیچ merge، deployment، سرویس پولی یا ارسال قانونی/پیام مشتری انجام نشده است.

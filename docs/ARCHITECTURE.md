@@ -46,3 +46,9 @@ replace the current page. Navigating also clears the previous page's table immed
 See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
 role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
 M1 historical boundaries describe the foundation before this approved extension.
+
+The sales module prepares internal drafts through controlled domain APIs. It snapshots
+approved pricing evidence and records optimistic revisions in one transaction with audit
+and shared idempotency mechanics. It has no direct stock-ledger or accounting dependency;
+future trading/financial approval must be a separately validated domain transition using
+the founder's actual tax/rounding rules, never a side effect of saving this draft.

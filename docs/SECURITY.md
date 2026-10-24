@@ -83,3 +83,14 @@ with a version comment for review. Their internal runtime is Node 24; applicatio
 still uses Python 3.12 and Node 22. Checkout does not persist credentials, and workflow
 permissions remain `contents: read`. Update pins deliberately against official release
 metadata and validate with the full CI workflow. No deployment or publishing job exists.
+
+### Internal sales drafts
+
+Sales drafts authorize current membership before every write/replay. Shared locks stabilize
+customer eligibility, product activity and approved price/source checks; concurrent master
+revocation that wins the row lock causes409 and leaves no partial draft/revision/audit/
+idempotency result. Revision and cancellation guards preserve history in PostgreSQL.
+Clients provide price IDs and decimal quantities, never trusted prices, totals or tax values.
+Historical and cached price checks carry their original as-of timestamp; fresh GET rechecks
+current eligibility. Financial approval is always false and there is no customer issuance,
+stock/accounting posting or external-send endpoint in this stage.

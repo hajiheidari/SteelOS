@@ -69,3 +69,11 @@ Current official Iranian specifications must be reviewed before later production
 See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
 role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
 M1 historical boundaries describe the foundation before this approved extension.
+
+## Internal sales draft extension
+
+Migration0003_sales_drafts adds sales_drafts (tenant code/customer/currency/version/state),
+sales_draft_lines (tenant FKs, NUMERIC20,3 quantities, NUMERIC24,6 source prices and immutable
+per-version evidence) and append-only sales_draft_revisions. See SALES_DRAFTS.md for exact
+raw Decimal estimates, draft-only line replacement, terminal cancellation, retention and
+explicit absence of final financial money/tax/inventory/accounting transactions.
