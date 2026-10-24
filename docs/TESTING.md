@@ -118,3 +118,7 @@ Persian number-word regressions cover یک/دو/ده/نیم, integer-plus-half a
 separators, exact Decimal extraction before inference, real domain API equivalence with
 numeric2mm, and unsupported compound forms requiring clarification. No new model claim
 or financial calculation is introduced by this parser extension.
+
+Final number-word extension suite:108 passed,2 opt-in model tests skipped by default;
+24 production-build browser tests pass in PR CI40111717238. Both CI jobs, migration/model
+drift, formatting, build/typecheck and dependency checks passed. Earlier counts are historical.
