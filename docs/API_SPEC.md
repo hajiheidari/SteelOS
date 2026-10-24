@@ -246,3 +246,10 @@ not client-controlled LIKE patterns. Correlated EXISTS avoids duplicate product 
 when multiple identifiers match. Existing technical/active/reference filters still combine
 with AND. product-identifiers q searches its value; product_id/kind filters remain independent.
 Identifier rename/delete is reflected on the next read; uniqueness and stored values are unchanged.
+
+Session refresh revalidates the active user and current, unexpired organization-scoped
+session after waiting for locks. A token that expires/is revoked while queued returns401
+and produces no new token. Refresh and password changes use user-before-session lock order;
+password change also revokes a token issued by an earlier concurrent rotation. Concurrent
+refresh of one token yields one successful rotation; the other returns401. Response contracts,
+session duration and current-organization membership authorization are unchanged.

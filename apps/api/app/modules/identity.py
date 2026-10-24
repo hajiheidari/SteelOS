@@ -117,12 +117,29 @@ def logout(ctx: Context = Depends(context), db: Session = Depends(database)):
 
 @router.post("/auth/refresh")
 def refresh(ctx: Context = Depends(context), db: Session = Depends(database)):
-    # Row lock and recheck makes rotation single use under concurrent retries.
-    session = db.scalar(
-        select(m.AuthSession).where(m.AuthSession.id == ctx.session.id).with_for_update()
+    # Match login/password-change lock order: user first, then session. A queued
+    # refresh must not outlive password revocation or reuse stale authenticated state.
+    user = db.scalar(
+        select(m.User)
+        .where(m.User.id == ctx.user_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
     )
-    if not session:
-        raise HTTPException(401, "Session already rotated")
+    if not user or not user.active:
+        raise HTTPException(401, "Invalid or expired session")
+    session = db.scalar(
+        select(m.AuthSession)
+        .where(
+            m.AuthSession.id == ctx.session.id,
+            m.AuthSession.user_id == ctx.user_id,
+            m.AuthSession.organization_id == ctx.organization_id,
+        )
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    # Check time after the lock wait, not only in the authentication dependency.
+    if not session or session.expires_at <= datetime.now(UTC):
+        raise HTTPException(401, "Invalid or expired session")
     token, new_session = issue_session(
         db, ctx.user_id, ctx.organization_id, settings().session_hours
     )

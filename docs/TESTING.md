@@ -231,3 +231,20 @@ benchmark is claimed for identifier intent.
 Identifier-search implementation7ae5814 passed both PR CI jobs40137930093:181 backend,
 2 opt-in skips,26 desktop/mobile browser, migration/model drift, Ruff/format,
 TypeScript/build and dependency audits. Separate opt-in assistant run114 passed.
+
+## Queued session rotation
+
+Six PostgreSQL concurrency cases in test_session_concurrency.py observe actual lock waits:
+session expiry/revocation while waiting; user deactivation/password revocation winning the
+user lock; rotation winning before a real password-change request; and two rotations of the
+same token. Assertions cover401, zero new tokens/audits for denied refresh, revocation of
+newly rotated tokens, single-use rotation and unaffected unrelated-user access.
+Three of the first four cases failed against627516b (expiry/deactivation and reversed
+user/session lock order); all four passed after the fix. The two winner-order cases then
+passed. One accidental overlap of local backend test processes invalidated a preliminary
+run; it was stopped and discarded, with the final suite run alone on the disposable _test DB.
+No browser tests share that database during backend execution.
+
+Final isolated local run:187 passed,2 actual-model opt-in skips; Ruff/format passed.
+One existing Starlette/httpx deprecation warning remains. No provider/grammar changes
+were made; no new actual-model evaluation is claimed for this authentication fix.

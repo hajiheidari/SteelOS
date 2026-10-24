@@ -151,3 +151,14 @@ identifier table as well as the outer product scope. Values are bound, literal-s
 ILIKE inputs with %, _ and backslash escaping; no user-supplied pattern or SQL is evaluated.
 The assistant's projected fields and read-only tool registry are unchanged; identifier records
 are not added to its response. Search text is still excluded from application/audit logs.
+
+### Session rotation and concurrent security changes
+
+Refresh locks the global user before the presented session, matching login/password-change
+lock order. It reloads user activity and scoped session state with populate_existing, then
+checks expiry after acquiring the session lock. Revoked/rotated/expired sessions and inactive
+users return401 without issuing a token or refresh audit. If password revocation wins the
+user lock, queued refresh cannot resurrect a session; if rotation wins, the following
+password change deletes its newly issued session too. This serializes short authentication
+transitions for one user across organizations, not unrelated users/tenants. It is not a
+claim that already-authorized in-flight business requests are globally cancelled on logout.
