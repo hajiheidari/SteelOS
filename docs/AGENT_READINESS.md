@@ -34,5 +34,9 @@
 The local read-only assistant additionally supports explicit numeric inclusive dimension
 ranges (از…تا / بین…و) and displays both bounds. Real local synthetic extraction evaluation
 matched14/14 including a valid and reversed range. This is a small regression set, not a
-production-language or throughput benchmark; open/exclusive and number-word ranges remain
+production-language or throughput benchmark; open/exclusive ranges and number words beyond the finite grammar remain
 unsupported. No new model tools or write permissions were added.
+
+بازهٔ حروفی در همان دستور زبان محدود یک تا ده/نیم/«و نیم» نیز پیاده شد؛ مدل اعداد
+را تفسیر نمی‌کند. ارزیابی محلی واقعی به۱۶ سناریو گسترش یافت و۱۶/۱۶ موفق بود.
+بازهٔ معکوس، واحد نامعتبر و نفی همچنان پیش از inference به توضیح نیاز دارند.

@@ -138,7 +138,7 @@ test("read-only sales assistant displays grounded API prices and unsupported int
   await expect(
     result.getByText("مشخصات کالا:", { exact: false }),
   ).toContainText("۱۲۰۰");
-  await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت از۲ تا۳mm عرض۱٫۲m");
+  await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت از دو تا سه میلیمتر عرض۱٫۲m");
   await submit.click();
   await expect(result.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(result.getByText("مشخصات جست‌وجو:", { exact: false })).toContainText("شامل دو حد");

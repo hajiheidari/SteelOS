@@ -96,3 +96,7 @@ Measured catalog range comparisons now select a compatible unit with CASE before
 its bounds. The inner bounded numeric CASE and JSON string guard remain intact. Synthetic
 query plans and performance limits are documented in CATALOG_SEARCH_PERFORMANCE.md; observed
 warm-cache medians are not an API SLO or evidence that tenant scans have been eliminated.
+
+Exact dimensions and both inclusive range bounds share one deterministic finite-number parser.
+Persian number words are resolved before model inference into existing Decimal search schemas;
+no new domain filter, persistence field or pricing calculation is introduced by word ranges.

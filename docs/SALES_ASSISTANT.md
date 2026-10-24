@@ -155,7 +155,7 @@ Named dimensions also accept یک through ده, نیم, and an integer from that
 by و نیم, including ZWNJ separators. For example ضخامت دو و نیم میلی‌متر becomes
 exactly2.5mm before inference. Values are explicit Decimal constants; the model does not
 interpret number words. Unsupported compound numbers (such as بیست or دو و سه), fractions
-and ranges using number words request clarification. Catalog API contracts remain decimal strings.
+request clarification. The same finite number words also work in inclusive ranges; catalog API contracts remain decimal strings.
 
 ### Inclusive dimension ranges
 
@@ -165,11 +165,11 @@ equal bounds are allowed. Bounds may use compatible mm/cm/m units; kg/none requi
 same unit. Reversed or incompatible bounds are422. Exact and range filters can be mixed
 with AND within the existing8-key/4096-character limits. No quantities or prices convert.
 
-The assistant recognizes explicit numeric `ضخامت از۲ تا۳mm` / `ضخامت بین۲ و۳mm`,
+The assistant recognizes explicit numeric or finite Persian number-word ranges, such as `ضخامت از۲ تا۳mm`, `ضخامت بین۲ و۳mm` or `ضخامت از دو تا سه و نیم میلیمتر`,
 including optional units on the lower bound (otherwise the final unit applies to both).
 It extracts ranges before inference and displays both bounds and inclusive semantics.
 Missing/invalid bounds and unsupported forms request clarification; no criterion is dropped.
-Number-word ranges, open/exclusive comparisons and arbitrary tolerances remain unsupported.
+Open/exclusive comparisons, number words outside the finite grammar and arbitrary tolerances remain unsupported.
 Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
 strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
 The query may scan tenant catalog rows; CATALOG_SEARCH_PERFORMANCE.md records an isolated10,000-product query measurement. Larger and concurrent/API performance benchmarks remain pending.
@@ -178,3 +178,11 @@ Unsupported dimension comparisons, approximations and negation (such as بیشت
 حداقل۲, ضخامت۲mm نباشد, thickness above2 and comparison symbols) request clarification.
 They must not be silently interpreted as equality or an unconstrained search. The finite
 operator guard is conservative, not a complete Persian/English negation parser.
+
+Shared deterministic decimal parsing handles exact values and both range bounds. Bounds may
+mix digits and supported words, including integer-plus-half and ZWNJ separators. A reversed
+word range or incomplete range with an unsupported unit requests clarification before inference.
+Synthetic actual-local-model evaluation matched16/16 cases after adding valid and reversed
+word ranges; evidence/local-assistant-word-ranges-2026-10-24.json records this small regression
+set, not a general accuracy claim. The actual-model API test also checks a word range against
+stored2mm and returns the unchanged approved price amount/ID.

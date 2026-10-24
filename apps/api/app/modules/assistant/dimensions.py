@@ -30,6 +30,7 @@ WORDS = {
     "نیم": "0.5",
 }
 WORD_NUMBER = r"(?:" + "|".join(WORDS) + r")(?:[\s‌]+و[\s‌]+نیم)?"
+ATOM = r"(?:" + NUMBER + "|" + WORD_NUMBER + ")"
 UNIT = r"میلی[\s‌-]*متر|سانتی[\s‌-]*متر|متر|mm|cm|m"
 KEY = re.compile(r"(?<!\w)(?:" + "|".join(NAMES) + r")(?=$|[\s‌:=0-9+-])", re.I)
 VALUE = re.compile(
@@ -44,16 +45,29 @@ VALUE = re.compile(
 )
 RANGE = re.compile(
     r"[\s‌]*(?:از|بین)[\s‌]*(?P<lower>"
-    + NUMBER
+    + ATOM
     + r")[\s‌]*(?:(?P<lower_unit>"
     + UNIT
     + r")[\s‌]*)?(?:تا|و)[\s‌]*(?P<upper>"
-    + NUMBER
+    + ATOM
     + r")[\s‌]*(?P<unit>"
     + UNIT
     + r")(?![\w‌])",
     re.I,
 )
+
+RANGE_START = re.compile(r"[\s‌]*(?:از|بین)[\s‌]*" + ATOM, re.I)
+
+
+def decimal_value(raw):
+    if raw[0] in "0123456789":
+        return raw
+    parts = re.split(r"[\s‌]+و[\s‌]+", raw)
+    if parts[0] == "نیم" and len(parts) > 1:
+        raise ValueError("Unsupported compound fraction")
+    return format(
+        Decimal(WORDS[parts[0]]) + (Decimal("0.5") if len(parts) > 1 else Decimal("0")), "f"
+    )
 
 
 def unit_code(value):
@@ -98,10 +112,12 @@ def extract(question):
                     raise ValueError("Repeated dimension")
                 attributes[name] = SearchRange(
                     min=SearchDimension(
-                        value=interval["lower"],
+                        value=decimal_value(interval["lower"]),
                         unit=unit_code(interval["lower_unit"] or interval["unit"]),
                     ),
-                    max=SearchDimension(value=interval["upper"], unit=unit_code(interval["unit"])),
+                    max=SearchDimension(
+                        value=decimal_value(interval["upper"]), unit=unit_code(interval["unit"])
+                    ),
                 )
                 spans.append((key.start(), interval.end()))
             except (ValidationError, ValueError):
@@ -110,10 +126,14 @@ def extract(question):
         value = VALUE.match(text, key.end())
         if value is None:
             # A general question about available dimensions does not assert a numeric filter.
-            if ATTEMPT.match(text, key.end()) or re.match(
-                r"[\s‌]+[آ-ی‌]+(?:[\s‌]+[آ-ی‌]+){0,4}[\s‌]*(?:" + UNIT + r")(?![\w‌])",
-                text[key.end() :],
-                re.I,
+            if (
+                ATTEMPT.match(text, key.end())
+                or RANGE_START.match(text, key.end())
+                or re.match(
+                    r"[\s‌]+[آ-ی‌]+(?:[\s‌]+[آ-ی‌]+){0,4}[\s‌]*(?:" + UNIT + r")(?![\w‌])",
+                    text[key.end() :],
+                    re.I,
+                )
             ):
                 ambiguous = True
             continue
@@ -122,19 +142,8 @@ def extract(question):
             continue
         unit = unit_code(value["unit"])
         try:
-            raw = value["value"]
-            if raw[0] not in "0123456789":
-                parts = re.split(r"[\s‌]+و[\s‌]+", raw)
-                # Only the documented finite grammar is accepted; no model guesses.
-                if parts[0] == "نیم" and len(parts) > 1:
-                    ambiguous = True
-                    continue
-                raw = format(
-                    Decimal(WORDS[parts[0]]) + (Decimal("0.5") if len(parts) > 1 else Decimal("0")),
-                    "f",
-                )
-            attributes[name] = SearchDimension(value=raw, unit=unit)
-        except ValidationError:
+            attributes[name] = SearchDimension(value=decimal_value(value["value"]), unit=unit)
+        except (ValidationError, ValueError):
             ambiguous = True
             continue
         spans.append((key.start(), value.end()))

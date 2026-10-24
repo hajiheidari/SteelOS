@@ -217,5 +217,10 @@ Inclusive product dimension ranges use the existing attributes filter, e.g.
 Both positive bounds are required; compatible length units are compared exactly. Equal
 bounds are valid; reversed/incompatible bounds return422. Each attribute is either an exact
 value/unit or min/max object (no mixed/extra fields), and all attributes combine with AND.
-Assistant dimensions responses preserve this min/max structure. Persian numeric از…تا / بین…و
+Assistant dimensions responses preserve this min/max structure. Persian numeric or finite number-word از…تا / بین…و
 with named attributes are supported; omitted lower unit inherits the explicit upper unit.
+
+The finite Persian number grammar applies to both inclusive bounds as well as exact values:
+`ضخامت از دو تا سه و نیم میلیمتر` produces min2/max3.5mm. Digit/word mixtures and optional
+explicit compatible lower units use the same existing decimal-string JSON contract. Reversed,
+missing or unsupported word bounds/units request clarification without inference/data search.

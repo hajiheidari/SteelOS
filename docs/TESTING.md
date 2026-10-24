@@ -152,3 +152,18 @@ See CATALOG_SEARCH_PERFORMANCE.md for the isolated `_benchmark` database command
 scope/count/page correctness and rollback, with no flaky timing gate or ordinary CI seed.
 Range regression coverage additionally checks dimensionless units, incompatible kg vs length,
 missing attributes, tiny metre thresholds and maximum-scale bounds after unit-branch selection.
+
+## Finite Persian word ranges
+
+Regressions cover finite word bounds, integer-plus-half, ZWNJ, mixed digits/words and units,
+reversed/invalid fractions, missing units, unknown word bounds, unsupported kg and negation.
+The domain API test compares numeric and word ranges against the same products with an exact
+width filter. Actual-model API coverage additionally verifies a word range returns the exact
+approved PostgreSQL price ID/amount. Synthetic evaluation16/16 is recorded separately from
+CI's disposable provider fixture. Browser range scenarios now enter Persian word bounds.
+
+Local word-range batch:139 backend tests pass with2 opt-in model tests skipped by default;
+all75 assistant tests pass when opting into the installed actual local model. The24
+production-build browser tests pass on desktop/mobile. Synthetic extraction evaluation16/16
+is recorded in evidence/local-assistant-word-ranges-2026-10-24.json; it is a small regression
+set rather than a broad Persian language benchmark. Previous counts above are historical.

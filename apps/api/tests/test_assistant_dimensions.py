@@ -42,7 +42,7 @@ def test_explicit_dimension_extraction_is_exact_and_preserves_other_text():
         "ورق ضخامت2mm ضخامت3mm",
         "ورق عرض از1200 تا1000میلیمتر",
         "ورق عرض از1000 تا1200",
-        "ورق عرض ازدو تاسه میلیمتر",
+        "ورق عرض ازبیست تاسی میلیمتر",
         "ورق2mm",
         "ورق2میل",
         "ورق وزن2kg",
@@ -142,13 +142,27 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
     assert {row["id"] for row in ranged["products"]} == {products[0]["id"], products[1]["id"]}
     assert ranged["dimensions"]["thickness"]["min"] == {"value": "2", "unit": "mm"}
     assert not ranged["needs_clarification"]
+    words = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "ورق ضخامت از دو تا سه میلیمتر عرض۱٫۲m"},
+    ).json()
+    assert {row["id"] for row in words["products"]} == {products[0]["id"], products[1]["id"]}
+    assert words["dimensions"]["thickness"] == ranged["dimensions"]["thickness"]
+    assert not words["needs_clarification"]
     calls.clear()
     unclear = client.post(
         "/api/v1/sales-assistant/query", headers=tokens[0], json={"question": "ورق ضخامت2"}
     ).json()
     assert unclear["needs_clarification"] and unclear["products"] == []
     assert calls == []  # No model or data lookup for ambiguous numerical intent.
-    for question in ("ورق ضخامت بیشتر از۲", "ورق ضخامت۲mm نباشد", "ورق ضخامت از۲ تا۳mm نباشد"):
+    for question in (
+        "ورق ضخامت بیشتر از۲",
+        "ورق ضخامت۲mm نباشد",
+        "ورق ضخامت از۲ تا۳mm نباشد",
+        "ورق ضخامت ازدو تا سه kg",
+        "ورق ضخامت از سه تا دو میلیمتر",
+    ):
         rejected = client.post(
             "/api/v1/sales-assistant/query", headers=tokens[0], json={"question": question}
         ).json()
@@ -183,6 +197,19 @@ def test_real_model_and_domain_api_preserve_exact_dimension_constraints(sales, m
     assert result["products"][0]["attributes"]["thickness"] == {"value": "2", "unit": "mm"}
     assert result["products"][0]["prices"][0]["id"] == price["id"]
     assert result["products"][0]["prices"][0]["amount"] == data["amount"]
+    ranged = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "قیمت ورق ضخامت از یک تا دو و نیم میلیمتر"},
+    )
+    assert ranged.status_code == 200, ranged.text
+    ranged = ranged.json()
+    assert ranged["dimensions"]["thickness"] == {
+        "min": {"value": "1", "unit": "mm"},
+        "max": {"value": "2.5", "unit": "mm"},
+    }
+    assert ranged["products"][0]["prices"][0]["id"] == price["id"]
+    assert ranged["products"][0]["prices"][0]["amount"] == data["amount"]
 
 
 def test_local_model_cannot_substitute_a_generated_product_term():
@@ -258,4 +285,43 @@ def test_inclusive_range_extraction(question):
     ],
 )
 def test_unsupported_comparisons_never_become_equality_or_unconstrained_search(question):
+    assert dimensions.extract(question).needs_clarification
+
+
+@pytest.mark.parametrize(
+    "question,lower,upper,lower_unit",
+    [
+        ("ورق ضخامت از دو تا سه میلیمتر", "2", "3", "mm"),
+        ("ورق ضخامت بین دو و سه و نیم میلی‌متر", "2", "3.5", "mm"),
+        ("ورق ضخامت از نیم تا دو و نیم mm", "0.5", "2.5", "mm"),
+        ("ورق ضخامت از دو و نیم تا سه‌و‌نیم میلیمتر", "2.5", "3.5", "mm"),
+        ("ورق ضخامت از۲ تا سه mm", "2", "3", "mm"),
+        ("ورق ضخامت از نیم cm تا ده mm", "0.5", "10", "cm"),
+    ],
+)
+def test_word_ranges_use_exact_existing_decimal_contract(question, lower, upper, lower_unit):
+    from decimal import Decimal
+
+    result = dimensions.extract(question)
+    assert not result.needs_clarification and result.question == "ورق"
+    interval = result.attributes["thickness"]
+    assert interval.min.value == Decimal(lower) and interval.max.value == Decimal(upper)
+    assert interval.min.unit == lower_unit and interval.max.unit == "mm"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "ورق ضخامت از سه تا دو میلیمتر",
+        "ورق ضخامت از دو و نیم تا نیم میلیمتر",
+        "ورق ضخامت از نیم و نیم تا دو میلیمتر",
+        "ورق ضخامت از دو تا نیم و نیم میلیمتر",
+        "ورق ضخامت از دو تا سه",
+        "ورق ضخامت از دو تا بیست میلیمتر",
+        "ورق ضخامت ازدو تا سه kg",
+        "ورق ضخامت از دو cm تا سه mm",
+        "ورق ضخامت بین دو و سه میلیمتر نباشد",
+    ],
+)
+def test_invalid_or_unsupported_word_ranges_stop_search(question):
     assert dimensions.extract(question).needs_clarification
