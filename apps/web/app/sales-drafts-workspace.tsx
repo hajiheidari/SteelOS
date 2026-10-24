@@ -223,7 +223,8 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
     <>
       <p className="info">
         این سند پیش‌نویس داخلی است. برآورد خام، مبلغ مالی نهایی یا پیش‌فاکتور
-        تأییدشدهٔ مشتری نیست؛ مالیات، حمل و گردکردن نهایی جداگانه تعیین می‌شوند.
+        تأییدشدهٔ مشتری نیست. مبالغ ردیف و جمع بدون گردکردن محاسبه می‌شوند؛ ارز
+        فاکتور ایران ریال است. نحوهٔ مالیات و هزینهٔ حمل هنوز تعیین نشده است.
         ثبت این سند موجودی را رزرو نمی‌کند.
       </p>
       {error && !cancel && (
@@ -304,6 +305,12 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
                   ))}
                 </select>
               </label>
+              {currency !== "IRR" && (
+                <p className="info" role="status">
+                  این ارز فقط برای برآورد داخلی است؛ فاکتور ایران باید ریالی
+                  باشد. تبدیل خودکار ارز انجام نمی‌شود.
+                </p>
+              )}
               <label>
                 یادداشت سند
                 <input
@@ -482,6 +489,12 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
               {currencies[String(selected.currency)]}
             </strong>
           </p>
+          {selected.currency !== "IRR" && (
+            <p className="info">
+              ارز این پیش‌نویس با فاکتور ایران مطابقت ندارد؛ فاکتور ایران باید
+              ریالی باشد. مبلغ بدون تبدیل ارز حفظ شده است.
+            </p>
+          )}
           {(!selected.prices_usable || !selected.customer_eligible) && (
             <p className="error">
               قیمت یا وضعیت مشتری نیاز به بازبینی دارد. این سند تأیید مالی

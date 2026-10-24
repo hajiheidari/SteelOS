@@ -51,4 +51,6 @@ The sales module prepares internal drafts through controlled domain APIs. It sna
 approved pricing evidence and records optimistic revisions in one transaction with audit
 and shared idempotency mechanics. It has no direct stock-ledger or accounting dependency;
 future trading/financial approval must be a separately validated domain transition using
-the founder's actual tax/rounding rules, never a side effect of saving this draft.
+the founder's actual tax rules, never a side effect of saving this draft. Iranian invoice
+currency is IRR and line/total amounts must remain exact without rounding; internal
+foreign-currency estimates do not authorize domestic invoice issuance or implicit FX.

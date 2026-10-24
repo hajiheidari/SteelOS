@@ -137,3 +137,12 @@ price intake and technical edits serialize on the product row; conflicting edits
 See [SALES_DRAFTS.md](SALES_DRAFTS.md) for `/api/v1/sales-drafts`, price snapshots,
 optimistic versions, immutable revisions and explicit non-binding financial status.
 Price observation lists also accept currency and literal search in provenance/delivery fields.
+
+### Iranian invoice monetary policy
+
+Sales draft list/detail and new immutable revision snapshots include `invoice_policy`
+(version `iran-invoice-v1`, currency `IRR`, rounding `none`, boolean `currency_matches`,
+tax_workflow `not_configured`). Exact line/total strings retain nine decimal places,
+including fractional rials; no conversion or rounding occurs. Other currencies remain
+valid for internal estimates only. This metadata never grants approval/issuance, and
+previous revision snapshots are not retroactively changed. Tax rules remain unresolved.

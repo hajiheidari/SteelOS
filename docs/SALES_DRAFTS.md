@@ -2,7 +2,8 @@
 
 This module prepares internal, non-binding sales drafts. It cannot approve/issue a customer
 quotation, reserve/move stock, transfer title, post accounting, charge money or submit tax.
-Financial rounding and tax workflow are awaiting the founder's actual business rules.
+The founder confirmed Iranian invoices use IRR and line/total amounts must never be rounded.
+Tax inclusion/calculation workflow is still awaiting the actual business rule.
 
 ## Contracts
 
@@ -43,7 +44,17 @@ duplicate price lines and fractional piece quantities are rejected. Quantity is 
 explicit price unit, which may differ from the product stock unit; no conversion occurs.
 Raw quantity × price estimates use Decimal precision60 and nine fractional digits. Up to
 100 maximum-sized lines fit this calculation without default Decimal-context rounding.
-Estimates are not rounded legal money totals; tax, transport, discounts, FX and financial
+Nine fractional digits preserve every possible input product exactly; they are not a
+two-decimal money quantization. Iranian invoice policy is IRR with no line/total rounding.
+List/detail responses expose `invoice_policy`: version=iran-invoice-v1, currency=IRR,
+rounding=none, currency_matches (draft currency equals IRR), tax_workflow=not_configured.
+New revision snapshots retain this metadata; old immutable revisions are not rewritten.
+Currency compatibility does not authorize financial approval or issuance. Internal estimates
+may retain IRT/USD/EUR; they cannot become Iranian invoices in those currencies, and no
+automatic FX/toman conversion occurs. Final invoice persistence must preserve exact
+fractional rials rather than coerce these totals into NUMERIC(20,2).
+
+Estimates are not finalized legal money totals; tax, transport, discounts, FX and financial
 approval remain outside this draft stage. No assumed Iranian tax rate is introduced.
 
 ## Persistence and retention

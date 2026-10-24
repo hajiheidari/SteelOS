@@ -159,6 +159,7 @@ def list_drafts(
             estimated_total=format(stat.amount, ".9f"),
             has_expired_price=stat.valid_until <= at,
             financial_approval=False,
+            invoice_policy=service.invoice_policy(row.currency),
         )
         items.append(item)
     return {"items": items, "total": total, "limit": limit, "offset": offset}

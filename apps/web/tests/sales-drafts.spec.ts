@@ -95,6 +95,14 @@ test("internal sales draft preserves exact estimates and revisions without stock
     .getByLabel("کالای ردیف 1", { exact: true })
     .selectOption(product.id);
   const priceSelect = page.getByLabel("قیمت ردیف 1", { exact: true });
+  await page.getByRole("combobox", { name: "ارز سند", exact: true }).selectOption("IRT");
+  await expect(
+    page.getByText("این ارز فقط برای برآورد داخلی است", { exact: false }),
+  ).toBeVisible();
+  await page.getByRole("combobox", { name: "ارز سند", exact: true }).selectOption("IRR");
+  await expect(
+    page.getByText("این ارز فقط برای برآورد داخلی است", { exact: false }),
+  ).toHaveCount(0);
   await priceSelect.selectOption(price.id);
   await expect(
     priceSelect.locator(`option[value="${pending.id}"]`),
@@ -128,6 +136,13 @@ test("internal sales draft preserves exact estimates and revisions without stock
   const draft = await createdResponse.json();
   expect(draft.estimated_total).toBe("262097.350097088");
   expect(draft.financial_approval).toBe(false);
+  expect(draft.invoice_policy).toEqual({
+    version: "iran-invoice-v1",
+    currency: "IRR",
+    rounding: "none",
+    currency_matches: true,
+    tax_workflow: "not_configured",
+  });
   const row = page.getByRole("row").filter({ hasText: "Q-" + stamp });
   await expect(row).toContainText("پیش‌نویس داخلی");
   await page.getByRole("button", { name: "ویرایش سند", exact: true }).click();

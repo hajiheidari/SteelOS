@@ -54,12 +54,15 @@ Ownership transfer requires a separately authorized business event, never a loca
 
 ## Future accounting boundary
 
-Money NUMERIC(20,2), unit rates NUMERIC(24,6); no float arithmetic. Accounting module consumes
+Unit rates NUMERIC(24,6); no float arithmetic. Founder-confirmed Iranian invoice
+currency is IRR and amounts must not be rounded. NUMERIC(20,2) is only a general
+recommendation, not a permitted coercion of exact invoice amounts: future invoice/journal
+amount columns must retain the exact supported line/total scale and sufficient integer range. Accounting module consumes
 validated domain events through controlled APIs with idempotent posting references. For each
 posted journal: same organization, valid open period/accounts, explicit currency, total debits
 = total credits, at least two nonzero lines, no negative debits/credits, exactly one side per line.
-Posted journals are immutable; corrections use linked reversals. FX and rounding policy must
-be specified before implementation. Run in parallel with the existing reference process;
+Posted journals are immutable; corrections use linked reversals. FX and tax policy must
+be specified before implementation; domestic line/total rounding is explicitly forbidden. Run in parallel with the existing reference process;
 reconcile opening balances, daily journals, counterparties, inventory valuation and period-end
 trial balance before any authority transfer. M1 contains no accounting engine or tax connector.
 Current official Iranian specifications must be reviewed before later production tax integration.

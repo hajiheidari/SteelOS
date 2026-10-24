@@ -399,3 +399,57 @@ def test_sales_create_waits_for_master_revocation_without_partial_writes(sales, 
             )
             == 0
         )
+
+
+def test_invoice_policy_preserves_exact_fractional_totals_and_explicit_currency(sales):
+    client, tokens, *_, price_data, payload = sales
+    for currency in ("IRR", "IRT", "USD", "EUR"):
+        lines = []
+        for amount in ("0.000001", "0.000002"):
+            price = create(
+                client,
+                tokens[0],
+                "price-observations",
+                {**price_data, "currency": currency, "amount": amount},
+            )
+            response = client.post(
+                f"/api/v1/price-observations/{price['id']}/decision",
+                headers=tokens[0],
+                json={"status": "approved"},
+            )
+            assert response.status_code == 200
+            lines.append({"price_id": price["id"], "quantity": "0.001"})
+        draft = create_draft(
+            sales,
+            {
+                **payload,
+                "code": f"EXACT-{currency}",
+                "currency": currency,
+                "lines": lines,
+            },
+        )
+        assert [line["estimated_amount"] for line in draft["lines"]] == [
+            "0.000000001",
+            "0.000000002",
+        ]
+        assert draft["estimated_total"] == "0.000000003"
+        assert draft["currency"] == currency  # Never convert rials/tomans/FX implicitly.
+        assert draft["invoice_policy"] == {
+            "version": "iran-invoice-v1",
+            "currency": "IRR",
+            "rounding": "none",
+            "currency_matches": currency == "IRR",
+            "tax_workflow": "not_configured",
+        }
+        listed = client.get(
+            f"/api/v1/sales-drafts?q=EXACT-{currency}",
+            headers=tokens[0],
+        ).json()["items"][0]
+        assert listed["estimated_total"] == draft["estimated_total"]
+        assert listed["invoice_policy"] == draft["invoice_policy"]
+        revision = client.get(
+            f"/api/v1/sales-drafts/{draft['id']}/revisions/1",
+            headers=tokens[0],
+        ).json()
+        assert revision["snapshot"]["invoice_policy"] == draft["invoice_policy"]
+        assert draft["financial_approval"] is False

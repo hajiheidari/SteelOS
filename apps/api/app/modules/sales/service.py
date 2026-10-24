@@ -29,6 +29,17 @@ def estimate(quantity, price):
         return quantity * price
 
 
+def invoice_policy(currency):
+    """Founder-confirmed domestic policy; compatibility never grants issuance."""
+    return {
+        "version": "iran-invoice-v1",
+        "currency": "IRR",
+        "rounding": "none",
+        "currency_matches": currency == "IRR",
+        "tax_workflow": "not_configured",
+    }
+
+
 def prepare(db, ctx, payload):
     customer = get_row(db, m.Party, ctx, payload.customer_id, shared_lock=True)
     if not customer.active or "customer" not in customer.roles:
@@ -145,6 +156,7 @@ def details(db, ctx, draft):
         price_checks_as_of=at.isoformat(),
         prices_usable=all(line["price_usable"] for line in lines),
         financial_approval=False,
+        invoice_policy=invoice_policy(draft.currency),
     )
     return result
 
