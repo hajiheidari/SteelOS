@@ -139,3 +139,8 @@ Range implementation CI40117117885 passed113 backend and24 browser tests. Subseq
 comparison-safety regressions cover missing-unit operators, negated equality/ranges,
 approximation and comparison symbols; API tests prove the planner is never called and
 no products are returned for these unsupported intents.
+
+Final comparison-guard CI40117392872 passed124 backend tests (2 actual-model tests opt-in
+skipped),24 desktop/mobile browser tests, migrations/model drift, formatting, build/typecheck
+and dependency checks. Local full backend execution also passed124 tests. Prior counts above
+are historical; the14-case actual local-model extraction evidence belongs to this range batch.
