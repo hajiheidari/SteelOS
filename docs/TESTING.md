@@ -186,3 +186,8 @@ Local comparison batch:158 backend tests pass (2 actual-model tests skipped by d
 pass. Synthetic actual-model extraction18/18 is recorded separately in
  evidence/local-assistant-comparisons-2026-10-24.json. Regression coverage excludes invalid
 nonpositive legacy dimensions from upper-bound comparisons and retains safe JSON casts.
+
+Comparison implementation4d0f9cf passed both PR CI jobs40129040543:158 backend tests,
+2 opt-in skips,24 desktop/mobile browser tests, migration/model drift, Ruff/format,
+TypeScript/build and dependency audits.94 actual-local-model assistant tests and18 synthetic
+extraction cases were run separately; no weights are downloaded or model service required in CI.
