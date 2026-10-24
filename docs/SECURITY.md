@@ -139,4 +139,4 @@ access to tokens/domain data was introduced.
 Unsupported comparison/approximation/negation markers on named dimensions stop inference
 and domain retrieval. Regressions specifically cover missing-unit comparisons and negated
 exact/range constraints, which previously could lose or invert the user's numeric intent.
-This guard does not authorize or implement open/exclusive comparison operators.
+Explicit one-sided gt/gte/lt/lte operators are now validated by a fixed enum and bound schema; unsupported markers outside consumed valid comparison spans still stop search. Disjunction is rejected rather than silently treated as AND.

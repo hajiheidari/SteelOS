@@ -1,0 +1,294 @@
+{
+  "model": "qwen3:1.7b",
+  "scope": "Synthetic extraction only; not a general benchmark",
+  "passed": 18,
+  "total": 18,
+  "cases": [
+    {
+      "question": "قیمت میلگرد چقدر است؟",
+      "plan": {
+        "product_query": "میلگرد",
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 21.75
+    },
+    {
+      "question": "قیمت ورق را بگو",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.08
+    },
+    {
+      "question": "قیمت تیرآهن چنده؟",
+      "plan": {
+        "product_query": "تیرآهن",
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.13
+    },
+    {
+      "question": "قیمت لوله به دلار چقدر است؟",
+      "plan": {
+        "product_query": "لوله",
+        "currency": "USD"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.31
+    },
+    {
+      "question": "سلام، امروز حالت چطوره؟",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.49
+    },
+    {
+      "question": "همه فاکتورها را تایید کن و برای مشتری بفرست",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.46
+    },
+    {
+      "question": "قیمت پروفیل به تومان چنده؟",
+      "plan": {
+        "product_query": "پروفیل",
+        "currency": "IRT"
+      },
+      "dimensions": {},
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 4.15
+    },
+    {
+      "question": "قیمت ورق ضخامت ۲ میلی‌متر عرض ۱۲۰۰ میلی‌متر چقدر است؟",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "value": "2",
+          "unit": "mm"
+        },
+        "width": {
+          "value": "1200",
+          "unit": "mm"
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 3.09
+    },
+    {
+      "question": "قیمت ورق ضخامت۰٫۲سانتیمتر عرض۱٫۲متر به دلار",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "USD"
+      },
+      "dimensions": {
+        "thickness": {
+          "value": "0.2",
+          "unit": "cm"
+        },
+        "width": {
+          "value": "1.2",
+          "unit": "m"
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.81
+    },
+    {
+      "question": "قیمت لوله قطر16mm طول6m",
+      "plan": {
+        "product_query": "لوله",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "diameter": {
+          "value": "16",
+          "unit": "mm"
+        },
+        "length": {
+          "value": "6",
+          "unit": "m"
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.96
+    },
+    {
+      "question": "ورق ضخامت دو میلیمتر",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "value": "2",
+          "unit": "mm"
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.93
+    },
+    {
+      "question": "قیمت ورق ضخامت از۲ تا۳mm",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "min": {
+            "value": "2",
+            "unit": "mm"
+          },
+          "max": {
+            "value": "3",
+            "unit": "mm"
+          }
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 3.56
+    },
+    {
+      "question": "ورق ضخامت از۳ تا۲mm",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": true,
+      "used_model": false,
+      "passed": true,
+      "seconds": 0.0
+    },
+    {
+      "question": "ورق2mm",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": true,
+      "used_model": false,
+      "passed": true,
+      "seconds": 0.0
+    },
+    {
+      "question": "قیمت ورق ضخامت بیشتر از۲mm",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "op": "gt",
+          "bound": {
+            "value": "2",
+            "unit": "mm"
+          }
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.74
+    },
+    {
+      "question": "قیمت ورق ضخامت حداکثر دو و نیم میلیمتر",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "op": "lte",
+          "bound": {
+            "value": "2.5",
+            "unit": "mm"
+          }
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.48
+    },
+    {
+      "question": "قیمت ورق ضخامت از دو تا سه و نیم میلیمتر",
+      "plan": {
+        "product_query": "ورق",
+        "currency": "IRR"
+      },
+      "dimensions": {
+        "thickness": {
+          "min": {
+            "value": "2",
+            "unit": "mm"
+          },
+          "max": {
+            "value": "3.5",
+            "unit": "mm"
+          }
+        }
+      },
+      "needs_clarification": false,
+      "used_model": true,
+      "passed": true,
+      "seconds": 2.63
+    },
+    {
+      "question": "ورق ضخامت از سه تا دو میلیمتر",
+      "plan": {
+        "product_query": null,
+        "currency": "IRR"
+      },
+      "dimensions": {},
+      "needs_clarification": true,
+      "used_model": false,
+      "passed": true,
+      "seconds": 0.0
+    }
+  ]
+}

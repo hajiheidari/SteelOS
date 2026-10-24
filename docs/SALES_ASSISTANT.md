@@ -107,7 +107,7 @@ These small tests establish connectivity/basic extraction,
 not broad Persian accuracy, production load capacity or immunity to misinterpreted intent.
 Read-only hard limits still apply even if a model produces a misleading search term.
 
-Pending: open/exclusive ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
+Pending: combined exclusive two-bound ranges and broader natural-language dimension grammar, broader quality/abuse evaluation, organization-specific
 operating limits, optional citation-based prose, agent service-principal lifecycle if needed,
 and separately authorized proposal/write workflows. OCR/research/marketing/channel agents
 are not implemented. No production deployment is included.
@@ -169,13 +169,13 @@ The assistant recognizes explicit numeric or finite Persian number-word ranges, 
 including optional units on the lower bound (otherwise the final unit applies to both).
 It extracts ranges before inference and displays both bounds and inclusive semantics.
 Missing/invalid bounds and unsupported forms request clarification; no criterion is dropped.
-Open/exclusive comparisons, number words outside the finite grammar and arbitrary tolerances remain unsupported.
+Combined exclusive two-bound ranges, number words outside the finite grammar and arbitrary tolerances remain unsupported.
 Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
 strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
 The query may scan tenant catalog rows; CATALOG_SEARCH_PERFORMANCE.md records an isolated10,000-product query measurement. Larger and concurrent/API performance benchmarks remain pending.
 
 Unsupported dimension comparisons, approximations and negation (such as بیشتر از۲,
-حداقل۲, ضخامت۲mm نباشد, thickness above2 and comparison symbols) request clarification.
+حداقل۲, ضخامت۲mm نباشد, thickness above2 or incomplete comparison symbols) request clarification.
 They must not be silently interpreted as equality or an unconstrained search. The finite
 operator guard is conservative, not a complete Persian/English negation parser.
 
@@ -186,3 +186,20 @@ Synthetic actual-local-model evaluation matched16/16 cases after adding valid an
 word ranges; evidence/local-assistant-word-ranges-2026-10-24.json records this small regression
 set, not a general accuracy claim. The actual-model API test also checks a word range against
 stored2mm and returns the unchanged approved price amount/ID.
+
+### Explicit one-sided comparisons
+
+Catalog attributes additionally accept `{"thickness":{"op":"gt","bound":{"value":"2","unit":"mm"}}}`.
+Operators are the fixed enum gt/gte/lt/lte, with strict or inclusive boundaries respectively.
+The bound is required, positive Decimal(20,6), and uses the existing exact dimension units;
+no artificial missing endpoint is invented. Compatible mm/cm/m values compare exactly, while
+kg/none require their own unit. Operators are selected from a fixed server registry, never
+user-provided SQL. JSON type checks and numeric CASE guards remain shared with range search.
+
+The assistant supports named dimensions followed by >, >=, <, <=, ≥, ≤, بیشتر از, کمتر از,
+حداقل or حداکثر, then a supported number and explicit length unit. Persian number words
+use the same finite grammar. The UI displays the operator beside its bound. Only consumed
+operator spans are accepted; negation, approximation or an incomplete operator still stops
+inference/search. Disjunction یا/or is not interpreted as AND and requests clarification.
+Repeated constraints on the same attribute require clarification rather than implicit merging.
+An explicit inclusive از…تا range remains the supported two-bound form.

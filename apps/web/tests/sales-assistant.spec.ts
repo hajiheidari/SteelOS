@@ -142,6 +142,12 @@ test("read-only sales assistant displays grounded API prices and unsupported int
   await submit.click();
   await expect(result.getByRole("heading", { level: 3 })).toHaveCount(2);
   await expect(result.getByText("مشخصات جست‌وجو:", { exact: false })).toContainText("شامل دو حد");
+  await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت بیشتر از۲mm عرض۱٫۲m");
+  await submit.click();
+  await expect(result.getByRole("heading", { level: 3 })).toHaveCount(1);
+  await expect(result.getByRole("heading", { name: name + " · NOMATCH-" + stamp, exact: true })).toBeVisible();
+  await expect(result.getByText("مشخصات جست‌وجو:", { exact: false })).toContainText("بیشتر از");
+  await expect(result.getByText("قیمت تأییدشده و معتبر در این ارز یافت نشد.", { exact: true })).toBeVisible();
   await page.getByLabel("سؤال فروش", { exact: true }).fill(name + " ضخامت۲");
   await submit.click();
   await expect(

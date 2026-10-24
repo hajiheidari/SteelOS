@@ -100,3 +100,9 @@ warm-cache medians are not an API SLO or evidence that tenant scans have been el
 Exact dimensions and both inclusive range bounds share one deterministic finite-number parser.
 Persian number words are resolved before model inference into existing Decimal search schemas;
 no new domain filter, persistence field or pricing calculation is introduced by word ranges.
+
+One-sided dimension comparisons share the catalog range SQL guard and compatible-unit CASE.
+A typed operator enum selects a fixed Python/SQLAlchemy comparison, with no missing-endpoint
+sentinel or interpolated SQL. Assistant extraction records consumed valid operator spans;
+unsupported markers remaining outside them prevent inference and retrieval. Domain writes,
+tenant authorization and monetary calculations are unchanged.

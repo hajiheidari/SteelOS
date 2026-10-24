@@ -171,3 +171,18 @@ set rather than a broad Persian language benchmark. Previous counts above are hi
 Word-range implementation2425273 passed both PR CI jobs40123749493:139 backend tests,
 2 opt-in actual-model skips,24 production-build browser tests, migration/model drift,
 Ruff/format, TypeScript/build and dependency audits. Actual-model tests ran separately75/75.
+
+## Explicit dimension comparisons
+
+Regressions compare gt/gte/lt/lte against boundary products across mm/cm units and tenants,
+with malformed operator/bound rejection. Parser/API cases include symbols, Persian phrases,
+number words, invalid/missing units, duplicate-key constraints, negation, approximation and
+یا/or rejection. Browser coverage checks strict >2mm excludes2mm and displays only3mm with
+its operator and no fabricated price. Actual-model integration additionally verifies lte2mm
+returns the exact stored approved price and gt2mm returns no match without relaxing the filter.
+
+Local comparison batch:158 backend tests pass (2 actual-model tests skipped by default),
+94 assistant tests pass with the installed actual model, and24 production-build browser tests
+pass. Synthetic actual-model extraction18/18 is recorded separately in
+ evidence/local-assistant-comparisons-2026-10-24.json. Regression coverage excludes invalid
+nonpositive legacy dimensions from upper-bound comparisons and retains safe JSON casts.

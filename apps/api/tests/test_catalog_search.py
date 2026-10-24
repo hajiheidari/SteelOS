@@ -71,6 +71,9 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
         {"value": "9" * 100, "unit": "mm"},
         {"value": 2, "unit": "mm"},
         {"value": None, "unit": "mm"},
+        {"value": "0", "unit": "mm"},
+        {"value": "-2", "unit": "mm"},
+        {},
     ):
         with engine().begin() as conn:
             conn.execute(
@@ -82,6 +85,17 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
             "/api/v1/products", headers=tokens[0], params={"attributes": json.dumps(interval)}
         )
         assert safe.status_code == 200 and safe.json()["total"] == 2
+        safe_comparison = client.get(
+            "/api/v1/products",
+            headers=tokens[0],
+            params={
+                "attributes": json.dumps(
+                    {"thickness": {"op": "lt", "bound": {"value": "3", "unit": "mm"}}}
+                )
+            },
+        )
+        assert safe_comparison.status_code == 200 and safe_comparison.json()["total"] == 2
+
     with engine().begin() as conn:
         conn.execute(
             update(Product)
@@ -120,6 +134,37 @@ def test_exact_attribute_search_is_extensible_scoped_and_converts_only_length_un
             },
         )
         assert response.status_code == 200 and response.json()["total"] == expected
+    for op, expected in (("gt", 1), ("gte", 3), ("lt", 0), ("lte", 2)):
+        raw = {"thickness": {"op": op, "bound": {"value": "0.2", "unit": "cm"}}}
+        response = client.get(
+            "/api/v1/products", headers=tokens[2], params={"attributes": json.dumps(raw)}
+        )
+        assert response.status_code == 200 and response.json()["total"] == expected
+        assert all(
+            row["id"] in {product["id"] for product in rows[:3]} for row in response.json()["items"]
+        )
+        other = client.get(
+            "/api/v1/products", headers=tokens[1], params={"attributes": json.dumps(raw)}
+        )
+        assert other.json()["total"] == (1 if op in ("gte", "lte") else 0)
+    for key, op, value, unit, expected in (
+        ("width", "gte", "1200", "mm", 3),
+        ("width", "gt", "1.2", "m", 0),
+        ("custom_measure", "gte", "3", "none", 3),
+        ("custom_measure", "gte", "3", "kg", 0),
+    ):
+        result = client.get(
+            "/api/v1/products",
+            headers=tokens[0],
+            params={
+                "attributes": json.dumps(
+                    {key: {"op": op, "bound": {"value": value, "unit": unit}}}
+                ),
+                "limit": 1,
+            },
+        )
+        assert result.status_code == 200 and result.json()["total"] == expected
+        assert len(result.json()["items"]) == min(1, expected)
     filters = {
         "thickness": {"value": "۲٫۰۰۰۰۰۰", "unit": "mm"},
         "width": {"value": "۱٬۲۰۰", "unit": "mm"},
@@ -168,6 +213,18 @@ INVALID_FILTERS = [
         {"width": {"min": {"value": "2", "unit": "kg"}, "max": {"value": "3", "unit": "mm"}}}
     ),
     json.dumps({"width": {"min": {"value": "2", "unit": "mm"}}}),
+    json.dumps({"width": {"op": "eq", "bound": {"value": "2", "unit": "mm"}}}),
+    json.dumps({"width": {"op": "gt", "bound": {"value": True, "unit": "mm"}}}),
+    json.dumps({"width": {"op": "gt", "bound": {"value": 2.5, "unit": "mm"}}}),
+    json.dumps(
+        {
+            "width": {
+                "op": "gt",
+                "bound": {"value": "2", "unit": "mm"},
+                "min": {"value": "1", "unit": "mm"},
+            }
+        }
+    ),
     "{",
     "[]",
     "null",

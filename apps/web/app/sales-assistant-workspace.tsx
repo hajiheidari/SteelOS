@@ -18,7 +18,17 @@ const dimensionLabels: Record<string, string> = {
   height: "ارتفاع",
 };
 type Measurement = { value: string; unit: string };
-type DimensionFilter = Measurement | { min: Measurement; max: Measurement };
+type ComparisonOp = "gt" | "gte" | "lt" | "lte";
+const comparisonLabels: Record<ComparisonOp, string> = {
+  gt: "بیشتر از",
+  gte: "بزرگ‌تر یا مساوی",
+  lt: "کمتر از",
+  lte: "کوچک‌تر یا مساوی",
+};
+type DimensionFilter =
+  | Measurement
+  | { min: Measurement; max: Measurement }
+  | { op: ComparisonOp; bound: Measurement };
 function measurement(value: Measurement) {
   return `${display(value.value)} ${value.unit === "none" ? "" : value.unit}`;
 }
@@ -34,7 +44,9 @@ function Dimensions({ value, title }: { value: unknown; title: string }) {
           {index > 0 && " · "}
           {dimensionLabels[key] || key}:{" "}
           <bdi>
-            {"min" in dimension
+            {"op" in dimension
+              ? `${comparisonLabels[dimension.op]} ${measurement(dimension.bound)}`
+              : "min" in dimension
               ? `از ${measurement(dimension.min)} تا ${measurement(dimension.max)} (شامل دو حد)`
               : measurement(dimension)}
           </bdi>

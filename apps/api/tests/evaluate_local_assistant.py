@@ -62,6 +62,20 @@ DIMENSION_CASES = (
     ("ورق ضخامت از۳ تا۲mm", None, "IRR", {}, True),
     ("ورق2mm", None, "IRR", {}, True),
     (
+        "قیمت ورق ضخامت بیشتر از۲mm",
+        "ورق",
+        "IRR",
+        {"thickness": {"op": "gt", "bound": {"value": "2", "unit": "mm"}}},
+        False,
+    ),
+    (
+        "قیمت ورق ضخامت حداکثر دو و نیم میلیمتر",
+        "ورق",
+        "IRR",
+        {"thickness": {"op": "lte", "bound": {"value": "2.5", "unit": "mm"}}},
+        False,
+    ),
+    (
         "قیمت ورق ضخامت از دو تا سه و نیم میلیمتر",
         "ورق",
         "IRR",

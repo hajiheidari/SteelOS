@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 
-from app.modules.catalog_search import DIGITS, SearchDimension, SearchRange
+from app.modules.catalog_search import DIGITS, SearchComparison, SearchDimension, SearchRange
 from pydantic import ValidationError
 
 NAMES = {
@@ -32,7 +32,7 @@ WORDS = {
 WORD_NUMBER = r"(?:" + "|".join(WORDS) + r")(?:[\s‌]+و[\s‌]+نیم)?"
 ATOM = r"(?:" + NUMBER + "|" + WORD_NUMBER + ")"
 UNIT = r"میلی[\s‌-]*متر|سانتی[\s‌-]*متر|متر|mm|cm|m"
-KEY = re.compile(r"(?<!\w)(?:" + "|".join(NAMES) + r")(?=$|[\s‌:=0-9+-])", re.I)
+KEY = re.compile(r"(?<!\w)(?:" + "|".join(NAMES) + r")(?=$|[\s‌:=0-9+<>≤≥-])", re.I)
 VALUE = re.compile(
     r"[\s‌]*(?:[:=][\s‌]*)?(?P<value>"
     + NUMBER
@@ -55,6 +55,27 @@ RANGE = re.compile(
     + r")(?![\w‌])",
     re.I,
 )
+
+COMPARISON = re.compile(
+    r"[\s‌]*(?P<op>>=|<=|≥|≤|>|<|حداقل|حداکثر|بیشتر[\s‌]+از|کمتر[\s‌]+از)[\s‌]*(?P<value>"
+    + ATOM
+    + r")[\s‌]*(?P<unit>"
+    + UNIT
+    + r")(?![\w‌])",
+    re.I,
+)
+COMPARISON_OPS = {
+    ">": "gt",
+    ">=": "gte",
+    "≥": "gte",
+    "<": "lt",
+    "<=": "lte",
+    "≤": "lte",
+    "حداقل": "gte",
+    "حداکثر": "lte",
+    "بیشتر از": "gt",
+    "کمتر از": "lt",
+}
 
 RANGE_START = re.compile(r"[\s‌]*(?:از|بین)[\s‌]*" + ATOM, re.I)
 
@@ -87,7 +108,7 @@ ATTEMPT = re.compile(
 
 # Unsupported comparisons must not become equality or disappear before catalog search.
 UNSUPPORTED_COMPARISON = re.compile(
-    r"[<>≤≥≈]|(?<!\w)(?:بیشتر|بزرگتر|بزرگ‌تر|کمتر|کوچکتر|کوچک‌تر|حداقل|حداکثر|حدود|تقریباً|تقریبا|نباشد|نباشه|نیست|غیر|به[\s‌]+جز|except|not|above|below|over|under|at least|at most)(?=$|[^\w]|[0-9])",
+    r"[<>≤≥≈]|(?<!\w)(?:یا|or|بیشتر|بزرگتر|بزرگ‌تر|کمتر|کوچکتر|کوچک‌تر|حداقل|حداکثر|حدود|تقریباً|تقریبا|نباشد|نباشه|نیست|غیر|به[\s‌]+جز|except|not|above|below|over|under|at least|at most)(?=$|[^\w]|[0-9])",
     re.I,
 )
 
@@ -95,16 +116,32 @@ UNSUPPORTED_COMPARISON = re.compile(
 @dataclass
 class Extraction:
     question: str
-    attributes: dict[str, SearchDimension | SearchRange]
+    attributes: dict[str, SearchDimension | SearchRange | SearchComparison]
     needs_clarification: bool
 
 
 def extract(question):
     text = question.translate(DIGITS)
     attributes, spans = {}, []
-    ambiguous = bool(KEY.search(text) and UNSUPPORTED_COMPARISON.search(text))
+    ambiguous = False
     for key in KEY.finditer(text):
         name = NAMES[key.group().lower()]
+        comparison = COMPARISON.match(text, key.end())
+        if comparison is not None:
+            try:
+                if name in attributes:
+                    raise ValueError("Repeated dimension")
+                op = re.sub(r"[\s‌]+", " ", comparison["op"])
+                attributes[name] = SearchComparison(
+                    op=COMPARISON_OPS[op],
+                    bound=SearchDimension(
+                        value=decimal_value(comparison["value"]), unit=unit_code(comparison["unit"])
+                    ),
+                )
+                spans.append((key.start(), comparison.end()))
+            except (ValidationError, ValueError):
+                ambiguous = True
+            continue
         interval = RANGE.match(text, key.end())
         if interval is not None:
             try:
@@ -151,6 +188,10 @@ def extract(question):
     for value in MEASUREMENT.finditer(text):
         if not any(start <= value.start() and value.end() <= end for start, end in spans):
             ambiguous = True
+    if KEY.search(text):
+        for operator in UNSUPPORTED_COMPARISON.finditer(text):
+            if not any(start <= operator.start() and operator.end() <= end for start, end in spans):
+                ambiguous = True
     clean = question
     for start, end in reversed(spans):
         clean = clean[:start] + " " + clean[end:]

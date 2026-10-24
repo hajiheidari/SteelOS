@@ -224,3 +224,11 @@ The finite Persian number grammar applies to both inclusive bounds as well as ex
 `ضخامت از دو تا سه و نیم میلیمتر` produces min2/max3.5mm. Digit/word mixtures and optional
 explicit compatible lower units use the same existing decimal-string JSON contract. Reversed,
 missing or unsupported word bounds/units request clarification without inference/data search.
+
+One-sided dimension comparison: `{"thickness":{"op":"gt","bound":{"value":"2","unit":"mm"}}}`
+in the same attributes parameter. op is gt/gte/lt/lte; bound uses the existing positive
+Decimal(20,6) dimension contract. No null/implicit endpoint, extra fields, floats, booleans,
+arbitrary operator or mixed exact/range/comparison object. Compatible length-unit conversion
+is exact; kg/none only compare to the same unit. Different attribute keys combine with AND.
+Assistant responses preserve {op,bound}; explicit Persian phrases and symbols are parsed before
+inference. Negation/approximation, disjunction and repeated constraints on a key require clarification.

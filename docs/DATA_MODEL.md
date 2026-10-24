@@ -104,3 +104,7 @@ Inclusive dimension search ranges are query contracts, not new stored product at
 Products retain one canonical positive decimal string and unit per dimension. Range bounds
 never rewrite dimensions or create stock/price conversions; invalid legacy JSON is excluded
 by guarded query extraction. No schema migration accompanies range search.
+
+One-sided dimension comparisons are query-only contracts with an explicit positive bound,
+not new persisted dimensions. No artificial minimum/maximum sentinel is stored. Guarded
+numeric extraction additionally excludes invalid nonpositive legacy values from comparisons.

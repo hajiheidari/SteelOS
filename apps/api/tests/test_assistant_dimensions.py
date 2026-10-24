@@ -142,6 +142,17 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
     assert {row["id"] for row in ranged["products"]} == {products[0]["id"], products[1]["id"]}
     assert ranged["dimensions"]["thickness"]["min"] == {"value": "2", "unit": "mm"}
     assert not ranged["needs_clarification"]
+    compared = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "ورق ضخامت بیشتر از۲mm عرض۱٫۲m"},
+    ).json()
+    assert [row["id"] for row in compared["products"]] == [products[1]["id"]]
+    assert compared["dimensions"]["thickness"] == {
+        "op": "gt",
+        "bound": {"value": "2", "unit": "mm"},
+    }
+    assert not compared["needs_clarification"]
     words = client.post(
         "/api/v1/sales-assistant/query",
         headers=tokens[0],
@@ -161,6 +172,8 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
         "ورق ضخامت۲mm نباشد",
         "ورق ضخامت از۲ تا۳mm نباشد",
         "ورق ضخامت ازدو تا سه kg",
+        "ورق ضخامت>۲mm نباشد",
+        "ورق ضخامت>=۲mm یا عرض۳mm",
         "ورق ضخامت از سه تا دو میلیمتر",
     ):
         rejected = client.post(
@@ -210,6 +223,20 @@ def test_real_model_and_domain_api_preserve_exact_dimension_constraints(sales, m
     }
     assert ranged["products"][0]["prices"][0]["id"] == price["id"]
     assert ranged["products"][0]["prices"][0]["amount"] == data["amount"]
+    compared = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "قیمت ورق ضخامت حداکثر دو میلیمتر"},
+    )
+    assert compared.status_code == 200, compared.text
+    assert compared.json()["products"][0]["prices"][0]["id"] == price["id"]
+    assert compared.json()["products"][0]["prices"][0]["amount"] == data["amount"]
+    no_match = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "قیمت ورق ضخامت بیشتر از۲mm"},
+    )
+    assert no_match.status_code == 200 and no_match.json()["products"] == []
 
 
 def test_local_model_cannot_substitute_a_generated_product_term():
@@ -277,7 +304,7 @@ def test_inclusive_range_extraction(question):
         "ورق ضخامت۲mm نیست",
         "ورق ضخامت حدود۲mm",
         "ورق ضخامت حداقل۲",
-        "ورق ضخامت ≤۲mm",
+        "ورق ضخامت ≈۲mm",
         "sheet thickness above 2",
         "sheet thickness 2mm not 3mm",
         "ورق ضخامت از۲ تا۳mm نباشد",
@@ -324,4 +351,45 @@ def test_word_ranges_use_exact_existing_decimal_contract(question, lower, upper,
     ],
 )
 def test_invalid_or_unsupported_word_ranges_stop_search(question):
+    assert dimensions.extract(question).needs_clarification
+
+
+@pytest.mark.parametrize(
+    "question,op",
+    [
+        ("ورق ضخامت بیشتر از۲mm", "gt"),
+        ("ورق ضخامت حداقل دو میلیمتر", "gte"),
+        ("ورق ضخامت کمتر از۲mm", "lt"),
+        ("ورق ضخامت حداکثر دو میلیمتر", "lte"),
+        ("sheet thickness>2mm", "gt"),
+        ("sheet thickness>=2mm", "gte"),
+        ("sheet thickness<2mm", "lt"),
+        ("sheet thickness<=2mm", "lte"),
+        ("ورق ضخامت≥۲mm", "gte"),
+        ("ورق ضخامت≤۲mm", "lte"),
+    ],
+)
+def test_explicit_comparison_extraction(question, op):
+    result = dimensions.extract(question)
+    assert not result.needs_clarification
+    comparison = result.attributes["thickness"]
+    assert comparison.op == op and comparison.bound.value == 2 and comparison.bound.unit == "mm"
+    assert result.question in ("ورق", "sheet")
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "ورق ضخامت>۲",
+        "ورق ضخامت>دو kg",
+        "ورق ضخامت>۲mm نباشد",
+        "ورق ضخامت>۲mm ضخامت<۳mm",
+        "ورق ضخامت>=۰mm",
+        "ورق ضخامت بیشتر از سه و نیم",
+        "ورق ضخامت بیشتر از بیست میلیمتر",
+        "ورق ضخامت حدود۲mm",
+        "ورق ضخامت>=۲mm یا عرض۳mm",
+    ],
+)
+def test_ambiguous_comparisons_stop_before_search(question):
     assert dimensions.extract(question).needs_clarification

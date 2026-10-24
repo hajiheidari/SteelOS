@@ -3,7 +3,8 @@
 import json
 import re
 from decimal import Decimal, localcontext
-from typing import Annotated
+from operator import ge, gt, le, lt
+from typing import Annotated, Literal
 
 from app.schemas import Code, Dimension, Input
 from fastapi import HTTPException
@@ -41,8 +42,18 @@ class SearchRange(Input):
         return self
 
 
+class SearchComparison(Input):
+    op: Literal["gt", "gte", "lt", "lte"]
+    bound: SearchDimension
+
+
+COMPARISONS = {"gt": gt, "gte": ge, "lt": lt, "lte": le}
+
+
 class AttributeFilters(Input):
-    attributes: Annotated[dict[Code, SearchDimension | SearchRange], Field(max_length=8)]
+    attributes: Annotated[
+        dict[Code, SearchDimension | SearchRange | SearchComparison], Field(max_length=8)
+    ]
 
 
 def unique_pairs(pairs):
@@ -80,7 +91,7 @@ def alternatives(dimension):
 
 def apply(stmt, model, attributes):
     for key, dimension in attributes.items():
-        if isinstance(dimension, SearchRange):
+        if isinstance(dimension, (SearchRange, SearchComparison)):
             attribute = cast(model.attributes, JSONB)[key]
             text = attribute["value"].astext
             # CASE protects the cast even if PostgreSQL reorders WHERE predicates.
@@ -89,17 +100,29 @@ def apply(stmt, model, attributes):
                 (text.op("~")(r"^[0-9]{1,20}(\.[0-9]{1,6})?$"), cast(text, Numeric())),
                 else_=None,
             )
-            lower = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.min)}
-            upper = {item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)}
-            # Select one compatible unit branch before evaluating bounds. Unknown units fail.
-            # The nested decimal CASE still protects malformed JSON independently of WHERE order.
-            matched = case(
-                *[
+            if isinstance(dimension, SearchRange):
+                lower = {
+                    item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.min)
+                }
+                upper = {
+                    item["unit"]: Decimal(item["value"]) for item in alternatives(dimension.max)
+                }
+                branches = [
                     (attribute["unit"].astext == unit, number.between(lower[unit], upper[unit]))
                     for unit in lower
-                ],
-                else_=False,
-            )
+                ]
+            else:
+                # Legacy/imported zero values are not valid positive technical dimensions.
+                stmt = stmt.where(number > 0)
+                branches = [
+                    (
+                        attribute["unit"].astext == item["unit"],
+                        COMPARISONS[dimension.op](number, Decimal(item["value"])),
+                    )
+                    for item in alternatives(dimension.bound)
+                ]
+            # Select one compatible unit; unknown units fail. Decimal casts remain guarded.
+            matched = case(*branches, else_=False)
             stmt = stmt.where(func.jsonb_typeof(attribute["value"]) == "string", matched)
             continue
         stmt = stmt.where(
