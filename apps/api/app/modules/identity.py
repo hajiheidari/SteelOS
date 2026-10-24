@@ -254,3 +254,37 @@ def update_role(
     audit(db, ctx, "role_change", "users", user_id)
     db.commit()
     return {"user_id": row.user_id, "role": row.role}
+
+
+def tax_policy(org):
+    return {
+        "tax_rate_percent": format(org.sales_tax_rate_percent, ".6f"),
+        "version": org.tax_policy_version,
+        "mode": "exclusive",
+        "rounding": "half_up",
+        "decimal_places": 2,
+        "calculation": "per_line",
+        "invoice_currency": "IRR",
+    }
+
+
+@router.get("/organization/tax-policy")
+def read_tax_policy(ctx: Context = Depends(context), db: Session = Depends(database)):
+    return tax_policy(db.get(m.Organization, ctx.organization_id))
+
+
+@router.put("/organization/tax-policy")
+def update_tax_policy(
+    payload: s.TaxPolicyUpdate,
+    ctx: Context = Depends(context),
+    db: Session = Depends(database),
+):
+    require_organization_admin(db, ctx)
+    org = db.get(m.Organization, ctx.organization_id, populate_existing=True)
+    if org.tax_policy_version != payload.expected_version:
+        raise HTTPException(409, "Tax policy version conflict")
+    org.sales_tax_rate_percent = payload.tax_rate_percent
+    org.tax_policy_version += 1
+    audit(db, ctx, "update_tax_policy", "organizations", org.id)
+    db.commit()
+    return tax_policy(org)

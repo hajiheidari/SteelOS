@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     Field,
     StringConstraints,
@@ -19,6 +20,24 @@ Unit = Literal["kg", "tonne", "piece", "m", "m2"]
 
 class Input(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+def exact_tax_rate(value):
+    if isinstance(value, (float, bool)):
+        raise ValueError("Use a decimal string for tax rates")
+    return value
+
+
+TaxRate = Annotated[
+    Decimal,
+    Field(ge=0, le=100, max_digits=9, decimal_places=6),
+    BeforeValidator(exact_tax_rate),
+]
+
+
+class TaxPolicyUpdate(Input):
+    tax_rate_percent: TaxRate
+    expected_version: Annotated[int, Field(ge=1, strict=True)]
 
 
 class Login(Input):

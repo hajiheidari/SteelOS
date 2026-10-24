@@ -82,6 +82,10 @@ export const errorMessages: Record<number, string> = {
 };
 
 const salesErrors: Record<string, string> = {
+  "A tax-exclusive base price is required":
+    "قیمت پایهٔ تأییدشدهٔ بدون مالیات انتخاب کنید؛ مالیات جدا اضافه می‌شود.",
+  "Tax policy version conflict":
+    "نرخ سازمان تغییر کرده است؛ تنظیمات را دوباره دریافت کنید.",
   "Sales draft version conflict":
     "سند توسط کاربر دیگری تغییر کرده است؛ آخرین نسخه را دریافت کنید.",
   "Cancelled sales draft cannot be changed": "سند لغوشده قابل ویرایش نیست.",

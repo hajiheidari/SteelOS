@@ -61,3 +61,15 @@ category-row invariant. Current backend suite: 24 tests.
 See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
 role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
 M1 historical boundaries describe the foundation before this approved extension.
+
+## Internal sales monetary policy — current suite
+
+58 backend integration tests and22 desktop/mobile Playwright tests pass locally. Added
+cases cover scoped/admin/versioned tax defaults, concurrent stale updates, rate validation
+(no floats/booleans,0–100,6 decimals), default changes preserving draft/history, legacy null
+policy handling, inclusive-price rejection and half-up ties. Monetary line/tax/document
+amounts are cross-checked between Decimal details and SQL page aggregates, including
+maximum inputs and two0.045 lines at10% producing grand0.12. Migration testing upgrades a
+populated0003 draft/revision without inventing historical tax, then downgrades/upgrades
+and checks model drift. Browser flows set Persian tax rates, preserve revisions, update
+organization defaults and retain zero stock effects. Earlier counts above are historical.

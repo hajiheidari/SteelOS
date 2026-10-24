@@ -51,6 +51,13 @@ The sales module prepares internal drafts through controlled domain APIs. It sna
 approved pricing evidence and records optimistic revisions in one transaction with audit
 and shared idempotency mechanics. It has no direct stock-ledger or accounting dependency;
 future trading/financial approval must be a separately validated domain transition using
-the founder's actual tax rules, never a side effect of saving this draft. Iranian invoice
-currency is IRR and line/total amounts must remain exact without rounding; internal
+the founder's tax rule (exclusive addition with configurable default10%), never a side
+effect of saving this draft. Iranian invoice
+currency is IRR and monetary amounts use two-place ROUND_HALF_UP; internal
 foreign-currency estimates do not authorize domestic invoice issuance or implicit FX.
+
+Internal tax policy is organization-scoped and admin-versioned. Drafts snapshot their
+rate; editing the default cannot change old amounts. Base, separate tax and grand total
+use Decimal ROUND_HALF_UP per line to two places, then sum line amounts. Raw input
+evidence remains exact; no binary float calculations occur. Tax-inclusive pricing must supply an approved net base
+observation explicitly; no implicit netting or double tax is allowed. See SALES_DRAFTS.md.

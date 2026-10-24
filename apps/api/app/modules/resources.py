@@ -232,6 +232,7 @@ def register(resource, model, schema):
         warehouse_id: UUID | None = None,
         status: str | None = None,
         approved_only: bool = False,
+        tax_included: bool | None = None,
         currency: str | None = Query(None, pattern="^(IRR|IRT|USD|EUR)$"),
         ctx: Context = Depends(context),
         db: Session = Depends(database),
@@ -270,6 +271,7 @@ def register(resource, model, schema):
             ("warehouse_id", warehouse_id),
             ("status", status),
             ("currency", currency),
+            ("tax_included", tax_included),
         ):
             if value is not None:
                 if not hasattr(model, key):

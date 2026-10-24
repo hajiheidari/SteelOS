@@ -2,8 +2,11 @@
 
 This module prepares internal, non-binding sales drafts. It cannot approve/issue a customer
 quotation, reserve/move stock, transfer title, post accounting, charge money or submit tax.
-The founder confirmed Iranian invoices use IRR and line/total amounts must never be rounded.
-Tax inclusion/calculation workflow is still awaiting the actual business rule.
+The founder clarified Iranian invoices use IRR and monetary amounts use two decimal places
+with normal rounding (ROUND_HALF_UP, e.g.123.456 →123.46), superseding the earlier
+“no rounding” interpretation.
+Tax is added separately to the base price. The founder confirmed the current internal
+default is 10%, configurable rather than hardcoded as a legal rate.
 
 ## Contracts
 
@@ -12,7 +15,7 @@ session. Admin/editor may mutate; all organization members may read. Every write
 `Idempotency-Key` (max 100). Authorization is checked before replay. Replay returns the
 original response including its `price_checks_as_of`; GET refreshes current price checks.
 
-- POST collection: code, customer_id, currency, optional note, 1–100 lines. Each line has
+- POST collection: code, customer_id, currency, optional note and tax_rate_percent, 1–100 lines. Each line has
   price_id and quantity only. Code is normalized uppercase and unique per organization.
 - GET collection: limit 1–100 (default 25), offset, literal q (code/customer name, max200),
   optional status=draft/cancelled. Returns total, page, customer label, line_count and
@@ -39,23 +42,55 @@ clients cannot supply line amounts or tax values. Shared locks stabilize validat
 master edits and price-source approval changes. Snapshot names/technical specifications
 remain historical even when labels change. Current expiry/source revocation is shown by GET.
 
-Quantities use NUMERIC(20,3), unit prices NUMERIC(24,6). Floats/booleans, invalid precision,
-duplicate price lines and fractional piece quantities are rejected. Quantity is in the
-explicit price unit, which may differ from the product stock unit; no conversion occurs.
-Raw quantity × price estimates use Decimal precision60 and nine fractional digits. Up to
-100 maximum-sized lines fit this calculation without default Decimal-context rounding.
-Nine fractional digits preserve every possible input product exactly; they are not a
-two-decimal money quantization. Iranian invoice policy is IRR with no line/total rounding.
-List/detail responses expose `invoice_policy`: version=iran-invoice-v1, currency=IRR,
-rounding=none, currency_matches (draft currency equals IRR), tax_workflow=not_configured.
-New revision snapshots retain this metadata; old immutable revisions are not rewritten.
-Currency compatibility does not authorize financial approval or issuance. Internal estimates
-may retain IRT/USD/EUR; they cannot become Iranian invoices in those currencies, and no
-automatic FX/toman conversion occurs. Final invoice persistence must preserve exact
-fractional rials rather than coerce these totals into NUMERIC(20,2).
+Quantities use NUMERIC(20,3), source unit prices NUMERIC(24,6). Floats/booleans, invalid
+precision, duplicate price lines and fractional piece quantities are rejected. Quantity is
+in the explicit price unit, which may differ from the product stock unit; no conversion
+occurs. Calculations use Decimal precision60, covering 100 maximum-sized lines.
 
-Estimates are not finalized legal money totals; tax, transport, discounts, FX and financial
-approval remain outside this draft stage. No assumed Iranian tax rate is introduced.
+For each configured line (no JavaScript/float money arithmetic):
+
+1. base_amount = ROUND_HALF_UP(quantity × unit_price, 2).
+2. tax_total = ROUND_HALF_UP(base_amount × tax_rate_percent / 100, 2).
+3. grand_total = base_amount + tax_total.
+
+Header subtotal, tax_total and grand_total are sums of the corresponding rounded line
+amounts, serialized with exactly two fractional digits. This per-line policy keeps line and
+document sums consistent. For example two0.045 base lines at10% each become base0.05 +
+tax0.01 =0.06 per line, with document subtotal0.10, tax0.02, grand0.12. SQL page aggregates
+and Decimal detail calculations are tested against the same boundary cases.
+`estimated_amount`/`estimated_total` retain raw nine-place exact products as compatibility
+and calculation evidence; they are not the two-place monetary subtotal/total. Source unit
+price precision and quantity precision are not reduced. UI monetary totals use the two-place
+fields; old historical raw evidence remains readable without retroactive rounding.
+
+List/detail responses expose invoice_policy: version=iran-invoice-v3, currency=IRR,
+rounding=half_up, decimal_places=2, calculation=per_line, currency_matches (draft currency
+equals IRR), tax_workflow=exclusive. Each new draft/edit stores amount_rounding=half_up_2
+and its tax rate; old revisions/replays are not rewritten. This metadata never grants
+financial approval/issuance. IRT/USD/EUR remain internal estimates only and cannot become
+Iranian invoices in those currencies; no implicit FX/toman conversion occurs. Freight,
+discounts, FX and final approval are outside this calculation stage.
+
+Tax-inclusive observations are rejected for new/edited drafts; provide an explicitly
+approved tax-exclusive base observation instead of implicit netting or double taxation.
+Price lists support tax_included=false for the form.
+
+GET /api/v1/organization/tax-policy reads the session organization's default; its members
+may read. PUT is admin-only with tax_rate_percent and expected_version, serialized with
+organization administration and audited; stale version returns409. Default10%, range0–100
+inclusive, at most6 decimal places, decimal strings (no floats/booleans). This range is an
+application bound, not a legal assertion. New drafts snapshot the organization default
+unless an editor/admin explicitly supplies a rate. Updates retain the stored rate unless
+explicitly changed. Changing defaults never reprices existing drafts/revisions. Concurrent
+default changes may be observed before or after a draft's default read; the selected rate
+is persisted. Cancellation retains rate and rounding policy.
+
+Migration0004_sales_tax adds organization default/version and nullable draft rate/rounding.
+Existing drafts retain null rates/policies and null subtotal/tax/grand until explicitly
+edited into a new version. Cancellation does not configure legacy tax. Old immutable
+revisions and idempotent responses remain unchanged. Founder currency, decimal/rounding
+and tax questions are resolved; final customer issuance still requires its own controlled
+domain transition, not this calculation alone.
 
 ## Persistence and retention
 
@@ -74,9 +109,10 @@ reported in DEVELOPMENT_STATUS.md; this document does not imply final financial 
 ## Persian workspace
 
 The sales-draft page uses real APIs and bounded searchable customer/product/price selects.
-Only currently approved, unexpired prices in the selected currency are offered. Explicit
-price units, tax-inclusion and delivery conditions are displayed. Exact raw estimates are
-server-calculated. Native search Enter does not submit its surrounding form.
+Only currently approved, unexpired, tax-exclusive prices in the selected currency are offered. Explicit
+price units, tax-inclusion and delivery conditions are displayed. Two-place monetary totals are
+server-calculated; the form accepts a version-specific tax rate and settings expose the
+organization default. Native search Enter does not submit its surrounding form.
 
 Users can create/edit internal drafts, view immutable historical versions, reload current
 price/customer checks and cancel with explicit confirmation. Historical views show the

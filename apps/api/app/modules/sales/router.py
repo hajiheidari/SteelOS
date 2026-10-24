@@ -36,6 +36,12 @@ def create(
         customer_id=payload.customer_id,
         currency=payload.currency,
         note=payload.note,
+        amount_rounding="half_up_2",
+        tax_rate_percent=(
+            payload.tax_rate_percent
+            if payload.tax_rate_percent is not None
+            else service.default_tax_rate(db, ctx)
+        ),
         created_by=ctx.user_id,
         updated_by=ctx.user_id,
         updated_at=at,
@@ -65,11 +71,18 @@ def update(
     if payload.code.upper() != draft.code:
         raise HTTPException(422, "Sales draft code is immutable")
     lines, at = service.prepare(db, ctx, payload)
+    rate = payload.tax_rate_percent
+    if rate is None:
+        rate = draft.tax_rate_percent
+    if rate is None:
+        rate = service.default_tax_rate(db, ctx)
     draft.customer_id, draft.currency, draft.note = (
         payload.customer_id,
         payload.currency,
         payload.note,
     )
+    draft.tax_rate_percent = rate
+    draft.amount_rounding = "half_up_2"
     draft.version += 1
     draft.updated_by, draft.updated_at = ctx.user_id, at
     db.flush()
@@ -128,6 +141,8 @@ def list_drafts(
         stmt.order_by(m.SalesDraft.created_at.desc(), m.SalesDraft.id).offset(offset).limit(limit)
     ).all()
     customers = service.rows_by_id(db, ctx, m.Party, {row.customer_id for row in drafts})
+    base = func.round(m.SalesDraftLine.quantity * m.SalesDraftLine.unit_price, 2)
+    tax = func.round(base * m.SalesDraft.tax_rate_percent / 100, 2)
     stats = (
         {
             row.draft_id: row
@@ -139,6 +154,14 @@ def list_drafts(
                         "amount"
                     ),
                     func.min(m.SalesDraftLine.price_valid_until).label("valid_until"),
+                    func.sum(base).label("subtotal"),
+                    func.sum(tax).label("tax_total"),
+                    func.sum(base + tax).label("grand_total"),
+                )
+                .join(
+                    m.SalesDraft,
+                    (m.SalesDraft.id == m.SalesDraftLine.draft_id)
+                    & (m.SalesDraft.organization_id == m.SalesDraftLine.organization_id),
                 )
                 .where(
                     m.SalesDraftLine.organization_id == ctx.organization_id,
@@ -160,6 +183,13 @@ def list_drafts(
             has_expired_price=stat.valid_until <= at,
             financial_approval=False,
             invoice_policy=service.invoice_policy(row.currency),
+        )
+        configured = row.tax_rate_percent is not None and row.amount_rounding == "half_up_2"
+        item.update(
+            {
+                key: format(getattr(stat, key), ".2f") if configured else None
+                for key in ("subtotal", "tax_total", "grand_total")
+            }
         )
         items.append(item)
     return {"items": items, "total": total, "limit": limit, "offset": offset}

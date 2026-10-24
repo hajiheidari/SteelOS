@@ -54,6 +54,8 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
   const [customer, setCustomer] = useState<Row | null>(null);
   const [code, setCode] = useState("");
   const [currency, setCurrency] = useState("IRR");
+  const [taxDefault, setTaxDefault] = useState<string | null>(null);
+  const [taxRate, setTaxRate] = useState("");
   const [note, setNote] = useState("");
   const [lines, setLines] = useState<FormLine[]>(() => [blank()]);
   const [busy, setBusy] = useState(false);
@@ -67,6 +69,13 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
   const writer = role !== "viewer";
   useEffect(() => {
     alive.current = true;
+    void api("organization/tax-policy")
+      .then((policy) => {
+        if (alive.current) setTaxDefault(String(policy.tax_rate_percent));
+      })
+      .catch((e) => {
+        if (alive.current) setError((e as Error).message);
+      });
     return () => {
       alive.current = false;
       generation.current += 1;
@@ -136,6 +145,7 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
     setCode(String(draft?.code || ""));
     setCurrency(String(draft?.currency || "IRR"));
     setNote(String(draft?.note || ""));
+    setTaxRate(String(draft?.tax_rate_percent ?? taxDefault ?? ""));
     setCustomer(
       draft
         ? { id: String(draft.customer_id), name: draft.customer_name }
@@ -178,6 +188,7 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
       customer_id: customer?.id,
       currency,
       note,
+      tax_rate_percent: normalizeDecimalInput(taxRate),
       lines: lines.map((line) => ({
         price_id: line.price?.id,
         quantity: normalizeDecimalInput(line.quantity),
@@ -223,9 +234,10 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
     <>
       <p className="info">
         این سند پیش‌نویس داخلی است. برآورد خام، مبلغ مالی نهایی یا پیش‌فاکتور
-        تأییدشدهٔ مشتری نیست. مبالغ ردیف و جمع بدون گردکردن محاسبه می‌شوند؛ ارز
-        فاکتور ایران ریال است. نحوهٔ مالیات و هزینهٔ حمل هنوز تعیین نشده است.
-        ثبت این سند موجودی را رزرو نمی‌کند.
+        تأییدشدهٔ مشتری نیست. مبلغ پایه و مالیات هر ردیف تا دو رقم اعشار گرد
+        می‌شوند؛ جمع سند مجموع ردیف‌هاست. ارز فاکتور ایران ریال است. مالیات جدا
+        به مبلغ پایه اضافه می‌شود؛ نرخ سند قابل تنظیم است. هزینهٔ حمل در این
+        محاسبه لحاظ نمی‌شود. ثبت این سند موجودی را رزرو نمی‌کند.
       </p>
       {error && !cancel && (
         <p className="error" role="alert">
@@ -258,7 +270,10 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
           <button disabled={busy}>جست‌وجو</button>
         </form>
         {writer && (
-          <button disabled={busy} onClick={() => edit(null)}>
+          <button
+            disabled={busy || taxDefault === null}
+            onClick={() => edit(null)}
+          >
             پیش‌نویس فروش جدید
           </button>
         )}
@@ -312,6 +327,21 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
                 </p>
               )}
               <label>
+                درصد مالیات بر ارزش افزوده سند
+                <input
+                  inputMode="decimal"
+                  value={taxRate}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                  required
+                  maxLength={10}
+                  aria-describedby="sales-tax-help"
+                />
+              </label>
+              <p id="sales-tax-help" className="muted">
+                مالیات جدا از قیمت پایه اضافه می‌شود. نرخ این سند با تغییر
+                تنظیمات سازمان عوض نمی‌شود؛ بازهٔ داخلی مجاز صفر تا صد درصد است.
+              </p>
+              <label>
                 یادداشت سند
                 <input
                   maxLength={2000}
@@ -345,7 +375,7 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
                   selectedOption={line.price}
                   resource={
                     line.product
-                      ? `price-observations?product_id=${line.product.id}&currency=${currency}&approved_only=true`
+                      ? `price-observations?product_id=${line.product.id}&currency=${currency}&approved_only=true&tax_included=false`
                       : ""
                   }
                   optionLabel={(row) =>
@@ -412,7 +442,7 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
               <tr>
                 <th>کد</th>
                 <th>مشتری</th>
-                <th>برآورد خام</th>
+                <th>جمع با مالیات</th>
                 <th>ارز</th>
                 <th>وضعیت</th>
                 <th>نسخه</th>
@@ -424,7 +454,11 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
                 <tr key={row.id}>
                   <td>{String(row.code)}</td>
                   <td>{String(row.customer_name)}</td>
-                  <td>{display(row.estimated_total)}</td>
+                  <td>
+                    {row.grand_total != null
+                      ? display(row.grand_total)
+                      : "مالیات تعیین نشده"}
+                  </td>
                   <td>{currencies[String(row.currency)]}</td>
                   <td>
                     {row.status === "cancelled" ? "لغو شده" : "پیش‌نویس داخلی"}
@@ -483,12 +517,28 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
             {selected.status === "cancelled" ? "لغو شده" : "پیش‌نویس داخلی"}
           </p>
           <p>
-            برآورد خام بدون گردکردن:{" "}
+            {selected.subtotal != null ? "جمع پایه:" : "برآورد تاریخی:"}{" "}
             <strong>
-              {display(selected.estimated_total)}{" "}
+              {display(selected.subtotal ?? selected.estimated_total)}{" "}
               {currencies[String(selected.currency)]}
             </strong>
           </p>
+          {selected.subtotal != null ? (
+            <p>
+              مالیات جدا ({display(selected.tax_rate_percent)}٪):{" "}
+              {display(selected.tax_total)}{" "}
+              {currencies[String(selected.currency)]} · جمع با مالیات:{" "}
+              <strong>
+                {display(selected.grand_total)}{" "}
+                {currencies[String(selected.currency)]}
+              </strong>
+            </p>
+          ) : (
+            <p className="info">
+              این نسخهٔ قدیمی نرخ مالیات ندارد؛ برای محاسبهٔ مالیات نسخهٔ جدید
+              ثبت کنید.
+            </p>
+          )}
           {selected.currency !== "IRR" && (
             <p className="info">
               ارز این پیش‌نویس با فاکتور ایران مطابقت ندارد؛ فاکتور ایران باید
@@ -511,7 +561,7 @@ export function SalesDraftsWorkspace({ role }: { role: string }) {
                 {display(line.quantity)} {display(line.unit)} ×{" "}
                 {display(line.unit_price)}{" "}
                 {currencies[String(selected.currency)]} · برآورد:{" "}
-                {display(line.estimated_amount)}
+                {display(line.base_amount ?? line.estimated_amount)}
               </p>
               <p>
                 {snapshot(line).price.delivery_location} ·{" "}

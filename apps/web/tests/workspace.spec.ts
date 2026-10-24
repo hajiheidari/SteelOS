@@ -483,6 +483,27 @@ test("organization settings use searchable users and warehouse grants", async ({
     .getByRole("navigation")
     .getByRole("button", { name: "کاربران و تنظیمات", exact: true })
     .click();
+  const taxRate = page.getByLabel("درصد پیش‌فرض مالیات بر ارزش افزوده", {
+    exact: true,
+  });
+  await expect(taxRate).toBeEnabled();
+  for (const rate of ["۹٫۱۲۳۴۵۶", "۱۰"]) {
+    await taxRate.fill(rate);
+    const savedTax = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PUT" &&
+        response.url().endsWith("/organization/tax-policy"),
+    );
+    await page
+      .getByRole("button", { name: "ذخیره نرخ پیش‌فرض مالیات", exact: true })
+      .click();
+    expect((await savedTax).status()).toBe(200);
+    await expect(
+      page.getByText("نرخ پیش‌فرض ذخیره شد؛ نرخ اسناد قبلی تغییر نکرد.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+  }
   await page.getByLabel("ایمیل کاربر جدید").fill(email);
   await page.getByLabel("رمز عبور اولیه").fill("Temporary-browser-only-123");
   await page

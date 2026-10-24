@@ -16,6 +16,7 @@ import {
   roles,
   sessionExpiredEvent,
 } from "./workspace-schema";
+import { TaxPolicySettings } from "./tax-policy-settings";
 import { Editor } from "./record-editor";
 import { RemoteSelect } from "./remote-select";
 import { SalesDraftsWorkspace } from "./sales-drafts-workspace";
@@ -422,6 +423,7 @@ export default function Home() {
                 <>
                   <section className="card">
                     <h2>تنظیمات سازمان</h2>
+                    <TaxPolicySettings />
                     <form
                       className="inline"
                       onSubmit={(e) => {

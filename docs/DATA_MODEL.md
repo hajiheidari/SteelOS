@@ -54,15 +54,18 @@ Ownership transfer requires a separately authorized business event, never a loca
 
 ## Future accounting boundary
 
-Unit rates NUMERIC(24,6); no float arithmetic. Founder-confirmed Iranian invoice
-currency is IRR and amounts must not be rounded. NUMERIC(20,2) is only a general
-recommendation, not a permitted coercion of exact invoice amounts: future invoice/journal
-amount columns must retain the exact supported line/total scale and sufficient integer range. Accounting module consumes
+Unit rates NUMERIC(24,6); quantities NUMERIC(20,3); no float arithmetic. Founder-confirmed
+Iranian invoice currency is IRR with two-place ROUND_HALF_UP monetary amounts. Preserve
+raw rate/quantity precision for calculation evidence. Future invoice/journal amount
+columns must have scale2 and a validated integer range; NUMERIC(20,2) is a recommendation
+only and must not silently overflow the larger supported internal draft amounts. Accounting module consumes
 validated domain events through controlled APIs with idempotent posting references. For each
 posted journal: same organization, valid open period/accounts, explicit currency, total debits
 = total credits, at least two nonzero lines, no negative debits/credits, exactly one side per line.
-Posted journals are immutable; corrections use linked reversals. FX and tax policy must
-be specified before implementation; domestic line/total rounding is explicitly forbidden. Run in parallel with the existing reference process;
+Posted journals are immutable; corrections use linked reversals. FX and accounting integration policy must
+be specified before implementation; domestic monetary amounts use two-place ROUND_HALF_UP.
+Internal tax uses separate addition with configurable default10% (founder business rule,
+not a legal compliance claim). Run in parallel with the existing reference process;
 reconcile opening balances, daily journals, counterparties, inventory valuation and period-end
 trial balance before any authority transfer. M1 contains no accounting engine or tax connector.
 Current official Iranian specifications must be reviewed before later production tax integration.
@@ -80,3 +83,9 @@ sales_draft_lines (tenant FKs, NUMERIC20,3 quantities, NUMERIC24,6 source prices
 per-version evidence) and append-only sales_draft_revisions. See SALES_DRAFTS.md for exact
 raw Decimal estimates, draft-only line replacement, terminal cancellation, retention and
 explicit absence of final financial money/tax/inventory/accounting transactions.
+
+Migration0004_sales_tax adds organization sales_tax_rate_percent NUMERIC(9,6), default10,
+tax_policy_version, nullable sales_drafts.tax_rate_percent and amount_rounding. DB checks
+enforce internal0–100 bounds, positive policy versions and the half_up_2 policy. Legacy
+null values preserve unconfigured history; new edits snapshot rate/policy. Derived two-place
+monetary totals and raw nine-place evidence are retained as strings in revision JSON.

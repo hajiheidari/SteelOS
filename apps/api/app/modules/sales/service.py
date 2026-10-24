@@ -1,6 +1,6 @@
 """Internal, non-binding sales drafts. No tax, accounting or inventory posting."""
 
-from decimal import Decimal, localcontext
+from decimal import ROUND_HALF_UP, Decimal, localcontext
 
 from app import models as m
 from app.modules.resources import audit, get_row, scoped, serialize
@@ -32,12 +32,36 @@ def estimate(quantity, price):
 def invoice_policy(currency):
     """Founder-confirmed domestic policy; compatibility never grants issuance."""
     return {
-        "version": "iran-invoice-v1",
+        "version": "iran-invoice-v3",
         "currency": "IRR",
-        "rounding": "none",
+        "rounding": "half_up",
+        "decimal_places": 2,
+        "calculation": "per_line",
         "currency_matches": currency == "IRR",
-        "tax_workflow": "not_configured",
+        "tax_workflow": "exclusive",
     }
+
+
+def financial_line(base, rate, rounding):
+    if rate is None or rounding != "half_up_2":
+        return {"base_amount": None, "tax_total": None, "grand_total": None}
+    with localcontext() as ctx:
+        ctx.prec = 60
+        base = base.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        tax = (base * rate / Decimal("100")).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        return {
+            "base_amount": format(base, ".2f"),
+            "tax_total": format(tax, ".2f"),
+            "grand_total": format(base + tax, ".2f"),
+        }
+
+
+def default_tax_rate(db, ctx):
+    return db.scalar(
+        select(m.Organization.sales_tax_rate_percent).where(
+            m.Organization.id == ctx.organization_id
+        )
+    )
 
 
 def prepare(db, ctx, payload):
@@ -68,6 +92,8 @@ def prepare(db, ctx, payload):
             or price.valid_until <= at
         ):
             raise HTTPException(409, "A currently approved and valid price is required")
+        if price.tax_included:
+            raise HTTPException(409, "A tax-exclusive base price is required")
         if not product.active:
             raise HTTPException(409, "Sales product is inactive")
         if price.currency != payload.currency:
@@ -113,6 +139,9 @@ def rows_by_id(db, ctx, model, ids):
 
 def details(db, ctx, draft):
     result = serialize(draft)
+    result["tax_rate_percent"] = (
+        format(draft.tax_rate_percent, ".6f") if draft.tax_rate_percent is not None else None
+    )
     customer = get_row(db, m.Party, ctx, draft.customer_id)
     result["customer_name"] = customer.name
     result["customer_eligible"] = customer.active and "customer" in customer.roles
@@ -129,6 +158,7 @@ def details(db, ctx, draft):
     with localcontext() as decimal_ctx:
         decimal_ctx.prec = 60
         total = Decimal("0")
+        subtotal, tax_total, grand_total = Decimal("0"), Decimal("0"), Decimal("0")
         for row in rows:
             price, source, product = (
                 prices[row.price_id],
@@ -139,6 +169,11 @@ def details(db, ctx, draft):
             total += amount
             item = serialize(row)
             item["estimated_amount"] = format(amount, ".9f")
+            item.update(financial_line(amount, draft.tax_rate_percent, draft.amount_rounding))
+            if item["base_amount"] is not None:
+                subtotal += Decimal(item["base_amount"])
+                tax_total += Decimal(item["tax_total"])
+                grand_total += Decimal(item["grand_total"])
             item["price_usable"] = bool(
                 price.status == "approved"
                 and source.approved
@@ -151,6 +186,12 @@ def details(db, ctx, draft):
             )
             lines.append(item)
         result["estimated_total"] = format(total, ".9f")
+        configured = draft.tax_rate_percent is not None and draft.amount_rounding == "half_up_2"
+        result.update(
+            subtotal=format(subtotal, ".2f") if configured else None,
+            tax_total=format(tax_total, ".2f") if configured else None,
+            grand_total=format(grand_total, ".2f") if configured else None,
+        )
     result.update(
         lines=lines,
         price_checks_as_of=at.isoformat(),

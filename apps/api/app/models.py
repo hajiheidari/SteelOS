@@ -30,6 +30,12 @@ class Identity:
 class Organization(Identity, Base):
     __tablename__ = "organizations"
     name: Mapped[str] = mapped_column(String(200))
+    sales_tax_rate_percent: Mapped[Decimal] = mapped_column(Numeric(9, 6), server_default="10")
+    tax_policy_version: Mapped[int] = mapped_column(Integer, server_default="1")
+    __table_args__ = (
+        CheckConstraint("sales_tax_rate_percent BETWEEN 0 AND 100", name="ck_org_sales_tax_rate"),
+        CheckConstraint("tax_policy_version > 0", name="ck_org_tax_policy_version"),
+    )
 
 
 class User(Identity, Base):

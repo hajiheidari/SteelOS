@@ -95,11 +95,15 @@ test("internal sales draft preserves exact estimates and revisions without stock
     .getByLabel("کالای ردیف 1", { exact: true })
     .selectOption(product.id);
   const priceSelect = page.getByLabel("قیمت ردیف 1", { exact: true });
-  await page.getByRole("combobox", { name: "ارز سند", exact: true }).selectOption("IRT");
+  await page
+    .getByRole("combobox", { name: "ارز سند", exact: true })
+    .selectOption("IRT");
   await expect(
     page.getByText("این ارز فقط برای برآورد داخلی است", { exact: false }),
   ).toBeVisible();
-  await page.getByRole("combobox", { name: "ارز سند", exact: true }).selectOption("IRR");
+  await page
+    .getByRole("combobox", { name: "ارز سند", exact: true })
+    .selectOption("IRR");
   await expect(
     page.getByText("این ارز فقط برای برآورد داخلی است", { exact: false }),
   ).toHaveCount(0);
@@ -136,17 +140,26 @@ test("internal sales draft preserves exact estimates and revisions without stock
   const draft = await createdResponse.json();
   expect(draft.estimated_total).toBe("262097.350097088");
   expect(draft.financial_approval).toBe(false);
+  expect(draft.tax_rate_percent).toBe("10.000000");
+  expect(draft.subtotal).toBe("262097.35");
+  expect(draft.tax_total).toBe("26209.74");
+  expect(draft.grand_total).toBe("288307.09");
   expect(draft.invoice_policy).toEqual({
-    version: "iran-invoice-v1",
+    version: "iran-invoice-v3",
     currency: "IRR",
-    rounding: "none",
+    rounding: "half_up",
+    decimal_places: 2,
+    calculation: "per_line",
     currency_matches: true,
-    tax_workflow: "not_configured",
+    tax_workflow: "exclusive",
   });
   const row = page.getByRole("row").filter({ hasText: "Q-" + stamp });
   await expect(row).toContainText("پیش‌نویس داخلی");
   await page.getByRole("button", { name: "ویرایش سند", exact: true }).click();
   await page.getByLabel("مقدار ردیف 1", { exact: true }).fill("۳");
+  await page
+    .getByLabel("درصد مالیات بر ارزش افزوده سند", { exact: true })
+    .fill("۹٫۵");
   await page.getByLabel("یادداشت سند", { exact: true }).fill("یادداشت جدید");
   const update = page.waitForResponse(
     (response) =>
@@ -158,7 +171,11 @@ test("internal sales draft preserves exact estimates and revisions without stock
     .click();
   const updated = await update;
   expect(updated.ok()).toBeTruthy();
-  expect((await updated.json()).estimated_total).toBe("370368.370368000");
+  const newVersion = await updated.json();
+  expect(newVersion.estimated_total).toBe("370368.370368000");
+  expect(newVersion.tax_rate_percent).toBe("9.500000");
+  expect(newVersion.tax_total).toBe("35185.00");
+  expect(newVersion.grand_total).toBe("405553.37");
   await page.getByRole("button", { name: "نمایش نسخه ۱", exact: true }).click();
   await expect(page.getByText("یادداشت اولیه", { exact: true })).toBeVisible();
   await expect(

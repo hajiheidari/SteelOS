@@ -8,7 +8,7 @@ Acceptance remains gated by actual CI execution and review; do not infer complet
 M2 approved warehouse scope: append-only stock/ownership/reservation operations and
 transactional availability; implemented contracts in INVENTORY.md. Internal non-binding sales drafts with price snapshots/revisions are implemented (SALES_DRAFTS.md).
 Financial approval/issuance, purchases/sales contracts and trading settlement remain future
-work; Iranian invoices use IRR without rounding (founder confirmed); tax workflow remains unresolved.
+work; Iranian invoices use IRR and two-place ROUND_HALF_UP (founder clarified); exclusive tax with configurable default10% is implemented for internal drafts.
 M3: proprietary double-entry accounting, official requirements research and parallel reconciliation.
 M4: deeper CRM, quoting and controlled sales agent workflows.
 M5: approved research/market/education/marketing assistance.

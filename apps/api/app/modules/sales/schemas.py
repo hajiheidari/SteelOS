@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from app.schemas import Code, Input
+from app.schemas import Code, Input, TaxRate
 from pydantic import Field, field_validator, model_validator
 
 
@@ -22,6 +22,7 @@ class DraftInput(Input):
     code: Code
     customer_id: UUID
     currency: Literal["IRR", "IRT", "USD", "EUR"]
+    tax_rate_percent: TaxRate | None = None
     note: Annotated[str, Field(max_length=2000)] = ""
     lines: Annotated[list[LineInput], Field(min_length=1, max_length=100)]
 

@@ -90,7 +90,15 @@ Sales drafts authorize current membership before every write/replay. Shared lock
 customer eligibility, product activity and approved price/source checks; concurrent master
 revocation that wins the row lock causes409 and leaves no partial draft/revision/audit/
 idempotency result. Revision and cancellation guards preserve history in PostgreSQL.
-Clients provide price IDs and decimal quantities, never trusted prices, totals or tax values.
+Clients provide price IDs, decimal quantities and an optional validated tax percentage;
+prices, base/tax amounts and totals are always derived server-side.
 Historical and cached price checks carry their original as-of timestamp; fresh GET rechecks
 current eligibility. Financial approval is always false and there is no customer issuance,
 stock/accounting posting or external-send endpoint in this stage.
+
+Organization tax-default updates use the existing serialized administrator lock and
+post-lock authority recheck, plus expected_version to reject stale writes. Members cannot
+supply another organization ID. Concurrent policy edits yield one200/one409; viewer writes
+are403. Draft rates/rounding policies are version-specific snapshots; changing defaults
+never changes historical amounts. Tax-inclusive prices are rejected to prevent double tax.
+Two-place HALF_UP calculations use Decimal/SQL NUMERIC, never binary floating point.

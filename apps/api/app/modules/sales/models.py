@@ -24,6 +24,8 @@ class SalesDraft(Tenant, Base):
     code: Mapped[str] = mapped_column(String(80))
     customer_id: Mapped[UUID] = mapped_column()
     currency: Mapped[str] = mapped_column(String(3))
+    amount_rounding: Mapped[str | None] = mapped_column(String(20))
+    tax_rate_percent: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
     note: Mapped[str] = mapped_column(String(2000), default="")
     status: Mapped[str] = mapped_column(String(20), default="draft")
     version: Mapped[int] = mapped_column(Integer, default=1)
@@ -35,6 +37,8 @@ class SalesDraft(Tenant, Base):
         UniqueConstraint("organization_id", "code"),
         CheckConstraint("status IN ('draft','cancelled')"),
         CheckConstraint("version > 0"),
+        CheckConstraint("amount_rounding = 'half_up_2'", name="ck_sales_draft_amount_rounding"),
+        CheckConstraint("tax_rate_percent BETWEEN 0 AND 100", name="ck_sales_draft_tax_rate"),
         CheckConstraint("currency IN ('IRR','IRT','USD','EUR')"),
         ForeignKeyConstraint(
             ["organization_id", "customer_id"], ["parties.organization_id", "parties.id"]

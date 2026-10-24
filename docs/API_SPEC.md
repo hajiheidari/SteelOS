@@ -140,9 +140,27 @@ Price observation lists also accept currency and literal search in provenance/de
 
 ### Iranian invoice monetary policy
 
-Sales draft list/detail and new immutable revision snapshots include `invoice_policy`
-(version `iran-invoice-v1`, currency `IRR`, rounding `none`, boolean `currency_matches`,
-tax_workflow `not_configured`). Exact line/total strings retain nine decimal places,
-including fractional rials; no conversion or rounding occurs. Other currencies remain
-valid for internal estimates only. This metadata never grants approval/issuance, and
-previous revision snapshots are not retroactively changed. Tax rules remain unresolved.
+Founder-confirmed: IRR, two decimal places, ROUND_HALF_UP (123.456 →123.46), tax added
+separately with configurable current default10%. This supersedes the initial no-rounding
+interpretation; raw pricing evidence remains exact.
+
+Sales draft list/detail and new revision snapshots include invoice_policy version
+iran-invoice-v3, currency=IRR, rounding=half_up, decimal_places=2, calculation=per_line,
+currency_matches boolean, tax_workflow=exclusive. amount_rounding=half_up_2 is persisted
+per new draft/edit. Per line: base_amount=round(quantity×unit_price,2); tax_total=
+round(base_amount×rate/100,2); grand_total=base_amount+tax_total. Header subtotal/tax_total/
+grand_total sum line amounts, returned as two-place decimal strings. Raw estimated_amount/
+estimated_total remain nine-place evidence for compatibility, not monetary totals.
+
+GET /organization/tax-policy: current session organization default (tax_rate_percent
+string, version, mode=exclusive, rounding=half_up, decimal_places=2, calculation=per_line,
+invoice_currency=IRR). PUT admin-only: {tax_rate_percent: decimal string0–100, up to6
+decimals, expected_version: positive integer};409 on stale version, audit update_tax_policy.
+The default10% is the founder's internal business rule, not a statutory assertion.
+
+Sales draft POST optionally accepts tax_rate_percent; omission snapshots the organization
+default. PUT omission retains the existing rate (legacy null gets the current default).
+Tax-inclusive price observations return409 on draft writes. Price lists support boolean
+tax_included. Legacy drafts have null subtotal/tax/grand until a new edit; cancellation
+does not configure them. Old revisions/replays are not retroactively changed.
+Foreign currencies remain internal estimates only; no implicit conversion or final issuance.
