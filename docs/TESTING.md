@@ -113,3 +113,8 @@ rejection, ambiguous dimensions skipping inference/search, no broadening on zero
 and model terms absent from the question being rejected. Existing desktop/mobile assistant
 flows now assert exact dimensional filtering, source attributes and clarification with no
 business writes. No migration is needed; alembic check reports no model drift.
+
+Persian number-word regressions cover یک/دو/ده/نیم, integer-plus-half and ZWNJ
+separators, exact Decimal extraction before inference, real domain API equivalence with
+numeric2mm, and unsupported compound forms requiring clarification. No new model claim
+or financial calculation is introduced by this parser extension.

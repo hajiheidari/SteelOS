@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from decimal import Decimal
 
 from app.modules.catalog_search import DIGITS, SearchDimension
 from pydantic import ValidationError
@@ -15,10 +16,31 @@ NAMES = {
 }
 NAMES.update({name: name for name in NAMES.values()})
 NUMBER = r"[0-9]+(?:٬[0-9]{3})*(?:[.٫][0-9]+)?"
+WORDS = {
+    "یک": "1",
+    "دو": "2",
+    "سه": "3",
+    "چهار": "4",
+    "پنج": "5",
+    "شش": "6",
+    "هفت": "7",
+    "هشت": "8",
+    "نه": "9",
+    "ده": "10",
+    "نیم": "0.5",
+}
+WORD_NUMBER = r"(?:" + "|".join(WORDS) + r")(?:[\s‌]+و[\s‌]+نیم)?"
 UNIT = r"میلی[\s‌-]*متر|سانتی[\s‌-]*متر|متر|mm|cm|m"
 KEY = re.compile(r"(?<!\w)(?:" + "|".join(NAMES) + r")(?=$|[\s‌:=0-9+-])", re.I)
 VALUE = re.compile(
-    r"[\s‌]*(?:[:=][\s‌]*)?(?P<value>" + NUMBER + r")[\s‌]*(?P<unit>" + UNIT + r")(?![\w‌])", re.I
+    r"[\s‌]*(?:[:=][\s‌]*)?(?P<value>"
+    + NUMBER
+    + "|"
+    + WORD_NUMBER
+    + r")[\s‌]*(?P<unit>"
+    + UNIT
+    + r")(?![\w‌])",
+    re.I,
 )
 MEASUREMENT = re.compile(
     NUMBER + r"[\s‌]*(?:" + UNIT + r"|میل|kg|کیلوگرم|کیلو|گرم|tonne|تن|inch|اینچ|درجه)(?![\w‌])", re.I
@@ -46,7 +68,11 @@ def extract(question):
         name = NAMES[key.group().lower()]
         if value is None:
             # A general question about available dimensions does not assert a numeric filter.
-            if ATTEMPT.match(text, key.end()):
+            if ATTEMPT.match(text, key.end()) or re.match(
+                r"[\s‌]+[آ-ی‌]+(?:[\s‌]+[آ-ی‌]+){0,4}[\s‌]*(?:" + UNIT + r")(?![\w‌])",
+                text[key.end() :],
+                re.I,
+            ):
                 ambiguous = True
             continue
         if name in attributes:
@@ -55,7 +81,18 @@ def extract(question):
         unit = re.sub(r"[\s‌-]", "", value["unit"]).lower()
         unit = {"میلیمتر": "mm", "سانتیمتر": "cm", "متر": "m"}.get(unit, unit)
         try:
-            attributes[name] = SearchDimension(value=value["value"], unit=unit)
+            raw = value["value"]
+            if raw[0] not in "0123456789":
+                parts = re.split(r"[\s‌]+و[\s‌]+", raw)
+                # Only the documented finite grammar is accepted; no model guesses.
+                if parts[0] == "نیم" and len(parts) > 1:
+                    ambiguous = True
+                    continue
+                raw = format(
+                    Decimal(WORDS[parts[0]]) + (Decimal("0.5") if len(parts) > 1 else Decimal("0")),
+                    "f",
+                )
+            attributes[name] = SearchDimension(value=raw, unit=unit)
         except ValidationError:
             ambiguous = True
             continue

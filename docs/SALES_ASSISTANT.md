@@ -132,7 +132,7 @@ JSON strings and exact Decimal-derived alternatives, not unsafe casts of arbitra
 Wrong/absent attributes return no matches; filters are never dropped to produce an answer.
 Other resource endpoints reject the attributes filter with422.
 
-Unknown/missing units, repeated dimensions, unsupported ranges/spelled-out values or bare
+Unknown/missing units, repeated dimensions, unsupported ranges or number-word forms outside the finite grammar or bare
 measurements without an attribute name yield needs_clarification=true and no product/price
 reads or model call. This is a conservative explicit grammar, not a general natural-language
 measurement parser. General questions about available dimensions without numeric constraints
@@ -148,3 +148,11 @@ cases; the rerun matched12/12. Both initial/final synthetic artifacts are retain
 [evidence](evidence/local-assistant-dimensions-2026-10-24.json), alongside the initial artifact.
 An opt-in actual-model API test also matches0.2cm against stored2mm and returns the exact
 approved DB price. These results do not establish general language accuracy or production readiness.
+
+### Persian number words
+
+Named dimensions also accept یک through ده, نیم, and an integer from that set followed
+by و نیم, including ZWNJ separators. For example ضخامت دو و نیم میلی‌متر becomes
+exactly2.5mm before inference. Values are explicit Decimal constants; the model does not
+interpret number words. Unsupported compound numbers (such as بیست or دو و سه), fractions
+and ranges request clarification. Catalog API contracts remain decimal strings.

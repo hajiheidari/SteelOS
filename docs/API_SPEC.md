@@ -206,3 +206,8 @@ Ambiguous/missing/repeated/unsupported dimensions return no results and skip inf
 reads (session authorization is still rechecked). Exact no-match never retries without filters.
 Model product query must be copied from the remaining question, not generated/translated.
 Results remain scoped, read-only, bounded and financially unapproved.
+
+Assistant named dimensions additionally accept a finite Persian number-word grammar:
+یک..ده, نیم, and integer + و نیم (whitespace/ZWNJ). These become exact decimal-string
+attribute filters before inference; generic product API input remains decimal strings.
+Unsupported compound number words request clarification without model or domain reads.

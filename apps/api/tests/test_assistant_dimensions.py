@@ -30,7 +30,10 @@ def test_explicit_dimension_extraction_is_exact_and_preserves_other_text():
     "question",
     [
         "ورق ضخامت 2",
-        "ورق ضخامت دو میلیمتر",
+        "ورق ضخامت بیست میلیمتر",
+        "ورق ضخامت یازده میلیمتر",
+        "ورق ضخامت نیم و نیم میلیمتر",
+        "ورق ضخامت دو و سه میلیمتر",
         "ورق ضخامت -2mm",
         "ورق ضخامت 0mm",
         "ورق ضخامت 0.0000001mm",
@@ -122,6 +125,13 @@ def test_assistant_passes_exact_filters_through_domain_api_and_never_relaxes_the
         json={"question": "ورق ضخامت۹mm عرض۱٫۲m"},
     ).json()
     assert empty["products"] == []  # No retry dropping a constraint to get some answer.
+    spelled = client.post(
+        "/api/v1/sales-assistant/query",
+        headers=tokens[0],
+        json={"question": "قیمت ورق ضخامت دو میلیمتر عرض۱٫۲m"},
+    ).json()
+    assert [row["id"] for row in spelled["products"]] == [products[0]["id"]]
+    assert not spelled["needs_clarification"]
     calls.clear()
     unclear = client.post(
         "/api/v1/sales-assistant/query", headers=tokens[0], json={"question": "ورق ضخامت2"}
@@ -181,3 +191,24 @@ def test_local_model_cannot_substitute_a_generated_product_term():
         with pytest.raises(HTTPException) as error:
             asyncio.run(provider.plan("قیمت ورق چقدر است؟", config, transport=transport))
         assert error.value.status_code == 503
+
+
+@pytest.mark.parametrize(
+    "words,expected",
+    [
+        ("یک", "1"),
+        ("دو", "2"),
+        ("ده", "10"),
+        ("نیم", "0.5"),
+        ("دو و نیم", "2.5"),
+        ("سه‌و‌نیم", "3.5"),
+    ],
+)
+def test_persian_word_dimensions_are_exact(words, expected):
+    from decimal import Decimal
+
+    result = dimensions.extract(f"قیمت ورق ضخامت {words} میلی‌متر")
+    assert not result.needs_clarification
+    assert result.question == "قیمت ورق"
+    assert result.attributes["thickness"].value == Decimal(expected)
+    assert result.attributes["thickness"].unit == "mm"
