@@ -172,7 +172,7 @@ Missing/invalid bounds and unsupported forms request clarification; no criterion
 Number-word ranges, open/exclusive comparisons and arbitrary tolerances remain unsupported.
 Range queries use guarded PostgreSQL CASE numeric extraction from bounded canonical JSON
 strings, with a string-type check; malformed legacy/imported attributes do not crash casts.
-The query may scan tenant catalog rows; a large-catalog performance benchmark is still pending.
+The query may scan tenant catalog rows; CATALOG_SEARCH_PERFORMANCE.md records an isolated10,000-product query measurement. Larger and concurrent/API performance benchmarks remain pending.
 
 Unsupported dimension comparisons, approximations and negation (such as بیشتر از۲,
 حداقل۲, ضخامت۲mm نباشد, thickness above2 and comparison symbols) request clarification.

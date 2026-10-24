@@ -411,3 +411,8 @@
 - مرزهای واحد none، kg ناسازگار، مقدار مفقود و bounds کوچک/بزرگ به regression موجود افزوده شد؛ OpenAPI اکنون قرارداد بازه را هم صریح توصیف می‌کند. migration/index/زیرساخت جدیدی لازم نیست. مستند CATALOG_SEARCH_PERFORMANCE.md روش، محدودیت‌ها و سه artifact را ثبت می‌کند.
 - Ruff/format و alembic check موفق‌اند؛ اجرای کامل backend با۱۲۴ passed و۲ skipped موفق شد؛ CI پس از push بررسی می‌شود. batch بعد پوشش بار بزرگ‌تر/همزمان یا قابلیت بعدیِ مصوب بر مبنای شکاف واقعی خواهد بود؛ عدد benchmark معیار پذیرش قانونی یا مالی نیست.
 - زمان‌بندی ابری فعال گزارش شد، اما ابزار اجرای فوری404 می‌دهد و هنوز نتیجهٔ اجرایی ثبت‌شده ندارد؛ ادامهٔ خودکار تأیید نشده است. این batch در جلسهٔ فعال انجام شد. main، merge، deployment عمومی، سرویس پولی و پیام/ثبت قانونی بدون تغییر‌اند.
+
+### CI سنجش و انتخاب شاخهٔ واحد
+
+- commit `1edf730aaf5b8068c4a0f726b3034496e6b3b677` در [CI شمارهٔ40119367732](https://github.com/hajiheidari/SteelOS/actions/runs/40119367732) با هر دو job موفق شد:۱۲۴ backend،۲ opt-in skipped،۲۴ desktop/mobile browser، migration/model drift، Ruff/format، TypeScript/build و dependency audit.
+- API توسعه با کد نهایی و اتصال مدل محلی واقعی دوباره اجرا شد؛ readiness موفق است. benchmark در DB مستقل و بدون باقی‌ماندن دادهٔ مصنوعی انجام شد. تغییر main، merge، deployment عمومی، سرویس پولی و ارسال قانونی/پیام مشتری صورت نگرفت.
