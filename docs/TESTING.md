@@ -296,3 +296,9 @@ IDs/count/order, tenant, attributes, labels/rules and headers; generated seed/au
 were removed and verified. The extracted query seed was rerun at200 products/8 cases with
 rollback verified. These experiments are separate from pytest and download no model weights.
 Details, reproduction, timeout/crash limits and raw evidence: CATALOG_SEARCH_PERFORMANCE.md.
+
+HTTP benchmark/safety implementation7cd3ae4 passed both PR CI jobs40157406505. Actual logs
+confirm200 backend passed,2 actual-model opt-in skips and26 production desktop/mobile browser
+passed; migration/model drift, Ruff/format, TypeScript/build and pip/npm audits passed. The
+local full run also passed200 with2 skips, and all11 safety tests passed again after pooled
+connection disposal was added. No actual-model extraction rerun or production SLO is claimed.
