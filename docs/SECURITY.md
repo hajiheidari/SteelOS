@@ -170,3 +170,13 @@ Its committed synthetic rows are removed only within generated IDs after server 
 normal/error cleanup is verified. FK/history guards remain active; unexpected business history
 aborts cleanup instead of erasing it. Process/host crashes may leave fixtures and require
 operator inspection of the disposable DB. No business-data deletion policy is implemented.
+
+Approved invoice intake is an untrusted local document/transcription module, isolated from
+business posting APIs. It reauthenticates/rechecks membership after bounded OCR before writes;
+raw source/first evidence and revisions have DB guards. Proxy/server stream bounds, type/signature
+checks, image pixels/frames, PDF pages/encryption, process memory/CPU/output/deadline and per-worker
+slots bound processing; commands are fixed/no shell and private temporary files are deleted.
+This is not a hostile-file sandbox. Source binary is not retained; sensitive text and immutable
+versions are tenant-readable and backed up under operator policy. Native output/file contents
+are absent from logs/audits/errors. OCR can lose decimal separators; human transcription review
+is explicitly not financial approval. Full details/limits/retention in INVOICE_INTAKE.md.

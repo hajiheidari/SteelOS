@@ -257,3 +257,12 @@ session duration and current-organization membership authorization are unchanged
 product-identifiers kind is an English Code of1–30 characters, matching its database column;
 value remains1–100 characters. Both create and replacement update reject longer kinds with422
 before database writes (OpenAPI includes maxLength30), not a misleading database-unavailable503.
+
+## Approved local invoice transcription
+
+See INVOICE_INTAKE.md for invoice-intakes/status, raw-byte POST extract, tenant pagination/
+detail, versioned PUT and immutable revision reads. Extraction accepts≤5MiB PNG/JPEG/PDF;
+3 PDF pages,12MP image,30s processing; edit requires expected_version and Idempotency-Key.
+Untrusted original/corrected text and candidates remain separate from business modules.
+mark_reviewed is a human transcription check only. financial_approval/business_posted=false;
+no automatic financial/price/stock changes, conversion, issuance or legal validation.

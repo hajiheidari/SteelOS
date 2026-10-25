@@ -16,6 +16,7 @@ from app.db import SCHEMA_REVISION, engine
 from app.modules.assistant.router import router as assistant
 from app.modules.identity import router as identity
 from app.modules.inventory.router import router as inventory
+from app.modules.invoices.router import router as invoice_intakes
 from app.modules.resources import router as resources
 from app.modules.sales.router import router as sales
 
@@ -37,6 +38,7 @@ app.include_router(inventory, prefix="/api/v1")
 app.include_router(resources, prefix="/api/v1")
 app.include_router(sales, prefix="/api/v1")
 app.include_router(assistant, prefix="/api/v1")
+app.include_router(invoice_intakes, prefix="/api/v1")
 
 
 def error(request, status, code, message, details=None):

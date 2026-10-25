@@ -25,3 +25,7 @@ The local sales assistant now has deterministic explicit dimension extraction an
 length-equivalent catalog filters, with clarification rather than dropping constraints.
 Broader dimension grammar, inferred/synonymous names and large-scale evaluation
 remain future work; current details/evidence are in SALES_ASSISTANT.md.
+
+Founder-approved local invoice transcription is implemented at the API layer and its Persian
+UI is being verified. It is separate from financial sales/stock/accounting; current evidence,
+limits and delivery status are in INVOICE_INTAKE.md and DEVELOPMENT_STATUS.md.

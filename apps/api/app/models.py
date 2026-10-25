@@ -265,6 +265,10 @@ from app.modules.inventory.models import (  # noqa: E402,F401
     StockLot,
     StockReservation,
 )
+from app.modules.invoices.models import (  # noqa: E402,F401
+    InvoiceIntake,
+    InvoiceIntakeRevision,
+)
 from app.modules.sales.models import (  # noqa: E402,F401
     SalesDraft,
     SalesDraftLine,

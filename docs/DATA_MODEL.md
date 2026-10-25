@@ -121,3 +121,13 @@ price/stock product references and historical snapshots keep their original prod
 ProductIdentifier.kind is VARCHAR(30); its input Code max_length30 matches this existing
 storage boundary. This validation fix changes no stored identifier values, tenant uniqueness,
 FKs, migration or identity rules. Overlong kinds are rejected before attempting writes.
+
+## Approved invoice transcription extension
+
+Migration0006_invoice_intake adds tenant-scoped invoice_intakes and immutable revisions.
+Source hash is unique per tenant; original text/extraction evidence are immutable, corrected
+text/fields are optimistically versioned. No binary/source file, business party/product/price,
+stock or accounting reference is stored. Decimal transcription candidates serialize as strings
+inside validated JSON; they are not a financial ledger. No deletion API/automatic retention
+job; sensitive text/history/idempotency remain until a separately reviewed policy. See
+INVOICE_INTAKE.md for native boundaries, tenant FKs, errors and actual OCR accuracy limits.

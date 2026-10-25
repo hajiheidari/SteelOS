@@ -121,3 +121,10 @@ escaping and bound parameters. No schema/index/service change or denormalized al
 introduced. The isolated identifier experiment in CATALOG_SEARCH_PERFORMANCE.md compares
 the prior correlated EXISTS against product-ID membership, retaining cardinality and avoiding
 the measured high-cost/JIT plan. This is not an API/concurrent-load or production guarantee.
+
+The approved invoices module separates local native OCR, conservative candidate parser,
+validated transcription schemas and versioned tenant API. It runs bounded native commands
+inline in worker threads with two per-worker slots, no queue/new service or paid/model API.
+Original file lifetime is temporary; document text/candidates/history persist in PostgreSQL.
+No invoice-intake dependency writes into sales, stock, approved prices or accounting. A human
+transcription review is a distinct editorial state. See INVOICE_INTAKE.md for exact boundaries.

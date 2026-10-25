@@ -1,4 +1,9 @@
 FROM python:3.12-slim
+RUN --mount=type=secret,id=proxy_ca \
+    if [ -f /run/secrets/proxy_ca ]; then export SSL_CERT_FILE=/run/secrets/proxy_ca; fi; \
+    apt-get update && apt-get install -y --no-install-recommends \
+      tesseract-ocr tesseract-ocr-fas tesseract-ocr-eng poppler-utils util-linux \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt .
 RUN --mount=type=secret,id=proxy_ca \

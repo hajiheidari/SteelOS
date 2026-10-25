@@ -302,3 +302,14 @@ confirm200 backend passed,2 actual-model opt-in skips and26 production desktop/m
 passed; migration/model drift, Ruff/format, TypeScript/build and pip/npm audits passed. The
 local full run also passed200 with2 skips, and all11 safety tests passed again after pooled
 connection disposal was added. No actual-model extraction rerun or production SLO is claimed.
+
+## Approved local invoice intake
+
+New invoice tests exercise scopes/roles, raw-byte limits/types, same-file duplicate/replay,
+version conflicts/edit-after-review, immutable evidence/revisions/FKs, no business posting,
+revocation/demotion during OCR, saturation, exact strings/precision, temporary-file cleanup and
+timeout. Real native cases cover PNG OCR, scanned PDF OCR, embedded-text PDF extraction and
+invalid/type-mismatched/4-page rejection. A separate three-case synthetic evaluator retains
+an observed Persian decimal-separator failure; this is not a broad accuracy benchmark.
+Native tools/fas+eng data are installed in Docker/CI. Original text/history remain untrusted;
+see INVOICE_INTAKE.md for reproduction/evidence and human numeric-check requirements.

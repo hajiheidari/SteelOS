@@ -1,0 +1,56 @@
+{
+  "recorded_at": "2026-10-25T06:45:55.783078+00:00",
+  "scope": "Three synthetic native OCR cases; no production/general-language or financial accuracy claim",
+  "warning": "OCR can drop decimal separators; human comparison with the original is mandatory. No inferred numeric repair.",
+  "results": [
+    {
+      "case": "synthetic-English-PNG",
+      "engine": "tesseract/eng+fas",
+      "pages": 1,
+      "raw_text": "Invoice number: 12345\n\nDate: 2026-10-25\n\nSeller: Synthetic Steel\n\nBuyer: Synthetic Buyer\n\nIRR\n\nSubtotal: 246.90\n\nTax total: 24.69\n\nGrand total: 271.59\n\nSheet | 2 | kg | 123.45 | 246.90",
+      "expected": {
+        "invoice_number": "12345",
+        "grand_total": "271.59"
+      },
+      "observed": {
+        "invoice_number": "12345",
+        "grand_total": "271.59"
+      },
+      "exact_match": true
+    },
+    {
+      "case": "synthetic-English-PDF",
+      "engine": "tesseract/eng+fas",
+      "pages": 1,
+      "raw_text": "Invoice number: 12345\n\nDate: 2026-10-25\n\nSeller: Synthetic Steel\n\nBuyer: Synthetic Buyer\n\nIRR\n\nSubtotal: 246.90\n\nTax total: 24.69\n\nGrand total: 271.59\n\nSheet | 2 | kg | 123.45 | 246.90",
+      "expected": {
+        "invoice_number": "12345",
+        "grand_total": "271.59"
+      },
+      "observed": {
+        "invoice_number": "12345",
+        "grand_total": "271.59"
+      },
+      "exact_match": true
+    },
+    {
+      "case": "synthetic-Persian-PNG",
+      "engine": "tesseract/eng+fas",
+      "pages": 1,
+      "raw_text": "فروشنده: فولاد\nخریدار: آزمون\nشماره فاکتور: ۱۲۳۴۵\nمبلغ کل: ۱۲۳۴۵۶\nریال",
+      "expected": {
+        "seller_name": "فولاد",
+        "buyer_name": "آزمون",
+        "invoice_number": "۱۲۳۴۵",
+        "grand_total": "1234.56"
+      },
+      "observed": {
+        "seller_name": "فولاد",
+        "buyer_name": "آزمون",
+        "invoice_number": "۱۲۳۴۵",
+        "grand_total": "123456"
+      },
+      "exact_match": false
+    }
+  ]
+}
