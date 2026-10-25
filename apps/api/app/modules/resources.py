@@ -211,6 +211,42 @@ def page_labels(db, ctx, model, items):
     return items
 
 
+def apply_text_search(stmt, model, organization_id, q):
+    """Shared literal text predicate, also used by the isolated query benchmark."""
+    if q:
+        fields = [
+            getattr(model, key)
+            for key in (
+                "name",
+                "code",
+                "sku",
+                "value",
+                "registration_id",
+                "provenance",
+                "delivery_location",
+                "delivery_terms",
+            )
+            if hasattr(model, key)
+        ]
+        if fields:
+            escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{escaped}%"
+            predicates = [field.ilike(pattern, escape="\\") for field in fields]
+            if model is m.Product:
+                # Correlated EXISTS preserves one product row/count even with many aliases.
+                predicates.append(
+                    select(m.ProductIdentifier.id)
+                    .where(
+                        m.ProductIdentifier.organization_id == organization_id,
+                        m.ProductIdentifier.product_id == m.Product.id,
+                        m.ProductIdentifier.value.ilike(pattern, escape="\\"),
+                    )
+                    .exists()
+                )
+            stmt = stmt.where(or_(*predicates))
+    return stmt
+
+
 def register(resource, model, schema):
     admin_only = model in (m.WarehouseAccess,)
     admin_write = model in (m.Warehouse, m.WarehouseAccess, m.PriceSource, m.Reference)
@@ -251,37 +287,7 @@ def register(resource, model, schema):
             if model is not m.Product:
                 raise HTTPException(422, "Unsupported filter: attributes")
             stmt = catalog_search.apply(stmt, model, catalog_search.parse(attributes))
-        if q:
-            fields = [
-                getattr(model, key)
-                for key in (
-                    "name",
-                    "code",
-                    "sku",
-                    "value",
-                    "registration_id",
-                    "provenance",
-                    "delivery_location",
-                    "delivery_terms",
-                )
-                if hasattr(model, key)
-            ]
-            if fields:
-                escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-                pattern = f"%{escaped}%"
-                predicates = [field.ilike(pattern, escape="\\") for field in fields]
-                if model is m.Product:
-                    # Correlated EXISTS preserves one product row/count even with many aliases.
-                    predicates.append(
-                        select(m.ProductIdentifier.id)
-                        .where(
-                            m.ProductIdentifier.organization_id == ctx.organization_id,
-                            m.ProductIdentifier.product_id == m.Product.id,
-                            m.ProductIdentifier.value.ilike(pattern, escape="\\"),
-                        )
-                        .exists()
-                    )
-                stmt = stmt.where(or_(*predicates))
+        stmt = apply_text_search(stmt, model, ctx.organization_id, q)
         for key, value in (
             ("category_id", category_id),
             ("manufacturer_id", manufacturer_id),

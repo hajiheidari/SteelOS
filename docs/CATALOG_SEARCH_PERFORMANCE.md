@@ -56,3 +56,31 @@ Evidence:
 - [Baseline](evidence/catalog-query-baseline-2026-10-24.json)
 - [Discarded normalization attempt](evidence/catalog-query-normalized-attempt-2026-10-24.json)
 - [Selected branch implementation](evidence/catalog-query-benchmark-2026-10-24.json)
+
+## Registered identifier search — baseline, 2026-10-25
+
+The same opt-in tool now accepts --identifier-search. It seeds two identifiers (barcode and
+vendor) per product with identical literal values containing %, _ and backslash; both tenants
+have the same values. This adds direct name/SKU, identifier, missing-identifier and combined
+identifier/range cases. The endpoint and benchmark share apply_text_search, so the experiment
+uses the actual bound text predicate. All original dimension cases still run unchanged.
+
+```sh
+PYTHONPATH=apps/api .venv/bin/python apps/api/tests/benchmark_catalog_search.py \
+  --rows-per-org 5000 --repeats 5 --identifier-search \
+  --output /tmp/catalog-identifiers.json
+```
+
+This baseline used correlated EXISTS,10000 total products and20000 identifiers, with five
+combined count/page samples per case. Median/p95 milliseconds: name199.787/700.045,
+SKU222.238/238.641, literal identifier231.789/232.184, missing identifier221.519/222.720,
+identifier plus2–3mm range635.917/653.403. Plans show a very high estimated outer cost and
+substantial JIT compilation even for direct-name matches whose identifier subplan never ran.
+PostgreSQL used a hashed identifier subplan, not one executed scan per product; no quadratic
+execution claim is made. No PostgreSQL/JIT configuration was changed.
+
+Count, five-row page size and tenant identity were asserted in every repetition, including
+multiple aliases without count inflation. All synthetic organizations/products/identifiers
+rolled back and absence was verified. This is query-only, single-client, small-sample evidence;
+no API, concurrency or production SLO is measured. No new index is justified by this run.
+Baseline plans: [catalog-identifiers-baseline-2026-10-25.json](evidence/catalog-identifiers-baseline-2026-10-25.json).

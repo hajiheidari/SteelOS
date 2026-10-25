@@ -12,8 +12,9 @@ from decimal import Decimal
 from pathlib import Path
 
 from app.db import engine
-from app.models import Organization, Product, Reference
+from app.models import Organization, Product, ProductIdentifier, Reference
 from app.modules import catalog_search
+from app.modules.resources import apply_text_search
 from psycopg.types.json import Jsonb
 from sqlalchemy import func, insert, select, text
 
@@ -30,7 +31,7 @@ def explain(connection, statement):
     ).scalar_one()[0]
 
 
-def benchmark(rows_per_org=5000, repeats=5):
+def benchmark(rows_per_org=5000, repeats=5, identifier_search=False):
     database = engine()
     if not database.url.database.endswith("_benchmark"):
         raise SystemExit("Use an isolated, migrated DATABASE_URL ending in _benchmark")
@@ -43,6 +44,7 @@ def benchmark(rows_per_org=5000, repeats=5):
         "organizations": 2,
         "repeats": repeats,
         "queries": [],
+        "identifier_search": identifier_search,
     }
     with database.connect() as connection:
         if connection.scalar(select(func.count()).select_from(Organization)):
@@ -102,8 +104,28 @@ def benchmark(rows_per_org=5000, repeats=5):
                     if organization == organizations[0]:
                         metadata.append((thickness, active))
                 connection.execute(insert(Product), rows)
+                if identifier_search:
+                    connection.execute(
+                        insert(ProductIdentifier),
+                        [
+                            {
+                                "id": uuid.uuid4(),
+                                "organization_id": organization,
+                                "product_id": row["id"],
+                                "kind": kind,
+                                "value": f"REF%_\\{index}",
+                            }
+                            for index, row in enumerate(rows)
+                            for kind in ("barcode", "vendor")
+                        ],
+                    )
             # Collect statistics only in the dedicated disposable database; seeded rows roll back.
             connection.execute(text("ANALYZE products"))
+            if identifier_search:
+                connection.execute(text("ANALYZE product_identifiers"))
+            report["seeded_identifiers"] = connection.scalar(
+                select(func.count()).select_from(ProductIdentifier)
+            )
             report["seeded_products"] = connection.scalar(select(func.count()).select_from(Product))
             cases = (
                 ("exact", {"thickness": {"value": "2", "unit": "mm"}}, lambda value: value == 2),
@@ -128,9 +150,31 @@ def benchmark(rows_per_org=5000, repeats=5):
                     lambda value: False,
                 ),
             )
-            for name, raw, predicate in cases:
+            cases = [(name, raw, predicate, None) for name, raw, predicate in cases]
+            if identifier_search:
+                cases.extend(
+                    [
+                        ("text_name", {}, lambda value: True, "ورق"),
+                        ("text_sku", {}, lambda value: True, "SYN-123"),
+                        ("text_identifier_literal", {}, lambda value: True, "ref%_\\123"),
+                        ("text_identifier_missing", {}, lambda value: True, "UNSEEN-ALIAS"),
+                        ("text_identifier_range", cases[1][1], cases[1][2], "REF"),
+                    ]
+                )
+            for name, raw, predicate, query in cases:
                 filters = catalog_search.parse(json.dumps(raw))
-                expected = sum(active and predicate(value) for value, active in metadata)
+                expected = sum(
+                    active
+                    and predicate(value)
+                    and (
+                        query is None
+                        or any(
+                            query.casefold() in candidate.casefold()
+                            for candidate in ("ورق مصنوعی", f"SYN-{index}", f"REF%_\\{index}")
+                        )
+                    )
+                    for index, (value, active) in enumerate(metadata)
+                )
                 scoped = catalog_search.apply(
                     select(Product).where(
                         Product.organization_id == organizations[0], Product.active.is_(True)
@@ -138,6 +182,8 @@ def benchmark(rows_per_org=5000, repeats=5):
                     Product,
                     filters,
                 )
+                if query is not None:
+                    scoped = apply_text_search(scoped, Product, organizations[0], query)
                 count = select(func.count()).select_from(scoped.subquery())
                 page = scoped.order_by(Product.created_at.desc(), Product.id).limit(5)
                 milliseconds = []
@@ -166,6 +212,7 @@ def benchmark(rows_per_org=5000, repeats=5):
         report["rolled_back"] = (
             connection.scalar(select(func.count()).select_from(Organization)) == 0
             and connection.scalar(select(func.count()).select_from(Product)) == 0
+            and connection.scalar(select(func.count()).select_from(ProductIdentifier)) == 0
         )
         assert report["rolled_back"]
     return report
@@ -176,8 +223,9 @@ if __name__ == "__main__":
     parser.add_argument("--rows-per-org", type=int, default=5000)
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--identifier-search", action="store_true")
     arguments = parser.parse_args()
-    result = benchmark(arguments.rows_per_org, arguments.repeats)
+    result = benchmark(arguments.rows_per_org, arguments.repeats, arguments.identifier_search)
     arguments.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
     print(
         json.dumps(

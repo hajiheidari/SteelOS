@@ -194,3 +194,79 @@ def test_identifier_kind_length_is_validated_before_database_write(world, catalo
         {"product_id": product["id"], "kind": "vendor", "value": "corrected-kind"},
         key="invalid-kind-31",
     )
+
+
+def test_product_search_combines_name_sku_and_alias_without_duplicates(world, catalog):
+    client, tokens, *_ = world
+    _, payload, product = catalog
+    update = client.put(
+        "/api/v1/products/" + product["id"],
+        headers=tokens[0],
+        json={**payload, "name": "Combined-needle name"},
+    )
+    assert update.status_code == 200
+    identifier(client, tokens[0], product, "barcode", "Combined-needle alias")
+    second = create(
+        client,
+        tokens[0],
+        "products",
+        {
+            **payload,
+            "sku": "COMBINED-NEEDLE-SKU",
+            "name": "Second",
+            "attributes": {"thickness": {"value": "3", "unit": "mm"}},
+        },
+    )
+    third = create(
+        client,
+        tokens[0],
+        "products",
+        {
+            **payload,
+            "sku": "third",
+            "name": "Third",
+            "attributes": {"thickness": {"value": "4", "unit": "mm"}},
+        },
+    )
+    identifier(client, tokens[0], third, "barcode", "Combined-needle third")
+    identifier(client, tokens[0], third, "vendor", "Combined-needle third")
+    ids = []
+    for offset in range(3):
+        response = client.get(
+            "/api/v1/products",
+            headers=tokens[2],
+            params={
+                "q": "combined-needle",
+                "sort": "sku",
+                "direction": "asc",
+                "offset": offset,
+                "limit": 1,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["total"] == 3
+        ids.append(response.json()["items"][0]["id"])
+    assert len(set(ids)) == 3 and set(ids) == {product["id"], second["id"], third["id"]}
+    filtered = client.get(
+        "/api/v1/products",
+        headers=tokens[2],
+        params={
+            "q": "combined-needle",
+            "attributes": json.dumps(
+                {
+                    "thickness": {
+                        "min": {"value": "2", "unit": "mm"},
+                        "max": {"value": "3", "unit": "mm"},
+                    }
+                }
+            ),
+        },
+    ).json()
+    assert filtered["total"] == 2
+    assert {row["id"] for row in filtered["items"]} == {product["id"], second["id"]}
+    assert (
+        client.get("/api/v1/products", headers=tokens[1], params={"q": "combined-needle"}).json()[
+            "total"
+        ]
+        == 0
+    )

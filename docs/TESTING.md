@@ -260,3 +260,13 @@ implementation b4753b4 (run40141226238). Final job logs confirm188 backend passe
 model-drift, Ruff/format, TypeScript/build and both dependency audits passed. Actual-model
 extraction was not rerun for these authentication/input-bound changes; historical evidence
 remains separate. The existing Starlette/httpx deprecation warning remains.
+
+## Identifier text-query performance regression
+
+The opt-in isolated _benchmark tool additionally accepts --identifier-search, using the
+same apply_text_search helper as resource lists. Two aliases per product in each tenant
+exercise literal wildcard escaping, direct name/SKU, identifier/missing text and a combined
+numeric range, with count/page/scope assertions and verified rollback. It remains outside
+ordinary pytest/CI with no latency assertion. test_identifier_search additionally verifies
+one query combining direct-name, direct-SKU and duplicate-alias matches yields exactly three
+unique products across one-row pages; a technical range preserves the correct two products.
