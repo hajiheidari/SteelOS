@@ -242,7 +242,7 @@ by و/and map to this contract. Other repeated constraints request clarification
 
 Product q additionally matches values from registered product-identifiers in the current
 organization, case-insensitively as a literal substring. %, _ and backslash remain literal,
-not client-controlled LIKE patterns. Correlated EXISTS avoids duplicate product rows/counts
+not client-controlled LIKE patterns. A tenant-scoped product-ID membership subquery avoids duplicate product rows/counts
 when multiple identifiers match. Existing technical/active/reference filters still combine
 with AND. product-identifiers q searches its value; product_id/kind filters remain independent.
 Identifier rename/delete is reflected on the next read; uniqueness and stored values are unchanged.

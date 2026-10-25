@@ -84,3 +84,36 @@ multiple aliases without count inflation. All synthetic organizations/products/i
 rolled back and absence was verified. This is query-only, single-client, small-sample evidence;
 no API, concurrency or production SLO is measured. No new index is justified by this run.
 Baseline plans: [catalog-identifiers-baseline-2026-10-25.json](evidence/catalog-identifiers-baseline-2026-10-25.json).
+
+### Selected product-ID membership predicate
+
+The baseline implementation/tool is reproducible at227e1fe. The selected implementation
+replaces only the identifier EXISTS term with Product.id IN (SELECT product_id WHERE
+organization_id=:authorized_org AND value ILIKE :escaped_pattern). The outer tenant scope,
+name/SKU OR terms, dimensions, ordering and pagination remain intact. IN membership does
+not duplicate products when several identifiers select the same ID; DISTINCT is unnecessary.
+No index, migration, cache, JIT override or new service was introduced.
+
+Five repeats per case on the same isolated PostgreSQL17 database with the same synthetic
+size/distribution and default settings produced the following count+five-row-page times.
+The first sample is included; p95 with five samples is the maximum and particularly noisy.
+
+| Query | EXISTS median / p95 (ms) | ID membership median / p95 (ms) |
+| --- | --- | --- |
+| Direct name |199.787 /700.045 |5.598 /8.819 |
+| SKU substring |222.238 /238.641 |13.003 /15.228 |
+| Literal identifier substring |231.789 /232.184 |15.399 /16.035 |
+| Missing identifier |221.519 /222.720 |14.742 /14.880 |
+| Identifier + mixed-unit2–3mm range |635.917 /653.403 |189.639 /192.036 |
+| Exact2mm (control, no text) |33.495 /43.703 |32.030 /42.863 |
+| Mixed-unit2–3mm range (control, no text) |167.416 /182.737 |164.237 /170.102 |
+| Empty range (control, no text) |157.496 /158.763 |158.067 /163.468 |
+
+Plans retain a hashed identifier subplan but remove the inflated correlated-plan cost and
+JIT compilation seen in this run. Identifier/tenant substring scans and range work remain;
+this does not make search constant-time or prove production scale, statistical significance,
+throughput or API latency. Authentication, label hydration, HTTP and model inference are not
+included. The existing API regressions cover tenant isolation, wildcards, alias rename/delete,
+count/pagination and combination with dimensions; a new case combines name/SKU/duplicate aliases.
+All experiment data rolled back and absence was verified after each run.
+Selected plans: [catalog-identifiers-set-membership-2026-10-25.json](evidence/catalog-identifiers-set-membership-2026-10-25.json).

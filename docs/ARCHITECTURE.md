@@ -114,8 +114,10 @@ The assistant merges only an explicitly connected adjacent opposite-bound pair, 
 its connector before inference. Default flags are omitted from filter serialization so prior
 inclusive responses retain their shape. Unsupported compositions remain clarification-only.
 
-Product free-text search combines direct name/SKU predicates with a tenant-scoped correlated
-EXISTS on product-identifiers. This preserves product cardinality before count/sort/pagination;
+Product free-text search combines direct name/SKU predicates with tenant-scoped membership
+in matching product-identifiers.product_id values. This preserves product cardinality before count/sort/pagination;
 identifier-list q searches the stored value directly. All predicates share literal LIKE
 escaping and bound parameters. No schema/index/service change or denormalized alias cache is
-introduced; large-catalog text/identifier performance remains a separate measured requirement.
+introduced. The isolated identifier experiment in CATALOG_SEARCH_PERFORMANCE.md compares
+the prior correlated EXISTS against product-ID membership, retaining cardinality and avoiding
+the measured high-cost/JIT plan. This is not an API/concurrent-load or production guarantee.

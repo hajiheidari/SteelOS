@@ -233,15 +233,14 @@ def apply_text_search(stmt, model, organization_id, q):
             pattern = f"%{escaped}%"
             predicates = [field.ilike(pattern, escape="\\") for field in fields]
             if model is m.Product:
-                # Correlated EXISTS preserves one product row/count even with many aliases.
+                # Set membership keeps duplicate aliases out of product counts/pages.
                 predicates.append(
-                    select(m.ProductIdentifier.id)
-                    .where(
-                        m.ProductIdentifier.organization_id == organization_id,
-                        m.ProductIdentifier.product_id == m.Product.id,
-                        m.ProductIdentifier.value.ilike(pattern, escape="\\"),
+                    m.Product.id.in_(
+                        select(m.ProductIdentifier.product_id).where(
+                            m.ProductIdentifier.organization_id == organization_id,
+                            m.ProductIdentifier.value.ilike(pattern, escape="\\"),
+                        )
                     )
-                    .exists()
                 )
             stmt = stmt.where(or_(*predicates))
     return stmt

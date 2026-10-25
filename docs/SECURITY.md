@@ -146,8 +146,8 @@ Only two adjacent opposite comparisons joined by explicit و/and can merge; othe
 OR, negation and contradictory bounds stop inference/data lookup. No silent bound tightening,
 epsilon or synthetic endpoint is introduced. Existing tenant scope and SQL CASE guards remain.
 
-Identifier-backed product search uses an explicit organization predicate on the correlated
-identifier table as well as the outer product scope. Values are bound, literal-substring
+Identifier-backed product search uses an explicit organization predicate on the
+identifier membership subquery as well as the outer product scope. Values are bound, literal-substring
 ILIKE inputs with %, _ and backslash escaping; no user-supplied pattern or SQL is evaluated.
 The assistant's projected fields and read-only tool registry are unchanged; identifier records
 are not added to its response. Search text is still excluded from application/audit logs.

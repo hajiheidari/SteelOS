@@ -270,3 +270,9 @@ numeric range, with count/page/scope assertions and verified rollback. It remain
 ordinary pytest/CI with no latency assertion. test_identifier_search additionally verifies
 one query combining direct-name, direct-SKU and duplicate-alias matches yields exactly three
 unique products across one-row pages; a technical range preserves the correct two products.
+
+The baseline experiment is reproducible at227e1fe; the selected application query uses
+set membership in matching tenant product IDs instead of correlated EXISTS. Both synthetic
+experiments asserted the same counts/page sizes/tenant identity and verified rollback;
+artifacts and measured limits are in CATALOG_SEARCH_PERFORMANCE.md. No wall-clock performance
+gate was added to CI; semantic regressions remain the automated correctness gate.
