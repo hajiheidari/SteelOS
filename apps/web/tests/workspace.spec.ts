@@ -226,7 +226,9 @@ async function loginWorkspace(page: import("@playwright/test").Page) {
   await expect(
     page.getByRole("heading", { name: "نمای کلی", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".stats .stat")).toHaveCount(4);
+  await expect(
+    page.locator(".stats").getByRole("button", { name: /کالاها/ }),
+  ).toBeVisible();
 }
 
 test("incorrect current password preserves the authenticated session", async ({

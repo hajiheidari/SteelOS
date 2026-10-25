@@ -39,3 +39,8 @@ pagination/labels/literal wildcard search, overdue excluding future/completed re
 rules, validation and unchanged financial/stock tables. Desktop/mobile browser coverage checks real
 party selection, creation, due-time roundtrip in Asia/Tehran, completion and overdue disappearance.
 This is a shared organization task list, not individual assignment, CRM automation or financial approval.
+
+The dashboard additionally reads the actual tenant overdue count through limit=1 plus
+ overdue_only=true. Its card opens the follow-up page with that filter already selected;
+it does not run notifications or mutate tasks. Browser coverage checks this navigation with
+a real overdue record and then its disappearance after completion.

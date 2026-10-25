@@ -54,6 +54,15 @@ test("CRM manual follow-ups preserve local due date and overdue status without s
   await page.getByRole("button", { name: "ذخیره", exact: true }).click();
   const row = page.getByRole("row").filter({ hasText: "پیگیری " + stamp });
   await expect(row).toContainText(party.name);
+  await page
+    .getByRole("navigation")
+    .getByRole("button", { name: "نمای کلی", exact: true })
+    .click();
+  await page.getByRole("button", { name: /پیگیری‌های عقب‌افتاده/ }).click();
+  await expect(
+    page.getByRole("combobox", { name: "نمایش پیگیری‌ها", exact: true }),
+  ).toHaveValue("overdue");
+  await expect(row).toBeVisible();
   const list = await (
     await page.request.get(
       "/api/backend/crm-follow-ups?q=" + encodeURIComponent("پیگیری " + stamp),

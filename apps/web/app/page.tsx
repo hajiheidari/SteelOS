@@ -105,8 +105,15 @@ export default function Home() {
           "parties",
           "warehouses",
           "price-observations",
+          "crm-follow-ups",
         ];
-        const values = await Promise.all(keys.map((k) => api(`${k}?limit=1`)));
+        const values = await Promise.all(
+          keys.map((k) =>
+            api(
+              `${k}?limit=1${k === "crm-follow-ups" ? "&overdue_only=true" : ""}`,
+            ),
+          ),
+        );
         if (!current()) return;
         setStats(Object.fromEntries(keys.map((k, i) => [k, values[i].total])));
       } else if (page === "settings") {
@@ -372,9 +379,16 @@ export default function Home() {
                   <button
                     className="card stat"
                     key={key}
-                    onClick={() => navigate(key)}
+                    onClick={() => {
+                      navigate(key);
+                      if (key === "crm-follow-ups") setFilter("overdue");
+                    }}
                   >
-                    <span>{titles[key]}</span>
+                    <span>
+                      {key === "crm-follow-ups"
+                        ? "پیگیری‌های عقب‌افتاده"
+                        : titles[key]}
+                    </span>
                     <strong>{display(n)}</strong>
                     <small>مشاهدهٔ فهرست ←</small>
                   </button>

@@ -122,3 +122,11 @@ Persian/English data and Poppler; Compose uses a bounded volatile temporary work
 No paid/LLM API or financial/stock posting is used. OCR can drop decimal separators: compare
 every number with the original. Source binaries are not archived; retain originals yourself.
 Setup/API, sensitive-text retention, actual synthetic failures and limits: [INVOICE_INTAKE.md](docs/INVOICE_INTAKE.md).
+
+## Manual CRM follow-ups
+
+The Persian follow-up page records shared party tasks, due times and manual completion;
+the dashboard opens overdue work directly. It sends no calls/messages and posts no finance.
+Contracts/limits: [CRM_FOLLOW_UPS.md](docs/CRM_FOLLOW_UPS.md).
+Deferred founder inputs: [FOUNDER_INPUTS.md](docs/FOUNDER_INPUTS.md); missing invoice samples
+are future evaluation input and do not block independent development.
