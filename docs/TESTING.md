@@ -324,3 +324,10 @@ explicit human check/version history/read-only originals/edit invalidation, actu
 preview, duplicate rejection and binary-proxy origin/5MiB limits, with no business record changes.
 Final local browser suite:28 passed. UI typecheck/production build passed; combined CI is checked
 after the frontend commit. Native decoder numerical accuracy remains separately limited by evidence.
+
+Final OCR implementation245e721 passed both PR CI jobs40172328733. Job logs confirm213
+backend passed,2 optional actual-LLM tests skipped and28 production desktop/mobile browser
+passed; native Tesseract/Poppler tests, migrations/model drift, Ruff/format, TypeScript/build
+and pip/npm audits passed. Native OCR is not mocked in native/browser cases. The local full
+backend run212 and subsequent13 targeted invoice tests are separate evidence, not213 locally.
+The small Persian-decimal failure remains a quality limit; source comparison is mandatory.
