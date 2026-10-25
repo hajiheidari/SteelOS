@@ -273,3 +273,6 @@ crm-follow-ups joins the ordinary resource contract with scoped party_id/name/ki
 notes, creation idempotency and metadata audit. overdue_only=true means open AND past UTC due_at;
 filters apply before count/page and sort=due_at is supported. See CRM_FOLLOW_UPS.md for bounds,
 active-party transitions, deletion/full-replacement semantics and explicit absence of messaging.
+
+UTC conversion of price observed_at/valid_until and inventory draft expires_at rejects
+datetime overflow with422 before domain writes, like CRM follow-up due_at.

@@ -566,3 +566,48 @@ def test_product_technical_identity_is_retained_after_price_intake(world, catalo
     assert (
         response.json()["unit"] == "kg" and response.json()["attributes"] == product["attributes"]
     )
+
+
+@pytest.mark.parametrize("field", ["observed_at", "valid_until"])
+@pytest.mark.parametrize("boundary", ["0001-01-01T00:00:00+03:30", "9999-12-31T23:59:59-03:30"])
+def test_price_utc_overflow_returns_validation_error(world, catalog, field, boundary):
+    from app import models as m
+    from sqlalchemy import func
+
+    client, tokens, *_ = world
+    source = create(
+        client,
+        tokens[0],
+        "price-sources",
+        {"code": "UTC", "name": "UTC", "kind": "manual", "provenance": "Test"},
+    )
+    now = datetime.now(timezone.utc)
+    data = dict(
+        source_id=source["id"],
+        product_id=catalog[2]["id"],
+        amount="10.00",
+        currency="IRR",
+        unit="kg",
+        observed_at=(now - timedelta(minutes=1)).isoformat(),
+        valid_until=(now + timedelta(hours=1)).isoformat(),
+        delivery_location="Test",
+        delivery_terms="Test",
+        tax_included=False,
+        provenance="Test",
+    )
+    models = (m.PriceObservation, m.AuditEvent, m.IdempotencyRecord)
+    with Session(engine()) as db:
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)
+    create(
+        client,
+        tokens[0],
+        "price-observations",
+        {**data, field: boundary},
+        key="utc-boundary",
+        expected=422,
+    )
+    with Session(engine()) as db:
+        assert (
+            tuple(db.scalar(select(func.count()).select_from(model)) for model in models) == before
+        )
+    create(client, tokens[0], "price-observations", data, key="utc-boundary")

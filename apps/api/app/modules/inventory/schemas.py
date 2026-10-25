@@ -59,7 +59,10 @@ class DraftInput(Input):
         if value is not None:
             if value.tzinfo is None:
                 raise ValueError("Timezone required")
-            return value.astimezone(UTC)
+            try:
+                return value.astimezone(UTC)
+            except OverflowError as exc:
+                raise ValueError("Date outside supported UTC range") from exc
         return value
 
     @model_validator(mode="after")

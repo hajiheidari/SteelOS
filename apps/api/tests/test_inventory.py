@@ -655,3 +655,39 @@ def test_reservation_page_uses_bounded_database_queries(inventory):
     assert data["total"] == 26 and len(data["items"]) == 25
     assert all(Decimal(row["remaining"]) == 1 for row in data["items"])
     assert len(queries) <= 15, "A page must not issue a separate query for each reservation"
+
+
+@pytest.mark.parametrize("boundary", ["0001-01-01T00:00:00+03:30", "9999-12-31T23:59:59-03:30"])
+def test_inventory_expiry_utc_overflow_returns_validation_error(inventory, boundary):
+    from sqlalchemy import func
+
+    client, tokens, _, _, _, locations, _, lot, _ = inventory
+    data = dict(
+        lot_id=lot["id"],
+        kind="reserve",
+        quantity="1",
+        from_location_id=locations[0]["id"],
+        reference="UTC boundary",
+    )
+    models = (m.StockDraft, m.StockEntry, m.AuditEvent, m.IdempotencyRecord)
+    with Session(engine()) as db:
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)
+    create(
+        client,
+        tokens[0],
+        "inventory/drafts",
+        {**data, "expires_at": boundary},
+        key="utc-boundary",
+        expected=422,
+    )
+    with Session(engine()) as db:
+        assert (
+            tuple(db.scalar(select(func.count()).select_from(model)) for model in models) == before
+        )
+    create(
+        client,
+        tokens[0],
+        "inventory/drafts",
+        {**data, "expires_at": (datetime.now(UTC) + timedelta(days=1)).isoformat()},
+        key="utc-boundary",
+    )
