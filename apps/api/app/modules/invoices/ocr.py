@@ -45,6 +45,13 @@ def availability():
 
 
 def extract(data, media_type):
+    try:
+        return _extract(data, media_type)
+    except OSError:
+        raise HTTPException(503, "Local document processing temporarily unavailable") from None
+
+
+def _extract(data, media_type):
     if not availability():
         raise HTTPException(
             503, "Local OCR dependencies or Persian/English language data unavailable"

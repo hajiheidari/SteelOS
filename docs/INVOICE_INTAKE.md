@@ -133,3 +133,10 @@ exercise real PDF text extraction, actual PNG OCR/preview, Persian monetary corr
 check/edit invalidation, immutable historical view, duplicate/oversize/origin rejection and
 unchanged stock/price/sales counts. Earlier browser selector failures led to explicit accessible
 labels for the currency/text controls; the final workflows passed on both viewports.
+
+Compose bounds the API's volatile /tmp workspace to128MiB with nosuid/nodev/noexec. The
+non-root native pipeline was verified with the same tmpfs options in a network-disabled
+container. A local executor check without tmpfs failed from an almost-full container root
+filesystem; that failed attempt is not success evidence. No PostgreSQL volume was pruned.
+Temporary-storage/native I/O failures return a sanitized retryable503 and create no intake;
+an injected full-disk regression checks that private paths do not escape in the error.

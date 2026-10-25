@@ -373,3 +373,18 @@ def test_native_processing_receives_no_database_or_other_runtime_secrets(monkeyp
     monkeypatch.setattr(ocr.subprocess, "run", native)
     raw, _, _ = ocr.extract(image_bytes(), "image/png")
     assert "Safe-123" in raw
+
+
+def test_native_temporary_storage_failure_is_sanitized_and_retryable(monkeypatch):
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(ocr, "availability", lambda: True)
+
+    def full_disk(**kwargs):
+        raise OSError(28, "synthetic-private-path: no space")
+
+    monkeypatch.setattr(ocr.tempfile, "TemporaryDirectory", full_disk)
+    with pytest.raises(HTTPException) as failure:
+        ocr.extract(b"image", "image/png")
+    assert failure.value.status_code == 503
+    assert "synthetic-private-path" not in failure.value.detail

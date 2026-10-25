@@ -113,3 +113,12 @@ For cloud build proxies, the backend Dockerfile accepts an optional BuildKit sec
 
 Read [AGENTS.md](AGENTS.md), [API](docs/API_SPEC.md), [security](docs/SECURITY.md),
 [data model](docs/DATA_MODEL.md), and [testing](docs/TESTING.md) before extending modules.
+
+## Local invoice transcription
+
+The Persian **دریافت و بررسی فاکتور** workspace accepts bounded PNG/JPEG/PDF uploads,
+extracts local text and keeps versioned human corrections. Docker installs free Tesseract
+Persian/English data and Poppler; Compose uses a bounded volatile temporary workspace.
+No paid/LLM API or financial/stock posting is used. OCR can drop decimal separators: compare
+every number with the original. Source binaries are not archived; retain originals yourself.
+Setup/API, sensitive-text retention, actual synthetic failures and limits: [INVOICE_INTAKE.md](docs/INVOICE_INTAKE.md).
