@@ -162,3 +162,11 @@ user lock, queued refresh cannot resurrect a session; if rotation wins, the foll
 password change deletes its newly issued session too. This serializes short authentication
 transitions for one user across organizations, not unrelated users/tenants. It is not a
 claim that already-authorized in-flight business requests are globally cancelled on logout.
+
+Optional benchmark scripts are development-only and require a dedicated empty *_benchmark
+DB plus a shared advisory lock. The real-HTTP experiment binds only127.0.0.1, uses generated
+viewer credentials and read-only product requests, and records no credentials in artifacts.
+Its committed synthetic rows are removed only within generated IDs after server shutdown;
+normal/error cleanup is verified. FK/history guards remain active; unexpected business history
+aborts cleanup instead of erasing it. Process/host crashes may leave fixtures and require
+operator inspection of the disposable DB. No business-data deletion policy is implemented.

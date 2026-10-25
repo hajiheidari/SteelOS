@@ -15,6 +15,7 @@ from app.db import engine
 from app.models import Organization, Product, ProductIdentifier, Reference
 from app.modules import catalog_search
 from app.modules.resources import apply_text_search
+from benchmark_support import exclusive_database
 from psycopg.types.json import Jsonb
 from sqlalchemy import func, insert, select, text
 
@@ -29,6 +30,76 @@ def explain(connection, statement):
     return connection.exec_driver_sql(
         "EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) " + str(compiled), parameters
     ).scalar_one()[0]
+
+
+def seed_catalog(connection, rows_per_org, identifier_search):
+    """Synthetic seed shared by rollback-only query and committed HTTP experiments."""
+    organizations = [uuid.uuid4(), uuid.uuid4()]
+    metadata = []
+    for organization in organizations:
+        categories = {unit: uuid.uuid4() for unit in catalog_search.LENGTH_FACTORS}
+        connection.execute(
+            insert(Organization), {"id": organization, "name": "Synthetic benchmark"}
+        )
+        for unit, category in categories.items():
+            connection.execute(
+                insert(Reference),
+                {
+                    "id": category,
+                    "organization_id": organization,
+                    "kind": "category",
+                    "code": "synthetic-sheet-" + unit,
+                    "name": "ورق مصنوعی " + unit,
+                    "attribute_rules": {
+                        "thickness": {"unit": unit, "required": True},
+                        "length": {"unit": "mm", "required": True},
+                    },
+                },
+            )
+        rows = []
+        for index in range(rows_per_org):
+            thickness = Decimal(index % 10 + 1)
+            unit = ("mm", "cm", "m")[index % 3]
+            stored = thickness * Decimal("0.001") / catalog_search.LENGTH_FACTORS[unit]
+            attributes = {
+                "thickness": {"value": format(stored.normalize(), "f"), "unit": unit},
+                "length": {"value": str(index + 1), "unit": "mm"},
+            }
+            active = index % 17 != 0
+            rows.append(
+                {
+                    "id": uuid.uuid4(),
+                    "organization_id": organization,
+                    "category_id": categories[unit],
+                    "sku": f"SYN-{index}",
+                    "name": "ورق مصنوعی",
+                    "unit": "kg",
+                    "attributes": attributes,
+                    "active": active,
+                    "specification_hash": hashlib.sha256(
+                        json.dumps(attributes, sort_keys=True).encode()
+                    ).hexdigest(),
+                }
+            )
+            if organization == organizations[0]:
+                metadata.append((thickness, active))
+        connection.execute(insert(Product), rows)
+        if identifier_search:
+            connection.execute(
+                insert(ProductIdentifier),
+                [
+                    {
+                        "id": uuid.uuid4(),
+                        "organization_id": organization,
+                        "product_id": row["id"],
+                        "kind": kind,
+                        "value": f"REF%_\\{index}",
+                    }
+                    for index, row in enumerate(rows)
+                    for kind in ("barcode", "vendor")
+                ],
+            )
+    return organizations, metadata
 
 
 def benchmark(rows_per_org=5000, repeats=5, identifier_search=False):
@@ -46,79 +117,12 @@ def benchmark(rows_per_org=5000, repeats=5, identifier_search=False):
         "queries": [],
         "identifier_search": identifier_search,
     }
-    with database.connect() as connection:
-        if connection.scalar(select(func.count()).select_from(Organization)):
-            raise SystemExit("Benchmark database must contain no organizations")
-        connection.rollback()
+    with exclusive_database(database) as connection:
         transaction = connection.begin()
         try:
             connection.execute(text("SET LOCAL statement_timeout = '15s'"))
             report["postgres_version"] = connection.scalar(text("SHOW server_version"))
-            organizations = [uuid.uuid4(), uuid.uuid4()]
-            metadata = []
-            for organization in organizations:
-                categories = {unit: uuid.uuid4() for unit in catalog_search.LENGTH_FACTORS}
-                connection.execute(
-                    insert(Organization), {"id": organization, "name": "Synthetic benchmark"}
-                )
-                for unit, category in categories.items():
-                    connection.execute(
-                        insert(Reference),
-                        {
-                            "id": category,
-                            "organization_id": organization,
-                            "kind": "category",
-                            "code": "synthetic-sheet-" + unit,
-                            "name": "ورق مصنوعی " + unit,
-                            "attribute_rules": {
-                                "thickness": {"unit": unit, "required": True},
-                                "length": {"unit": "mm", "required": True},
-                            },
-                        },
-                    )
-                rows = []
-                for index in range(rows_per_org):
-                    thickness = Decimal(index % 10 + 1)
-                    unit = ("mm", "cm", "m")[index % 3]
-                    stored = thickness * Decimal("0.001") / catalog_search.LENGTH_FACTORS[unit]
-                    attributes = {
-                        "thickness": {"value": format(stored.normalize(), "f"), "unit": unit},
-                        "length": {"value": str(index + 1), "unit": "mm"},
-                    }
-                    active = index % 17 != 0
-                    rows.append(
-                        {
-                            "id": uuid.uuid4(),
-                            "organization_id": organization,
-                            "category_id": categories[unit],
-                            "sku": f"SYN-{index}",
-                            "name": "ورق مصنوعی",
-                            "unit": "kg",
-                            "attributes": attributes,
-                            "active": active,
-                            "specification_hash": hashlib.sha256(
-                                json.dumps(attributes, sort_keys=True).encode()
-                            ).hexdigest(),
-                        }
-                    )
-                    if organization == organizations[0]:
-                        metadata.append((thickness, active))
-                connection.execute(insert(Product), rows)
-                if identifier_search:
-                    connection.execute(
-                        insert(ProductIdentifier),
-                        [
-                            {
-                                "id": uuid.uuid4(),
-                                "organization_id": organization,
-                                "product_id": row["id"],
-                                "kind": kind,
-                                "value": f"REF%_\\{index}",
-                            }
-                            for index, row in enumerate(rows)
-                            for kind in ("barcode", "vendor")
-                        ],
-                    )
+            organizations, metadata = seed_catalog(connection, rows_per_org, identifier_search)
             # Collect statistics only in the dedicated disposable database; seeded rows roll back.
             connection.execute(text("ANALYZE products"))
             if identifier_search:

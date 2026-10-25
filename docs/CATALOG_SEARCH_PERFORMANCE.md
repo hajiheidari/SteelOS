@@ -117,3 +117,54 @@ included. The existing API regressions cover tenant isolation, wildcards, alias 
 count/pagination and combination with dimensions; a new case combines name/SKU/duplicate aliases.
 All experiment data rolled back and absence was verified after each run.
 Selected plans: [catalog-identifiers-set-membership-2026-10-25.json](evidence/catalog-identifiers-set-membership-2026-10-25.json).
+
+## Real HTTP API and bounded concurrency — 2026-10-25
+
+`benchmark_catalog_api.py` runs an ephemeral Uvicorn worker on a pre-bound127.0.0.1 port,
+with actual HTTP and independent PostgreSQL request transactions. It includes authentication
+checks, query/count/page work, page-scoped reference labels, JSON serialization and loopback
+transport; excludes login/seed/warmup timing, Next.js proxy/UI, TLS/WAN and model inference.
+No installed model, paid service, new dependency or public listener is needed.
+
+```sh
+DATABASE_URL=postgresql+psycopg://steelos:steelos@localhost:5432/steelos_benchmark \
+  PYTHONPATH=apps/api .venv/bin/python apps/api/tests/benchmark_catalog_api.py \
+  --rows-per-org 5000 --repeats 10 --concurrency 1 4 \
+  --output /tmp/catalog-api.json
+```
+
+Both benchmark tools now share a session advisory lock and reject a non-_benchmark database,
+a populated organization table or another cooperating benchmark. API bounds:100–50000 products
+per tenant,3–20 repeats, unique concurrency levels from1/2/4,30s HTTP timeout,15s SQL timeout
+and bounded graceful server shutdown. It creates two synthetic viewer accounts and logs in
+through the real API. Auth/password/token values never enter the report. Two identical
+identifier kinds per product and identical alias values across tenants exercise cardinality
+and scope. Every response asserts exact expected IDs/order/count/attributes, tenant identity,
+category labels/rules and no-store headers. Workloads alternate tenants and rotate case order.
+
+The HTTP tool must commit its synthetic seed so concurrent transactions can see it. It stops
+its server, then deletes only generated organization/user scopes and known login-attempt keys,
+verifying absence of all seeded/auth/audit records. It never truncates a database or disables
+FK/history guards. Unexpected business history causes cleanup to fail/roll back; do not bypass
+that guard. An abrupt process/host kill can leave committed fixtures: inspect/recreate the
+isolated disposable database before reuse. Normal/error cleanup is not crash recovery or a
+business deletion policy. The query-only tool still uses rollback rather than committed seeding.
+
+PostgreSQL17.11,10000 total products/20000 identifiers, one API process, closed-loop clients:
+40 timed requests at concurrency1 and160 at concurrency4. Eight case/tenant warmups and two
+logins were outside timing. Every request passed the correctness assertions; cleanup passed.
+
+| API case |1 client median / p95 (ms),10 samples |4 clients median / p95 (ms),40 samples |
+| --- | --- | --- |
+| Name |55.860 /59.739 |63.999 /96.774 |
+| Literal identifier |67.934 /83.804 |98.681 /135.691 |
+| Missing identifier |69.918 /72.094 |91.736 /139.523 |
+| Identifier + mixed-unit2–3mm range |239.964 /248.016 |345.043 /447.924 |
+
+Whole mixed-workload observed rates were9.241 and25.398 requests/s respectively. These short,
+closed-loop, warm-cache samples on one development host are not production capacity, statistical
+confidence, an acceptance SLO, a before/after API comparison or a benchmark of full assistant
+inference. Query-only and HTTP numbers have different scope and must not be directly treated
+as the same measurement. Larger/representative operational load remains a future production
+readiness exercise; no additional index, cache, service or database tuning was inferred here.
+Evidence: [catalog-api-loopback-2026-10-25.json](evidence/catalog-api-loopback-2026-10-25.json).

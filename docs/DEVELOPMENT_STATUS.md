@@ -519,3 +519,12 @@
 - دو commit پیاده‌سازی/شواهد این batch:227e1fe برای baseline قابل بازتولید و05dd1f3 برای predicate منتخب. هر دو آزمایش مجزا فقط دادهٔ مصنوعی _benchmark داشتند و rollback/خالی‌شدن سازمان، کالا و شناسه‌ها تأیید شد. تست‌های backend مستقل روی _test و بدون مرورگر محلی هم‌زمان اجرا شدند. ارزیابی مدل واقعی در این batch تکرار نشده است.
 - PR #1 به‌روز شد؛ working branch=codex/m1-foundation و main همچنان `6238616450e63a6f0279d4eb4d1ec7b8c69c9c16` است. بدون merge، public deployment، paid service، پیام مشتری یا ثبت قانونی. پایان کل پروژه/production اعلام نمی‌شود.
 - کار مستقل بعدی در محدودهٔ سنجش کارایی: اندازه‌گیری زمان کل API و بار هم‌زمان محدود روی دادهٔ مصنوعیِ مستقل؛ benchmark فعلی فقط query و پنج نمونه است. گسترش دستور زبان عمومی، agent نوشتنی، صدور مالی و حسابداری از این نتایج مجوز یا آمادگی نمی‌گیرند.
+
+## سنجش HTTP واقعی کاتالوگ و بار هم‌زمان محدود
+
+- ادامه ازe096757 روی codex/m1-foundation؛ fetch، شاخهٔ تمیز، نبود فرایند توسعه/تست فعال، PR #1 draft با base=main و CI موفق40153242084 بررسی شدند. محیط/policy شبکه دوباره بررسی و enforced تأیید شد.
+- ابزار اجرایی benchmark_catalog_api.py با Uvicorn موقت loopback، HTTP واقعی، login واقعیِ viewer و تراکنش‌های مستقل DB ساخته شد. seed با benchmark query مشترک است؛ هر دو ابزار guard خالی‌بودن DB _benchmark و advisory lock مشترک دارند. سقف داده/تکرار/concurrency، timeout HTTP/SQL و خاموش‌شدن server محدود است؛ credential در artifact نیست.
+- آزمایش اصلی با۱۰هزار کالا و۲۰هزار شناسه،۲۰۰ درخواست زمان‌دار با۱ و۴ client داشت؛ همهٔ count/ID/order/tenant/attributes/نام مرجع/rules/headerها تأیید شدند. median شناسه≈68/99ms و شناسه+range≈240/345ms بود. این loopback تک‌پردازه و نمونهٔ کوچک است؛ UI/proxy/TLS/WAN/مدل و ظرفیت production را نمی‌سنجد. artifact و p95/محدودیت‌ها در CATALOG_SEARCH_PERFORMANCE.md هستند.
+- سرور پس از اجرا متوقف و تمام seed/user/session/audit/login-attemptهای خود آزمایش پاک و نبودشان تأیید شد؛ ابزار query نیز پس از استخراج seed مشترک در اجرای کوچک موفق و rollback تأیید شد. پاک‌سازی تاریخچهٔ غیرمنتظره را دور نمی‌زند؛ قطع سخت فرایند ممکن است fixture باقی بگذارد و DB موقت نیاز به بررسی دارد.
+- هر۱۱ تست حفاظ ابزار و cleanup شکست workload/حفظ tenantهای دیگر موفق شد. تست‌های مخرب فقط روی fixture _test و بدون مرورگر هم‌زمان اجرا شدند؛ benchmarkها جدا و با DB مجزا بودند. اجرای مستقل کامل۲۰۰ passed و۲ opt-in skipped داشت؛ Ruff/format موفق‌اند و هشدار قبلی Starlette/httpx باقی است. CI پس از push بررسی می‌شود.
+- app/runtime/schema/model/grammar/dependency یا دسترسی مالی/مالکیت/قیمت تغییری نکرد؛ سرویس پولی، public deployment، main/merge یا پیام بیرونی انجام نشد.

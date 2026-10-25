@@ -282,3 +282,17 @@ backend passed,2 actual-model opt-in skips and26 production desktop/mobile brows
 clean migration/model drift, Ruff/format, TypeScript/build and pip/npm audits passed. The
 isolated local full run also passed189 with2 skips. Provider/grammar were unchanged and
 actual-model extraction was not rerun. Query-only artifacts are not API/concurrent-load evidence.
+
+## Bounded HTTP benchmark safety
+
+Eleven new cases test fail-closed suffix/empty/exclusive guards, bounded options, transactional
+refusal to erase unexpected idempotency/business history, and cleanup of a committed synthetic
+seed after an injected HTTP-workload failure while preserving existing fixture tenants/users.
+All destructive integration assertions run only on the normal disposable *_test fixture DB;
+the test-only transport/guard replacement does not exist in the CLI entry point.
+The opt-in HTTP tool was actually exercised at200 products (smoke) and10000 products/20000
+identifiers (200 timed real HTTP requests,1/4 closed-loop clients). Every response checks exact
+IDs/count/order, tenant, attributes, labels/rules and headers; generated seed/auth/audit rows
+were removed and verified. The extracted query seed was rerun at200 products/8 cases with
+rollback verified. These experiments are separate from pytest and download no model weights.
+Details, reproduction, timeout/crash limits and raw evidence: CATALOG_SEARCH_PERFORMANCE.md.
