@@ -620,3 +620,5 @@
 - ادامه از15c09f1، fetch و شاخهٔ تمیز تأیید شد. دو مسیر باقی‌ماندهٔ تبدیل UTC در PriceInput و DraftInput انبار نیز OverflowError مرز سال۱/۹۹۹۹ را به خطای اعتبارسنجی422 تبدیل می‌کنند. semantics قیمت/انقضا، مجوز، migration و UI تغییر نکرده‌اند.
 - شش سناریوی API هدفمند موفق شد: هر دو مرز برای observed_at/valid_until/expires_at، عدم تغییر قیمت/draft/ledger/audit/idempotency، و موفقیت ورودی صحیح با همان کلید پس از رد. Ruff/format موفق‌اند؛ اجرای کامل محلی۲۲۴ passed و۲ opt-in skipped موفق شد؛ هشدار قبلی Starlette/httpx باقی است. CI پس از push بررسی می‌شود.
 - نمونهٔ فاکتور همچنان ورودی تعویق‌شده است، نه blocker. هیچ قیمت تأییدشده، مالکیت یا عملیات مالی توسط agent تغییر نکرده است.
+
+- تأیید نهایی `9fb2c26f2153b24339717d0ca889c27cd3a87507`: [CI40242781947](https://github.com/hajiheidari/SteelOS/actions/runs/40242781947) هر دو job موفق؛۲۲۴ backend passed/۲ skipped و۳۰ مرورگر passed، migration/model drift، Ruff/format، build/TypeScript و audit وابستگی‌ها موفق‌اند. نمونه‌های فاکتور برای آینده باقی‌اند؛ main/merge/deploy/paid services تغییر نکرده‌اند.
