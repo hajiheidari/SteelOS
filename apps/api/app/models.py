@@ -275,3 +275,20 @@ from app.modules.sales.models import (  # noqa: E402,F401
     SalesDraftReview,
     SalesDraftRevision,
 )
+
+
+class FollowUp(Tenant, Base):
+    __tablename__ = "crm_follow_ups"
+    party_id: Mapped[uuid.UUID] = mapped_column()
+    name: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20))
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    status: Mapped[str] = mapped_column(String(20), default="open")
+    notes: Mapped[str] = mapped_column(String(1000), default="")
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["organization_id", "party_id"], ["parties.organization_id", "parties.id"]
+        ),
+        CheckConstraint("kind IN ('call','meeting','document','other')", name="ck_follow_up_kind"),
+        CheckConstraint("status IN ('open','completed','cancelled')", name="ck_follow_up_status"),
+    )

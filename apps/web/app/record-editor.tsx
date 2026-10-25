@@ -226,7 +226,13 @@ export function Editor({
     Object.fromEntries(
       fields.map((f) => [
         f.key,
-        initial?.[f.key] ??
+        (f.type === "datetime-local" && initial?.[f.key]
+          ? (() => {
+              const d = new Date(String(initial[f.key]));
+              const pad = (n: number) => String(n).padStart(2, "0");
+              return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            })()
+          : initial?.[f.key]) ??
           (f.type === "checkbox"
             ? f.key === "active"
             : f.type === "roles"

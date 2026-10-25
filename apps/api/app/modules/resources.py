@@ -21,6 +21,7 @@ RESOURCES = {
     "products": (m.Product, s.ProductInput),
     "product-identifiers": (m.ProductIdentifier, s.IdentifierInput),
     "parties": (m.Party, s.PartyInput),
+    "crm-follow-ups": (m.FollowUp, s.FollowUpInput),
     "warehouses": (m.Warehouse, s.WarehouseInput),
     "locations": (m.Location, s.LocationInput),
     "warehouse-access": (m.WarehouseAccess, s.AccessInput),
@@ -135,6 +136,10 @@ def validate_domain(db, ctx, model, data, current=None):
                 raise HTTPException(
                     409, "Product technical identity is immutable once price history or lots exist"
                 )
+    if model == m.FollowUp:
+        party = get_row(db, m.Party, ctx, data["party_id"], shared_lock=True)
+        if (not current or current.party_id != party.id) and not party.active:
+            raise HTTPException(409, "New follow-ups require an active party")
     if model == m.ProductIdentifier:
         get_row(db, m.Product, ctx, data["product_id"])
     if model == m.WarehouseAccess:
@@ -172,6 +177,7 @@ def page_labels(db, ctx, model, items):
     targets = (
         (m.Reference, ("category_id", "manufacturer_id", "grade_id", "standard_id")),
         (m.Product, ("product_id",)),
+        (m.Party, ("party_id",)),
         (m.Warehouse, ("warehouse_id",)),
         (m.Location, ("parent_id",)),
         (m.PriceSource, ("source_id",)),
@@ -222,6 +228,7 @@ def apply_text_search(stmt, model, organization_id, q):
                 "sku",
                 "value",
                 "registration_id",
+                "notes",
                 "provenance",
                 "delivery_location",
                 "delivery_terms",
@@ -273,6 +280,8 @@ def register(resource, model, schema):
             max_length=4096,
             description="Products only: JSON object of up to8 exact {value,unit} {min:{value,unit},max:{value,unit},min_inclusive?:bool,max_inclusive?:bool}, or {op:gt|gte|lt|lte,bound:{value,unit}} attribute filters; AND semantics; mm/cm/m equivalence.",
         ),
+        overdue_only: bool = False,
+        party_id: UUID | None = None,
         approved_only: bool = False,
         tax_included: bool | None = None,
         currency: str | None = Query(None, pattern="^(IRR|IRT|USD|EUR)$"),
@@ -296,6 +305,7 @@ def register(resource, model, schema):
             ("active", active),
             ("kind", kind),
             ("product_id", product_id),
+            ("party_id", party_id),
             ("warehouse_id", warehouse_id),
             ("status", status),
             ("currency", currency),
@@ -313,6 +323,10 @@ def register(resource, model, schema):
             from sqlalchemy.dialects.postgresql import JSONB
 
             stmt = stmt.where(cast(m.Party.roles, JSONB).contains([role]))
+        if overdue_only:
+            if model is not m.FollowUp:
+                raise HTTPException(422, "Unsupported overdue filter")
+            stmt = stmt.where(m.FollowUp.status == "open", m.FollowUp.due_at < datetime.now(UTC))
         if approved_only:
             if model != m.PriceObservation:
                 raise HTTPException(422, "Unsupported approval filter")
@@ -327,9 +341,14 @@ def register(resource, model, schema):
                 m.PriceObservation.observed_at <= now,
                 m.PriceSource.approved.is_(True),
             )
-        if sort not in ("created_at", "name", "code", "sku", "observed_at") or not hasattr(
-            model, sort
-        ):
+        if sort not in (
+            "created_at",
+            "name",
+            "code",
+            "sku",
+            "observed_at",
+            "due_at",
+        ) or not hasattr(model, sort):
             raise HTTPException(422, "Unsupported sort")
         count = db.scalar(select(func.count()).select_from(stmt.subquery()))
         column = getattr(model, sort)

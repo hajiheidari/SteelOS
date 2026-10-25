@@ -331,3 +331,9 @@ passed; native Tesseract/Poppler tests, migrations/model drift, Ruff/format, Typ
 and pip/npm audits passed. Native OCR is not mocked in native/browser cases. The local full
 backend run212 and subsequent13 targeted invoice tests are separate evidence, not213 locally.
 The small Persian-decimal failure remains a quality limit; source comparison is mandatory.
+
+Manual CRM follow-up tests cover scoped CRUD/roles/replay, literal subject search, tenant-party
+FKs, UTC due dates, paginated counts/labels, past-open-only overdue projection, inactive-party
+creation denial while retaining completion/cancellation, validation and zero financial posting.
+New browser workflows exercise actual APIs and Asia/Tehran device-local due-time edit roundtrip.
+Results and CI are recorded in DEVELOPMENT_STATUS.md; no messages/calls/workers are invoked.

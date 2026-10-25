@@ -14,6 +14,7 @@ const resources = new Set([
   "products",
   "product-identifiers",
   "parties",
+  "crm-follow-ups",
   "warehouses",
   "locations",
   "warehouse-access",

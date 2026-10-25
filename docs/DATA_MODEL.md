@@ -131,3 +131,7 @@ stock or accounting reference is stored. Decimal transcription candidates serial
 inside validated JSON; they are not a financial ledger. No deletion API/automatic retention
 job; sensitive text/history/idempotency remain until a separately reviewed policy. See
 INVOICE_INTAKE.md for native boundaries, tenant FKs, errors and actual OCR accuracy limits.
+
+Migration0007_crm_follow_ups adds crm_follow_ups with UUID/TIMESTAMPTZ, indexed organization/due,
+composite tenant-party FK and kind/status checks. It is a normal shared CRM task record with
+existing admin deletion and metadata audit, not an immutable financial/stock/history ledger.

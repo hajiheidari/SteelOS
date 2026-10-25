@@ -44,6 +44,7 @@ export const titles: Record<string, string> = {
   "catalog-references": "تعاریف کاتالوگ",
   "product-identifiers": "شناسه‌های کالا",
   parties: "مشتریان و تأمین‌کنندگان",
+  "crm-follow-ups": "پیگیری مشتریان و تأمین‌کنندگان",
   warehouses: "انبارها",
   locations: "مکان‌های انبار",
   "price-sources": "منابع قیمت",
@@ -51,6 +52,13 @@ export const titles: Record<string, string> = {
   settings: "کاربران و تنظیمات",
 };
 export const translations: Record<string, string> = {
+  open: "انجام‌نشده",
+  completed: "انجام‌شده",
+  cancelled: "لغوشده",
+  call: "تماس",
+  meeting: "جلسه",
+  document: "مدارک",
+  other: "سایر",
   pending: "در انتظار بررسی",
   approved: "تأیید شده",
   rejected: "رد شده",
@@ -219,6 +227,42 @@ export function getFields(page: string): Field[] {
         { key: "product_id", label: "کالا", resource: "products" },
         { key: "kind", label: "نوع شناسه (لاتین)", default: "barcode" },
         { key: "value", label: "شناسه" },
+      ];
+    case "crm-follow-ups":
+      return [
+        { key: "name", label: "موضوع پیگیری" },
+        {
+          key: "party_id",
+          label: "مشتری یا تأمین‌کننده",
+          resource: "parties?active=true",
+        },
+        {
+          key: "due_at",
+          label: "موعد پیگیری (زمان محلی دستگاه)",
+          type: "datetime-local",
+        },
+        {
+          key: "kind",
+          label: "نوع پیگیری",
+          default: "call",
+          options: [
+            { value: "call", label: "تماس" },
+            { value: "meeting", label: "جلسه" },
+            { value: "document", label: "مدارک" },
+            { value: "other", label: "سایر" },
+          ],
+        },
+        {
+          key: "status",
+          label: "وضعیت پیگیری",
+          default: "open",
+          options: [
+            { value: "open", label: "انجام‌نشده" },
+            { value: "completed", label: "انجام‌شده" },
+            { value: "cancelled", label: "لغوشده" },
+          ],
+        },
+        { key: "notes", label: "یادداشت پیگیری", required: false },
       ];
     case "parties":
       return [

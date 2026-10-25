@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.config import settings
 
-SCHEMA_REVISION = "0006_invoice_intake"
+SCHEMA_REVISION = "0007_crm_follow_ups"
 
 
 class Base(DeclarativeBase):

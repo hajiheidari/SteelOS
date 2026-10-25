@@ -220,3 +220,19 @@ class PasswordUpdate(Input):
 
 class RoleUpdate(Input):
     role: Literal["admin", "editor", "viewer"]
+
+
+class FollowUpInput(Input):
+    party_id: UUID
+    name: Text
+    kind: Literal["call", "meeting", "document", "other"] = "call"
+    due_at: datetime
+    status: Literal["open", "completed", "cancelled"] = "open"
+    notes: Annotated[str, Field(max_length=1000)] = ""
+
+    @field_validator("due_at")
+    @classmethod
+    def aware_utc(cls, value):
+        if value.tzinfo is None:
+            raise ValueError("Timezone required")
+        return value.astimezone(UTC)

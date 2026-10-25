@@ -29,3 +29,8 @@ remain future work; current details/evidence are in SALES_ASSISTANT.md.
 Founder-approved local invoice transcription is implemented with its Persian
 UI and native/API/desktop/mobile tests. It is separate from financial sales/stock/accounting; current evidence,
 limits and delivery status are in INVOICE_INTAKE.md and DEVELOPMENT_STATUS.md.
+
+The founder explicitly deferred unavailable invoice samples; FOUNDER_INPUTS.md tracks them as
+future input, not a blocker for independent development. The next limited extension implements
+manual CRM follow-ups (CRM_FOLLOW_UPS.md), using the existing platform; accounting/financial
+issuance, outbound communication and writable agents remain outside this delivery.

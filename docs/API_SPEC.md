@@ -266,3 +266,10 @@ detail, versioned PUT and immutable revision reads. Extraction accepts≤5MiB PN
 Untrusted original/corrected text and candidates remain separate from business modules.
 mark_reviewed is a human transcription check only. financial_approval/business_posted=false;
 no automatic financial/price/stock changes, conversion, issuance or legal validation.
+
+## Manual CRM follow-ups
+
+crm-follow-ups joins the ordinary resource contract with scoped party_id/name/kind/due_at/status/
+notes, creation idempotency and metadata audit. overdue_only=true means open AND past UTC due_at;
+filters apply before count/page and sort=due_at is supported. See CRM_FOLLOW_UPS.md for bounds,
+active-party transitions, deletion/full-replacement semantics and explicit absence of messaging.

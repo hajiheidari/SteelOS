@@ -125,11 +125,15 @@ export default function Home() {
         const extra =
           filter && page === "parties"
             ? `&role=${filter}`
-            : filter && page === "price-observations"
-              ? "&approved_only=true"
-              : "";
+            : filter && page === "crm-follow-ups"
+              ? filter === "overdue"
+                ? "&overdue_only=true"
+                : `&status=${filter}`
+              : filter && page === "price-observations"
+                ? "&approved_only=true"
+                : "";
         const data = await api(
-          `${page}?limit=25&offset=${offset}&q=${encodeURIComponent(search)}${extra}`,
+          `${page}?limit=25&offset=${offset}&q=${encodeURIComponent(search)}${page === "crm-follow-ups" ? "&sort=due_at&direction=asc" : ""}${extra}`,
         );
         if (!current()) return;
         setRows(data.items);
@@ -720,6 +724,25 @@ export default function Home() {
                         <option value="">همه</option>
                         <option value="customer">مشتری</option>
                         <option value="supplier">تأمین‌کننده</option>
+                      </select>
+                    </label>
+                  )}
+                  {page === "crm-follow-ups" && (
+                    <label>
+                      نمایش پیگیری‌ها
+                      <select
+                        aria-label="نمایش پیگیری‌ها"
+                        value={filter}
+                        onChange={(e) => {
+                          setFilter(e.target.value);
+                          setOffset(0);
+                        }}
+                      >
+                        <option value="">همه</option>
+                        <option value="open">انجام‌نشده</option>
+                        <option value="completed">انجام‌شده</option>
+                        <option value="cancelled">لغوشده</option>
+                        <option value="overdue">عقب‌افتاده و انجام‌نشده</option>
                       </select>
                     </label>
                   )}
