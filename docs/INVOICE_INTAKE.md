@@ -13,7 +13,7 @@ extract/edit/review transcription; viewer reads. Organization IDs cannot be supp
 
 - GET /status: native availability (tools plus fas/eng data), accepted media,5MiB,3-page limits.
 - POST /extract: raw PNG/JPEG/PDF bytes with actual Content-Type and Idempotency-Key;201.
-  Browser binary-proxy/UI delivery is tracked separately in DEVELOPMENT_STATUS.md. Server/proxy bound upload
+  The Persian browser workspace/proxy supports this bounded binary endpoint. Server/proxy bound upload
   bytes independently.415 unsupported type;413 over5MiB;422 empty/invalid/unsupported document;
   429 per-worker OCR saturation;503 missing native tools/data;504 processing deadline.
 - GET collection: paginated summaries only, limit25,max100,offset; no large text/history blobs.
@@ -114,3 +114,22 @@ Native command environments are allowlisted; database/proxy/auth secrets are not
 Working/home/temp/cache directories point to the private temporary workspace during processing.
 Native readiness uses the same environment restriction. These controls do not turn native
 parsers into a hardened hostile-file sandbox; OS/package maintenance remains necessary.
+
+## Persian workspace (implemented)
+
+The authenticated dashboard page uses the actual API for bounded file upload, text/field/row
+correction, explicit human-transcription checkbox, paginated lists/history and read-only old
+versions. Normal edits invalidate the current transcription-review state. User-entered Persian/
+Arabic digits remain strings and normalize before submission. A successful image upload can
+show the original local image only while its hash matches the selected intake; Blob URLs are
+revoked on file change/unmount. PDFs are not embedded as active browser content. Original
+bytes stay out of browser storage/server persistence; the user retains the original.
+
+The same-origin proxy forwards raw bytes only to invoice-intakes/extract, caps streaming bytes
+independently and gives bounded native processing45s; ordinary JSON routes retain15s. It keeps
+the HttpOnly credential/CSRF checks and no-store responses. CSP adds blob: only to img-src for
+local image preview; script/frame/connect policies are unchanged. Desktop/mobile browser tests
+exercise real PDF text extraction, actual PNG OCR/preview, Persian monetary corrections, human
+check/edit invalidation, immutable historical view, duplicate/oversize/origin rejection and
+unchanged stock/price/sales counts. Earlier browser selector failures led to explicit accessible
+labels for the currency/text controls; the final workflows passed on both viewports.

@@ -21,6 +21,7 @@ import { SalesAssistantWorkspace } from "./sales-assistant-workspace";
 import { Editor } from "./record-editor";
 import { RemoteSelect } from "./remote-select";
 import { SalesDraftsWorkspace } from "./sales-drafts-workspace";
+import { InvoiceIntakeWorkspace } from "./invoice-intake-workspace";
 import { InventoryWorkspace } from "./inventory-workspace";
 
 export default function Home() {
@@ -80,7 +81,14 @@ export default function Home() {
   }, [me]);
   const load = useCallback(async () => {
     if (!me || latestView.current !== viewKey) return;
-    if (["inventory", "sales-drafts", "sales-assistant"].includes(page)) {
+    if (
+      [
+        "inventory",
+        "sales-drafts",
+        "sales-assistant",
+        "invoice-intakes",
+      ].includes(page)
+    ) {
       setLoading(false);
       setError("");
       return;
@@ -345,7 +353,9 @@ export default function Home() {
               در حال دریافت اطلاعات…
             </p>
           )}
-          {page === "sales-assistant" ? (
+          {page === "invoice-intakes" ? (
+            <InvoiceIntakeWorkspace role={me.role} />
+          ) : page === "sales-assistant" ? (
             <SalesAssistantWorkspace />
           ) : page === "inventory" ? (
             <InventoryWorkspace role={me.role} />

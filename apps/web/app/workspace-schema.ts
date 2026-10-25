@@ -38,6 +38,7 @@ export const titles: Record<string, string> = {
   dashboard: "نمای کلی",
   inventory: "عملیات و موجودی انبار",
   "sales-drafts": "پیش‌نویس فروش",
+  "invoice-intakes": "دریافت و بررسی فاکتور",
   "sales-assistant": "دستیار فروش",
   products: "کالاها",
   "catalog-references": "تعاریف کاتالوگ",

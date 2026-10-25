@@ -317,3 +317,10 @@ see INVOICE_INTAKE.md for reproduction/evidence and human numeric-check requirem
 A further subprocess-environment regression asserts OCR/readiness receive no DATABASE_URL,
 proxy or unrelated runtime secret, keep one OpenMP thread and use the private working/home
 folder. Actual native PNG/scanned-PDF/text-PDF tests still run, checking minimal-env compatibility.
+
+Two new production-browser scenarios (desktop/mobile) use real uploaded PDF and generated PNG,
+not extraction mocks. They verify manual Persian number strings, added line quantities/prices,
+explicit human check/version history/read-only originals/edit invalidation, actual local image
+preview, duplicate rejection and binary-proxy origin/5MiB limits, with no business record changes.
+Final local browser suite:28 passed. UI typecheck/production build passed; combined CI is checked
+after the frontend commit. Native decoder numerical accuracy remains separately limited by evidence.

@@ -7,6 +7,7 @@ const resources = new Set([
   "auth",
   "inventory",
   "sales-drafts",
+  "invoice-intakes",
   "sales-assistant",
   "organization",
   "catalog-references",
@@ -44,12 +45,44 @@ async function proxy(
   }
   const jar = await cookies();
   const token = jar.get(cookieName)?.value;
+  const invoiceUpload =
+    request.method === "POST" && path.join("/") === "invoice-intakes/extract";
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    "Content-Type": invoiceUpload
+      ? request.headers.get("content-type") || "application/octet-stream"
+      : "application/json",
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   const key = request.headers.get("idempotency-key");
   if (key) headers["Idempotency-Key"] = key;
+  let body: string | Uint8Array | undefined;
+  if (invoiceUpload) {
+    const reader = request.body?.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 5 * 1024 * 1024) {
+          await reader.cancel();
+          return NextResponse.json(
+            { error: { message: "حداکثر اندازهٔ فایل ۵ مگابایت است" } },
+            { status: 413 },
+          );
+        }
+        chunks.push(value);
+      }
+    }
+    const bytes = new Uint8Array(size);
+    let position = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, position);
+      position += chunk.byteLength;
+    }
+    body = bytes;
+  } else if (request.method !== "GET") body = await request.text();
   let result: Response;
   try {
     result = await fetch(
@@ -59,8 +92,8 @@ async function proxy(
         headers,
         cache: "no-store",
         redirect: "error",
-        body: request.method === "GET" ? undefined : await request.text(),
-        signal: AbortSignal.timeout(15000),
+        body: body as BodyInit | undefined,
+        signal: AbortSignal.timeout(invoiceUpload ? 45000 : 15000),
       },
     );
   } catch {

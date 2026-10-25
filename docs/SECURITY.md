@@ -187,3 +187,9 @@ credentials and unrelated runtime secrets are not inherited. Processing HOME/TMP
 are inside the private temporary directory. This reduces ambient credential exposure; it is
 not filesystem/network isolation or a hostile-file sandbox. A subprocess-spy regression checks
 both readiness and processing environments while real native image/PDF tests remain enabled.
+
+The invoice UI binary proxy is limited to the fixed extraction endpoint; both proxy and API
+bound streamed bytes. It preserves exact-origin checks and HttpOnly server-side auth. Local
+image preview uses revocable Blob URLs only for the selected intake's matching source hash;
+no PDF embedding or browser storage persistence is introduced. CSP allows blob: only for
+images. Historical forms are read-only; backend version/role/scope checks remain authoritative.
