@@ -44,3 +44,6 @@ The dashboard additionally reads the actual tenant overdue count through limit=1
  overdue_only=true. Its card opens the follow-up page with that filter already selected;
 it does not run notifications or mutate tasks. Browser coverage checks this navigation with
 a real overdue record and then its disappearance after completion.
+
+Timezone conversion outside the supported UTC datetime range returns422 before writes;
+rejected inputs do not consume an idempotency key.

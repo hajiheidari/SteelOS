@@ -192,7 +192,10 @@ class PriceInput(Input):
     def utc(cls, value):
         if value.tzinfo is None:
             raise ValueError("Timezone required")
-        return value.astimezone(UTC)
+        try:
+            return value.astimezone(UTC)
+        except OverflowError as exc:
+            raise ValueError("Date outside supported UTC range") from exc
 
     @model_validator(mode="after")
     def dates(self):
@@ -235,4 +238,7 @@ class FollowUpInput(Input):
     def aware_utc(cls, value):
         if value.tzinfo is None:
             raise ValueError("Timezone required")
-        return value.astimezone(UTC)
+        try:
+            return value.astimezone(UTC)
+        except OverflowError as exc:
+            raise ValueError("Date outside supported UTC range") from exc

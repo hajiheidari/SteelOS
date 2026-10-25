@@ -164,3 +164,29 @@ def test_follow_up_foreign_keys_invalid_inputs_and_inactive_party(world, follow_
         with pytest.raises(IntegrityError):
             db.commit()
         db.rollback()
+
+
+@pytest.mark.parametrize("due_at", ["0001-01-01T00:00:00+03:30", "9999-12-31T23:59:59-03:30"])
+def test_follow_up_utc_overflow_is_validation_error_without_writes(world, follow_up, due_at):
+    client, tokens, *_ = world
+    _, payload, _ = follow_up
+    with Session(engine()) as db:
+        before = tuple(
+            db.scalar(select(func.count()).select_from(model))
+            for model in (m.FollowUp, m.AuditEvent, m.IdempotencyRecord)
+        )
+    create(
+        client,
+        tokens[0],
+        "crm-follow-ups",
+        {**payload, "due_at": due_at},
+        key="utc-overflow",
+        expected=422,
+    )
+    with Session(engine()) as db:
+        after = tuple(
+            db.scalar(select(func.count()).select_from(model))
+            for model in (m.FollowUp, m.AuditEvent, m.IdempotencyRecord)
+        )
+    assert after == before
+    create(client, tokens[0], "crm-follow-ups", payload, key="utc-overflow")
