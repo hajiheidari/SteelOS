@@ -350,3 +350,26 @@ def test_concurrent_transcription_edits_keep_one_current_revision(world, intake,
         ).json()["total"]
         == 2
     )
+
+
+def test_native_processing_receives_no_database_or_other_runtime_secrets(monkeypatch):
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("OCR_TEST_SECRET", "synthetic-private-value")
+
+    def native(arguments, **kwargs):
+        assert "DATABASE_URL" not in kwargs["env"]
+        assert "OCR_TEST_SECRET" not in kwargs["env"]
+        assert "HTTP_PROXY" not in kwargs["env"]
+        assert kwargs["env"]["OMP_THREAD_LIMIT"] == "1"
+        if "--list-langs" in arguments:
+            return SimpleNamespace(returncode=0, stdout=b"eng\nfas\n")
+        assert kwargs["env"]["HOME"] == kwargs["cwd"]
+        target = arguments[arguments.index("-l") - 1]
+        Path(target + ".txt").write_text("Invoice number: Safe-123")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(ocr.subprocess, "run", native)
+    raw, _, _ = ocr.extract(image_bytes(), "image/png")
+    assert "Safe-123" in raw

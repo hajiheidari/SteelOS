@@ -17,13 +17,27 @@ MAX_TEXT = 100000
 Image.MAX_IMAGE_PIXELS = 12000000
 
 
+def native_environment(directory=None):
+    # Native parsers need language/runtime paths, never API/DB/proxy credentials.
+    env = {"PATH": os.environ.get("PATH", os.defpath), "LC_ALL": "C.UTF-8", "OMP_THREAD_LIMIT": "1"}
+    if os.environ.get("TESSDATA_PREFIX"):
+        env["TESSDATA_PREFIX"] = os.environ["TESSDATA_PREFIX"]
+    if directory:
+        env.update(HOME=directory, TMPDIR=directory, XDG_CACHE_HOME=directory)
+    return env
+
+
 def availability():
     required = ("tesseract", "prlimit", "pdfinfo", "pdftoppm", "pdftotext")
     if not all(shutil.which(name) for name in required):
         return False
     try:
         result = subprocess.run(
-            [shutil.which("tesseract"), "--list-langs"], capture_output=True, timeout=3, check=True
+            [shutil.which("tesseract"), "--list-langs"],
+            capture_output=True,
+            env=native_environment(),
+            timeout=3,
+            check=True,
         )
         return {"fas", "eng"}.issubset(set(result.stdout.decode().splitlines()))
     except (OSError, subprocess.SubprocessError):
@@ -59,7 +73,8 @@ def extract(data, media_type):
                         command,
                         stdout=stream,
                         stderr=subprocess.DEVNULL,
-                        env={**os.environ, "OMP_THREAD_LIMIT": "1", "LC_ALL": "C.UTF-8"},
+                        env=native_environment(directory),
+                        cwd=directory,
                         timeout=remaining,
                         check=False,
                     )

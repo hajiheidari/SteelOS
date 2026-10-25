@@ -313,3 +313,7 @@ invalid/type-mismatched/4-page rejection. A separate three-case synthetic evalua
 an observed Persian decimal-separator failure; this is not a broad accuracy benchmark.
 Native tools/fas+eng data are installed in Docker/CI. Original text/history remain untrusted;
 see INVOICE_INTAKE.md for reproduction/evidence and human numeric-check requirements.
+
+A further subprocess-environment regression asserts OCR/readiness receive no DATABASE_URL,
+proxy or unrelated runtime secret, keep one OpenMP thread and use the private working/home
+folder. Actual native PNG/scanned-PDF/text-PDF tests still run, checking minimal-env compatibility.

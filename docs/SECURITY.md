@@ -180,3 +180,10 @@ This is not a hostile-file sandbox. Source binary is not retained; sensitive tex
 versions are tenant-readable and backed up under operator policy. Native output/file contents
 are absent from logs/audits/errors. OCR can lose decimal separators; human transcription review
 is explicitly not financial approval. Full details/limits/retention in INVOICE_INTAKE.md.
+
+Native OCR/readiness commands receive an explicit minimal environment (runtime path, locale,
+one OpenMP thread and optional server-configured TESSDATA_PREFIX). DATABASE_URL, proxy/auth
+credentials and unrelated runtime secrets are not inherited. Processing HOME/TMPDIR/cache/cwd
+are inside the private temporary directory. This reduces ambient credential exposure; it is
+not filesystem/network isolation or a hostile-file sandbox. A subprocess-spy regression checks
+both readiness and processing environments while real native image/PDF tests remain enabled.

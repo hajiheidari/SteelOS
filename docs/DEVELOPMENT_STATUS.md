@@ -558,3 +558,9 @@
 - هر۱۰ تست هدفمند backend موفق شد؛ PNG و PDF اسکن‌شده واقعاً OCR شدند و PDF متنی با Poppler خوانده شد. ارزیابی کوچک۳سناریویی،۲ تطبیق کامل برای فیلدهای بررسی‌شده داشت؛ در تصویر فارسی، ممیز1234.56 گم شد و123456 پیشنهاد شد. شکست در artifact حفظ شد و حدس اصلاح رقم اضافه نشد؛ بررسی عدد/ممیز با اصل فایل الزامی است و «reviewed» تأیید مالی نیست.
 - رابط فارسیِ بارگذاری/اصلاح متن/فیلد/ردیف و history در حال تست است؛ در این batch هنوز موفقیت مرورگر OCR ادعا نمی‌شود. TypeScript/build و اجرای کامل۲۱۰ backend passed با۲ opt-in skipped موفق شدند. سپس تست رقابت دو ویرایشگر افزوده شد و هر۱۱ تست هدفمند موفق شدند. pip-audit بدون آسیب‌پذیری و ساخت image API موفق بود؛ OCR واقعی داخل container تازه و بدون شبکه نیز شمارهٔ نمونه12345 را درست خواند. migration upgrade/check روی DB _test موفق و بدون drift بود. هشدار قبلی Starlette/httpx باقی است.
 - محدودیت: parser محدود به labelهای صریح و جدول pipe است؛ جدول عمومی/دست‌نویس/استخراج دقیق همهٔ قالب‌ها یا آمادگی production ادعا نمی‌شود. فایل اصلی آرشیو نمی‌شود؛ retention/legal compliance/اتصال مالی آینده نیازمند قواعد مستقل‌اند. main/merge/public deployment/paid services/پیام بیرونی تغییر نکردند. automation قبلی تا پایان تعریف/آزمون این دامنه هنوز pause است.
+
+### کاهش credentialهای محیط فرایند بومی OCR
+
+- پس از commit backend dee7a9a و CI موفق40170672796، محیط native OCR/readiness به allowlist محدود شد؛ DATABASE_URL، proxy/auth و secretهای نامرتبط منتقل نمی‌شوند. HOME/TMPDIR/cache/cwd پردازش داخل پوشهٔ موقت خصوصی‌اند؛ این به معنی sandbox کامل OS نیست.
+- تست مستقل محیط subprocess افزوده شد؛ اجرای کامل نهایی۲۱۲ backend passed و۲ opt-in skipped موفق شد و استخراج واقعی PNG/PDF با محیط محدود هم کار کرد. snapshot schema/مجوز مالی تغییر نکرد؛ هشدار قبلی Starlette/httpx باقی است.
+- رابطِ درحال‌توسعه نیز هر۲۸ تست production-browser را محلی پاس کرده است؛ ثبت/CI مستقل آن در batch بعد انجام می‌شود. backend tests و browser روی DB _test به‌ترتیب و بدون تداخل اجرا شدند. provider موقت مرورگر پس از تست متوقف شد.

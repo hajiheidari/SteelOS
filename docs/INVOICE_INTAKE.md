@@ -109,3 +109,8 @@ The local executor lacked root/apt indexes; for this test only, official tessdat
 fas.traineddata was placed in a temporary TESSDATA_PREFIX alongside the existing eng data.
 SHA256:db1c0a91208aff00d3cf1ed2c1d23f76419afd5f024688b4f71adc3f2ce4a505.
 Nothing was committed from model/language binaries. Docker/CI use OS packages instead.
+
+Native command environments are allowlisted; database/proxy/auth secrets are not inherited.
+Working/home/temp/cache directories point to the private temporary workspace during processing.
+Native readiness uses the same environment restriction. These controls do not turn native
+parsers into a hardened hostile-file sandbox; OS/package maintenance remains necessary.
