@@ -276,3 +276,9 @@ set membership in matching tenant product IDs instead of correlated EXISTS. Both
 experiments asserted the same counts/page sizes/tenant identity and verified rollback;
 artifacts and measured limits are in CATALOG_SEARCH_PERFORMANCE.md. No wall-clock performance
 gate was added to CI; semantic regressions remain the automated correctness gate.
+
+Selected query05dd1f3 passed both PR CI jobs40153054219. Actual job logs confirm189
+backend passed,2 actual-model opt-in skips and26 production desktop/mobile browser passed;
+clean migration/model drift, Ruff/format, TypeScript/build and pip/npm audits passed. The
+isolated local full run also passed189 with2 skips. Provider/grammar were unchanged and
+actual-model extraction was not rerun. Query-only artifacts are not API/concurrent-load evidence.
