@@ -629,3 +629,5 @@
 - TypeScript/build و هر دو تست هدفمند production desktop/mobile موفق‌اند؛ انتخاب طرف غیرفعال بدون پیگیری→فهرست خالی، طرف دارای پیگیری→نمایش و پاک‌کردن فیلتر با API واقعی آزموده شد. CI کامل پس از push بررسی می‌شود؛ backend تغییری نکرده است.
 - محیط تازه DB فعال نداشت. فقط PostgreSQL موقتِ همین تست با دادهٔ tmpfs ساخته و سپس حذف شد؛ فرایند API موقت متوقف شد. build اول با ENOSPC شکست خورد؛ .next به /tmp منتقل و وابستگی‌های Node برای آن resolve شدند، سپس build موفق شد. symlink موقت از workspace حذف شد؛ این کار تغییر محصول نیست و هیچ volume/image نامرتبط پاک نشد. ظرفیت root هنوز محدود است.
 - نمونهٔ فاکتور طبق F-001 برای آینده باقی است؛ main/merge/public deployment/سرویس پولی تغییر نکرده‌اند.
+
+- تأیید نهایی کد `2acf45511dc01a4100e44510e52abdba69d264a3`: [CI40409855289](https://github.com/hajiheidari/SteelOS/actions/runs/40409855289) کامل موفق؛۲۲۴ backend passed،۲ opt-in skipped،۳۰ تست production مرورگر desktop/mobile، migration/model drift، Ruff/format، TypeScript/build و بررسی وابستگی‌ها موفق‌اند. هشدار قبلی Starlette/httpx باقی است. شاخه و PR #1 به‌روزند؛ آمادگی کل محصول/production یا دقت عمومی OCR ادعا نمی‌شود.
