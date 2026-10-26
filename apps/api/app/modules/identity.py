@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Annotated
 from uuid import UUID
 
 from app import models as m
@@ -153,7 +154,7 @@ def refresh(ctx: Context = Depends(context), db: Session = Depends(database)):
 def members(
     offset: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
-    q: str = Query("", max_length=200),
+    q: Annotated[s.StoredText, Query(max_length=200)] = "",
     ctx: Context = Depends(context),
     db: Session = Depends(database),
 ):

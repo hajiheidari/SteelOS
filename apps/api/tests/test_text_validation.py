@@ -184,3 +184,53 @@ def test_invalid_login_unicode_rejected_before_password_verification(world, monk
     )
     assert result.status_code == 422 and "Private" not in result.text
     assert counts() == before
+
+
+@pytest.mark.parametrize(
+    "endpoint,parameter",
+    [
+        ("products", "q"),
+        ("parties", "q"),
+        ("warehouses", "q"),
+        ("crm-follow-ups", "q"),
+        ("inventory/lots", "q"),
+        ("inventory/drafts", "q"),
+        ("inventory/entries", "q"),
+        ("inventory/reservations", "q"),
+        ("sales-drafts", "q"),
+        ("organization/members", "q"),
+        ("products", "unit"),
+        ("parties", "kind"),
+        ("price-observations", "status"),
+        ("inventory/drafts", "status"),
+    ],
+)
+def test_query_text_rejected_before_sql_binding(world, endpoint, parameter):
+    from sqlalchemy import event
+
+    client, tokens, *_ = world
+    bound_invalid = []
+
+    def observe(connection, cursor, statement, parameters, context, executemany):
+        values = parameters.values() if isinstance(parameters, dict) else parameters
+        if any(isinstance(value, str) and "\x00" in value for value in values):
+            bound_invalid.append(statement)
+
+    before = counts()
+    event.listen(engine(), "before_cursor_execute", observe)
+    try:
+        result = client.get(
+            "/api/v1/" + endpoint, headers=tokens[0], params={parameter: "Private\x00value"}
+        )
+        assert result.status_code == 422 and "Private" not in result.text
+        assert not bound_invalid
+        if parameter == "q" and endpoint not in ("inventory/entries", "inventory/reservations"):
+            assert (
+                client.get(
+                    "/api/v1/" + endpoint, headers=tokens[0], params={"q": "فارسی%_😀"}
+                ).status_code
+                == 200
+            )
+    finally:
+        event.remove(engine(), "before_cursor_execute", observe)
+    assert counts() == before

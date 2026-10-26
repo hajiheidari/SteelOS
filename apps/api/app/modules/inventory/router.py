@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from app import models as m
@@ -6,6 +7,7 @@ from app.modules.inventory import service as domain
 from app.modules.inventory.presentation import describe
 from app.modules.inventory.schemas import DraftInput, LotInput
 from app.modules.resources import audit, get_row, scoped, serialize
+from app.schemas import StoredText
 from app.security import Context, authorize_write, context
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy import case, func, or_, select
@@ -111,8 +113,8 @@ def register_list(path, model):
         lot_id: UUID | None = None,
         product_id: UUID | None = None,
         warehouse_id: UUID | None = None,
-        status: str | None = None,
-        q: str = Query("", max_length=200),
+        status: StoredText | None = None,
+        q: Annotated[StoredText, Query(max_length=200)] = "",
         remaining_only: bool = False,
         unexpired_only: bool = False,
         reversible_only: bool = False,

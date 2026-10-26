@@ -281,3 +281,7 @@ Persisted free-text fields in foundation, inventory, sales and invoice schemas r
 and isolated Unicode surrogates with422 before writes. Valid Persian/ZWNJ/emoji/multiline
 text stays supported. Password validation checks UTF-8 encodability separately and preserves
 exact whitespace and other previously allowed characters; it does not apply stored-text stripping.
+
+Free-text q queries in resource, inventory, internal-sales and organization-member lists,
+and free-text unit/kind/role/status filters, reject NUL before SQL parameter binding.
+Existing supported-search rules, literal wildcard escaping and authorization remain unchanged.

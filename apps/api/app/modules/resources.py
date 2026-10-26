@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import Annotated
 from uuid import UUID
 
 from app import models as m
@@ -258,7 +259,7 @@ def register(resource, model, schema):
     admin_write = model in (m.Warehouse, m.WarehouseAccess, m.PriceSource, m.Reference)
 
     def list_records(
-        q: str = Query("", max_length=200),
+        q: Annotated[s.StoredText, Query(max_length=200)] = "",
         offset: int = Query(0, ge=0),
         limit: int = Query(25, ge=1, le=100),
         sort: str = Query("created_at"),
@@ -267,13 +268,13 @@ def register(resource, model, schema):
         manufacturer_id: UUID | None = None,
         grade_id: UUID | None = None,
         standard_id: UUID | None = None,
-        unit: str | None = None,
+        unit: s.StoredText | None = None,
         active: bool | None = None,
-        kind: str | None = None,
-        role: str | None = None,
+        kind: s.StoredText | None = None,
+        role: s.StoredText | None = None,
         product_id: UUID | None = None,
         warehouse_id: UUID | None = None,
-        status: str | None = None,
+        status: s.StoredText | None = None,
         attributes: str | None = Query(
             None,
             min_length=2,

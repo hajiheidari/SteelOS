@@ -654,3 +654,9 @@
 - PasswordText جدا فقط Unicode نامعتبر را رد و whitespace/نویسه‌های مجاز قبلی رمز را دقیق حفظ می‌کند. تست جدید، strip ناخواسته در نسخهٔ اولیهٔ همین refactor را پیدا کرد؛ پیش از commit اصلاح و آزموده شد. از این خطای گذرای توسعه، رفتار baseline استنتاج نمی‌شود.
 - هر۳۶ تست هدفمند متن/فاکتور موفق شدند: create/update، عدم تغییر business/audit/idempotency، مصرف‌نشدن کلید، پاسخ redacted، یادداشت‌های transaction و جلوگیری از ورود رمز نامعتبر به hasher. اجرای کامل با container صریح و OCR واقعی۲۵۷ passed/۲ opt-in skipped شد؛ restore واقعی هم در همین اجرا موفق بود. Ruff/format موفق‌اند؛ هشدار قبلی Starlette/httpx باقی است.
 - پایگاه موقت این اجرا حذف شد؛ CI ترکیبی پس از آخرین batch بررسی می‌شود. migration/UI/قواعد مالی یا اختیار جدید agent اضافه نشده است. نمونهٔ فاکتور هنوز F-001 تعویق‌شده و غیرمسدودکننده است.
+
+### رد متن نامعتبر در جست‌وجو پیش از SQL — 2026-10-27
+
+- نقص با درخواست واقعی products?q=NUL بازتولید شد: پیش از اصلاح503 برمی‌گشت. q در فهرست منابع/انبار/فروش/اعضا و فیلترهای آزاد unit/kind/role/status اکنون از StoredText استفاده می‌کنند و422 می‌دهند. ترتیب sort، escaping، pagination و مجوز تغییر نکرده‌اند.
+- در نسخهٔ فعلی FastAPI، شکل q: Alias = Query اعتبارسنج BeforeValidator نوع را حفظ نمی‌کرد؛ تست واقعی این را نشان داد. q با Annotated[StoredText, Query(...)] تعریف شد و نتیجهٔ واقعی سنجیده شد. چهارده regression مسیرها را پوشش می‌دهند و با before_cursor_execute نبود NUL در bindهای SQL را بررسی می‌کنند؛ جست‌وجوی معتبر فارسی/wildcard/emoji نیز حفظ است. جست‌وجوی entries/reservations همچنان طبق قرارداد قبلی unsupported است.
+- هر۱۴ تست هدفمند و اجرای کامل ترکیبی۲۷۱ passed/۲ opt-in skipped، شامل native OCR و restore واقعی موفق شدند؛ Ruff/format موفق‌اند و هشدار قبلی Starlette/httpx باقی است. پایگاه موقت حذف شد. CI نهایی بعد از push بررسی می‌شود.

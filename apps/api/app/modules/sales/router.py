@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from app import models as m
@@ -6,6 +7,7 @@ from app.idempotency import finish, replay
 from app.modules.resources import audit, scoped, serialize
 from app.modules.sales import service
 from app.modules.sales.schemas import CancelInput, DraftInput, DraftUpdate, ReviewInput
+from app.schemas import StoredText
 from app.security import Context, authorize_write, context
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, or_, select
@@ -116,7 +118,7 @@ def cancel(
 def list_drafts(
     offset: int = Query(0, ge=0),
     limit: int = Query(25, ge=1, le=100),
-    q: str = Query("", max_length=200),
+    q: Annotated[StoredText, Query(max_length=200)] = "",
     status: str | None = Query(None, pattern="^(draft|cancelled)$"),
     ctx: Context = Depends(context),
     db: Session = Depends(database),
