@@ -11,23 +11,32 @@ def exact(value):
     return value
 
 
+def database_text(value):
+    if isinstance(value, str) and "\x00" in value:
+        raise ValueError("NUL characters are not supported")
+    return value
+
+
+DocumentText = Annotated[str, BeforeValidator(database_text)]
+
+
 Amount = Annotated[Decimal, Field(ge=0, max_digits=30, decimal_places=2), BeforeValidator(exact)]
 Quantity = Annotated[Decimal, Field(gt=0, max_digits=20, decimal_places=6), BeforeValidator(exact)]
 Rate = Annotated[Decimal, Field(ge=0, max_digits=24, decimal_places=6), BeforeValidator(exact)]
-Label = Annotated[str, Field(min_length=1, max_length=200)]
+Label = Annotated[DocumentText, Field(min_length=1, max_length=200)]
 
 
 class InvoiceLine(Input):
-    description: Annotated[str, Field(min_length=1, max_length=500)]
+    description: Annotated[DocumentText, Field(min_length=1, max_length=500)]
     quantity: Quantity | None = None
-    unit: Annotated[str, Field(max_length=40)] | None = None
+    unit: Annotated[DocumentText, Field(max_length=40)] | None = None
     unit_price: Rate | None = None
     line_total: Amount | None = None
 
 
 class InvoiceFields(Input):
-    invoice_number: Annotated[str, Field(min_length=1, max_length=100)] | None = None
-    invoice_date_text: Annotated[str, Field(min_length=1, max_length=100)] | None = None
+    invoice_number: Annotated[DocumentText, Field(min_length=1, max_length=100)] | None = None
+    invoice_date_text: Annotated[DocumentText, Field(min_length=1, max_length=100)] | None = None
     seller_name: Label | None = None
     buyer_name: Label | None = None
     currency: Literal["IRR", "IRT", "USD", "EUR"] | None = None
@@ -39,6 +48,6 @@ class InvoiceFields(Input):
 
 class IntakeUpdate(Input):
     expected_version: Annotated[int, Field(ge=1, strict=True)]
-    corrected_text: Annotated[str, Field(max_length=100000)]
+    corrected_text: Annotated[DocumentText, Field(max_length=100000)]
     fields: InvoiceFields
     mark_reviewed: Annotated[bool, Field(strict=True)] = False

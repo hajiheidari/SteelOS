@@ -140,3 +140,7 @@ container. A local executor check without tmpfs failed from an almost-full conta
 filesystem; that failed attempt is not success evidence. No PostgreSQL volume was pruned.
 Temporary-storage/native I/O failures return a sanitized retryable503 and create no intake;
 an injected full-disk regression checks that private paths do not escape in the error.
+
+NUL characters are rejected in extracted text and human text/field/line corrections with422,
+before persistence. They are not silently removed from source evidence. Rejected requests
+do not consume the idempotency key; a corrected request may reuse it.

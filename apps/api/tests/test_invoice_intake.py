@@ -388,3 +388,52 @@ def test_native_temporary_storage_failure_is_sanitized_and_retryable(monkeypatch
         ocr.extract(b"image", "image/png")
     assert failure.value.status_code == 503
     assert "synthetic-private-path" not in failure.value.detail
+
+
+@pytest.mark.parametrize("field", ["corrected_text", "seller_name", "description"])
+def test_invoice_nul_corrections_rejected_without_revision_or_key_consumption(world, intake, field):
+    client, tokens, *_ = world
+    payload = {
+        "expected_version": 1,
+        "corrected_text": "Valid",
+        "fields": {"seller_name": "Valid", "lines": [{"description": "Valid"}]},
+    }
+    import copy
+
+    bad = copy.deepcopy(payload)
+    if field == "corrected_text":
+        bad[field] = "Private\x00text"
+    elif field == "description":
+        bad["fields"]["lines"][0][field] = "Private\x00text"
+    else:
+        bad["fields"][field] = "Private\x00text"
+    path = "/api/v1/invoice-intakes/" + intake["id"]
+    headers = {**tokens[0], "Idempotency-Key": "nul-correction"}
+    models = (m.InvoiceIntakeRevision, m.AuditEvent, m.IdempotencyRecord)
+    with Session(engine()) as db:
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)
+    result = client.put(path, headers=headers, json=bad)
+    assert result.status_code == 422
+    assert "Private" not in result.text
+    assert client.get(path, headers=tokens[0]).json() == intake
+    with Session(engine()) as db:
+        assert (
+            tuple(db.scalar(select(func.count()).select_from(model)) for model in models) == before
+        )
+    assert client.put(path, headers=headers, json=payload).status_code == 200
+
+
+def test_invoice_nul_extraction_rejected_without_records(world, monkeypatch):
+    client, tokens, *_ = world
+    monkeypatch.setattr(ocr, "extract", lambda *args: ("Private\x00text", 1, "test-fixture"))
+    models = (m.InvoiceIntake, m.InvoiceIntakeRevision, m.AuditEvent, m.IdempotencyRecord)
+    with Session(engine()) as db:
+        before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)
+    result = upload(client, tokens[0], key="nul-extract")
+    assert result.status_code == 422 and "Private" not in result.text
+    with Session(engine()) as db:
+        assert (
+            tuple(db.scalar(select(func.count()).select_from(model)) for model in models) == before
+        )
+    monkeypatch.setattr(ocr, "extract", lambda *args: (TEXT, 1, "test-fixture"))
+    assert upload(client, tokens[0], key="nul-extract").status_code == 201

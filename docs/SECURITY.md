@@ -31,7 +31,8 @@ No public deployment authorized. Before production: TLS/host/origin configuratio
 restore drills, database least privilege, audit export/immutable storage, proxy rate limiting,
 monitoring, recovery process, penetration review and password recovery policy. Login throttling
 can be abused to temporarily lock a known email; stronger edge controls/MFA can follow real needs.
-No uploads, paid AI, external scraping, email messaging, tax filing or automatic financial posting.
+Uploads are limited to the approved local invoice-transcription module described below.
+No paid AI, external scraping, email messaging, tax filing or automatic financial posting.
 No RLS policy is claimed: tenant isolation uses domain authorization plus composite FKs.
 Database operators remain privileged; API audit history has no write endpoints but DB superusers
 can modify tables. Role grants and source approval require authenticated administrators.
@@ -193,3 +194,7 @@ bound streamed bytes. It preserves exact-origin checks and HttpOnly server-side 
 image preview uses revocable Blob URLs only for the selected intake's matching source hash;
 no PDF embedding or browser storage persistence is introduced. CSP allows blob: only for
 images. Historical forms are read-only; backend version/role/scope checks remain authoritative.
+
+Invoice OCR output and human transcription text reject NUL characters before persistence;
+source evidence is not silently stripped or rewritten. Invalid corrections return422 without
+new revisions/audit/idempotency writes; ordinary valid Unicode remains supported.

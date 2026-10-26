@@ -120,6 +120,8 @@ async def extract(
     if prior:
         record(db, ctx, UUID(prior["id"]))
         return prior
+    if "\x00" in raw:
+        raise HTTPException(422, "Extracted text contains unsupported NUL characters")
     extraction = propose(raw)
     row = InvoiceIntake(
         organization_id=ctx.organization_id,
