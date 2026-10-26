@@ -31,6 +31,12 @@ UI and native/API/desktop/mobile tests. It is separate from financial sales/stoc
 limits and delivery status are in INVOICE_INTAKE.md and DEVELOPMENT_STATUS.md.
 
 The founder explicitly deferred unavailable invoice samples; FOUNDER_INPUTS.md tracks them as
-future input, not a blocker for independent development. The next limited extension implements
-manual CRM follow-ups (CRM_FOLLOW_UPS.md), using the existing platform; accounting/financial
+future input, not a blocker for independent development. Manual CRM follow-ups and their
+party/status/overdue workspace filters are implemented (CRM_FOLLOW_UPS.md); accounting/financial
 issuance, outbound communication and writable agents remain outside this delivery.
+
+A synthetic PostgreSQL custom-archive recovery drill, including corruption/mismatch cleanup
+regressions, is implemented in CI (BACKUP_RESTORE.md). Operational backup policies, off-host
+retention, role/ACL restoration and production recovery acceptance remain future work.
+The accounting reference-process input is tracked as F-002 in FOUNDER_INPUTS.md for parallel
+reconciliation design; it does not authorize a financial posting engine or tax integration.

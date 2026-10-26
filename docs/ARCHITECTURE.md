@@ -128,3 +128,11 @@ inline in worker threads with two per-worker slots, no queue/new service or paid
 Original file lifetime is temporary; document text/candidates/history persist in PostgreSQL.
 No invoice-intake dependency writes into sales, stock, approved prices or accounting. A human
 transcription review is a distinct editorial state. See INVOICE_INTAKE.md for exact boundaries.
+
+Manual CRM follow-ups use the existing organization-scoped generic resource module, with
+UTC due times and a read-time overdue projection; no worker, messaging or agent write tool.
+Stored text validation is shared by core/inventory/sales/invoice schemas; password text has
+a separate whitespace-preserving Unicode guard. Query validators use Annotated query metadata
+to ensure FastAPI retains the validator before SQL binding. No persistence schema change.
+The synthetic backup/restore test uses PostgreSQL's own tools only in disposable local/CI
+containers; it is test orchestration, not a new deployed service.
