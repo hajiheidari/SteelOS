@@ -13,6 +13,7 @@ from app.modules.invoices.models import InvoiceIntake, InvoiceIntakeRevision
 from app.modules.invoices.parser import propose
 from app.modules.invoices.schemas import IntakeUpdate
 from app.modules.resources import audit, scoped, serialize
+from app.schemas import database_text
 from app.security import Context, authorize_write, bearer, context, permit
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from sqlalchemy import func, select
@@ -120,8 +121,10 @@ async def extract(
     if prior:
         record(db, ctx, UUID(prior["id"]))
         return prior
-    if "\x00" in raw:
-        raise HTTPException(422, "Extracted text contains unsupported NUL characters")
+    try:
+        database_text(raw)
+    except ValueError:
+        raise HTTPException(422, "Extracted text contains unsupported characters") from None
     extraction = propose(raw)
     row = InvoiceIntake(
         organization_id=ctx.organization_id,

@@ -13,8 +13,27 @@ from pydantic import (
     model_validator,
 )
 
-Text = Annotated[str, Field(min_length=1, max_length=200)]
-Code = Annotated[str, Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")]
+
+def utf8_text(value):
+    if isinstance(value, str):
+        try:
+            value.encode("utf-8")
+        except UnicodeEncodeError as exc:
+            raise ValueError("Valid Unicode text required") from exc
+    return value
+
+
+def database_text(value):
+    utf8_text(value)
+    if isinstance(value, str) and "\x00" in value:
+        raise ValueError("NUL characters are not supported")
+    return value
+
+
+PasswordText = Annotated[str, StringConstraints(strip_whitespace=False), BeforeValidator(utf8_text)]
+StoredText = Annotated[str, BeforeValidator(database_text)]
+Text = Annotated[StoredText, Field(min_length=1, max_length=200)]
+Code = Annotated[StoredText, Field(min_length=1, max_length=80, pattern=r"^[A-Za-z0-9_.-]+$")]
 Unit = Literal["kg", "tonne", "piece", "m", "m2"]
 
 
@@ -41,20 +60,16 @@ class TaxPolicyUpdate(Input):
 
 
 class Login(Input):
-    email: Annotated[str, Field(min_length=3, max_length=254)]
-    password: Annotated[
-        str, StringConstraints(strip_whitespace=False), Field(min_length=1, max_length=128)
-    ]
+    email: Annotated[StoredText, Field(min_length=3, max_length=254)]
+    password: Annotated[PasswordText, Field(min_length=1, max_length=128)]
     organization_id: UUID
 
 
 class NewMember(Input):
     email: Annotated[
-        str, Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+        StoredText, Field(min_length=3, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
     ]
-    password: Annotated[
-        str, StringConstraints(strip_whitespace=False), Field(min_length=12, max_length=128)
-    ]
+    password: Annotated[PasswordText, Field(min_length=12, max_length=128)]
     role: Literal["admin", "editor", "viewer"]
 
 
@@ -103,7 +118,7 @@ class ProductInput(Input):
 class IdentifierInput(Input):
     product_id: UUID
     kind: Annotated[Code, Field(max_length=30)]
-    value: Annotated[str, Field(min_length=1, max_length=100)]
+    value: Annotated[StoredText, Field(min_length=1, max_length=100)]
 
 
 class Contact(Input):
@@ -113,15 +128,15 @@ class Contact(Input):
 
 
 class Address(Input):
-    city: Annotated[str, Field(min_length=1, max_length=100)]
-    address: Annotated[str, Field(min_length=1, max_length=1000)]
-    postal_code: Annotated[str, Field(max_length=20)] = ""
+    city: Annotated[StoredText, Field(min_length=1, max_length=100)]
+    address: Annotated[StoredText, Field(min_length=1, max_length=1000)]
+    postal_code: Annotated[StoredText, Field(max_length=20)] = ""
 
 
 class PartyInput(Input):
     name: Text
     kind: Literal["individual", "legal_entity"]
-    registration_id: Annotated[str, Field(min_length=1, max_length=30)] | None = None
+    registration_id: Annotated[StoredText, Field(min_length=1, max_length=30)] | None = None
     roles: Annotated[list[Literal["customer", "supplier"]], Field(min_length=1, max_length=2)]
     contacts: list[Contact] = Field(default_factory=list, max_length=30)
     addresses: list[Address] = Field(default_factory=list, max_length=30)
@@ -136,8 +151,8 @@ class PartyInput(Input):
 class WarehouseInput(Input):
     code: Annotated[Code, Field(max_length=40)]
     name: Text
-    city: Annotated[str, Field(min_length=1, max_length=100)]
-    address: Annotated[str, Field(min_length=1, max_length=1000)]
+    city: Annotated[StoredText, Field(min_length=1, max_length=100)]
+    address: Annotated[StoredText, Field(min_length=1, max_length=1000)]
     active: bool = True
 
 
@@ -158,7 +173,7 @@ class SourceInput(Input):
     code: Code
     name: Text
     kind: Literal["manual", "mock"]
-    provenance: Annotated[str, Field(min_length=1, max_length=2000)]
+    provenance: Annotated[StoredText, Field(min_length=1, max_length=2000)]
     approved: bool = False
 
 
@@ -170,10 +185,10 @@ class PriceInput(Input):
     unit: Unit
     observed_at: datetime
     valid_until: datetime
-    delivery_location: Annotated[str, Field(min_length=1, max_length=500)]
-    delivery_terms: Annotated[str, Field(min_length=1, max_length=1000)]
+    delivery_location: Annotated[StoredText, Field(min_length=1, max_length=500)]
+    delivery_terms: Annotated[StoredText, Field(min_length=1, max_length=1000)]
     tax_included: bool
-    provenance: Annotated[str, Field(min_length=1, max_length=2000)]
+    provenance: Annotated[StoredText, Field(min_length=1, max_length=2000)]
 
     @field_validator("amount", mode="before")
     @classmethod
@@ -213,12 +228,8 @@ class OrganizationUpdate(Input):
 
 
 class PasswordUpdate(Input):
-    current_password: Annotated[
-        str, StringConstraints(strip_whitespace=False), Field(min_length=1, max_length=128)
-    ]
-    new_password: Annotated[
-        str, StringConstraints(strip_whitespace=False), Field(min_length=12, max_length=128)
-    ]
+    current_password: Annotated[PasswordText, Field(min_length=1, max_length=128)]
+    new_password: Annotated[PasswordText, Field(min_length=12, max_length=128)]
 
 
 class RoleUpdate(Input):
@@ -231,7 +242,7 @@ class FollowUpInput(Input):
     kind: Literal["call", "meeting", "document", "other"] = "call"
     due_at: datetime
     status: Literal["open", "completed", "cancelled"] = "open"
-    notes: Annotated[str, Field(max_length=1000)] = ""
+    notes: Annotated[StoredText, Field(max_length=1000)] = ""
 
     @field_validator("due_at")
     @classmethod

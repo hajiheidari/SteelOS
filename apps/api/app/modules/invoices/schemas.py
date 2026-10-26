@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from app.schemas import Input
+from app.schemas import Input, StoredText
 from pydantic import BeforeValidator, Field
 
 
@@ -11,14 +11,7 @@ def exact(value):
     return value
 
 
-def database_text(value):
-    if isinstance(value, str) and "\x00" in value:
-        raise ValueError("NUL characters are not supported")
-    return value
-
-
-DocumentText = Annotated[str, BeforeValidator(database_text)]
-
+DocumentText = StoredText
 
 Amount = Annotated[Decimal, Field(ge=0, max_digits=30, decimal_places=2), BeforeValidator(exact)]
 Quantity = Annotated[Decimal, Field(gt=0, max_digits=20, decimal_places=6), BeforeValidator(exact)]

@@ -276,3 +276,8 @@ active-party transitions, deletion/full-replacement semantics and explicit absen
 
 UTC conversion of price observed_at/valid_until and inventory draft expires_at rejects
 datetime overflow with422 before domain writes, like CRM follow-up due_at.
+
+Persisted free-text fields in foundation, inventory, sales and invoice schemas reject NUL
+and isolated Unicode surrogates with422 before writes. Valid Persian/ZWNJ/emoji/multiline
+text stays supported. Password validation checks UTF-8 encodability separately and preserves
+exact whitespace and other previously allowed characters; it does not apply stored-text stripping.

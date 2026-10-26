@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from app.schemas import Code, Input, TaxRate
+from app.schemas import Code, Input, StoredText, TaxRate
 from pydantic import Field, field_validator, model_validator
 
 
@@ -23,7 +23,7 @@ class DraftInput(Input):
     customer_id: UUID
     currency: Literal["IRR", "IRT", "USD", "EUR"]
     tax_rate_percent: TaxRate | None = None
-    note: Annotated[str, Field(max_length=2000)] = ""
+    note: Annotated[StoredText, Field(max_length=2000)] = ""
     lines: Annotated[list[LineInput], Field(min_length=1, max_length=100)]
 
     @model_validator(mode="after")
@@ -44,7 +44,7 @@ class CancelInput(Input):
 class ReviewInput(Input):
     expected_version: Annotated[int, Field(ge=1, strict=True)]
     decision: Literal["accepted", "rejected"]
-    note: Annotated[str, Field(max_length=2000)] = ""
+    note: Annotated[StoredText, Field(max_length=2000)] = ""
 
     @model_validator(mode="after")
     def rejection_reason(self):

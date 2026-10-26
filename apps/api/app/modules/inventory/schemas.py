@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from app.schemas import Code, Input, Text, Unit
+from app.schemas import Code, Input, StoredText, Text, Unit
 from pydantic import Field, field_validator, model_validator
 
 Quantity = Annotated[Decimal, Field(gt=0, max_digits=20, decimal_places=3)]
@@ -44,7 +44,7 @@ class DraftInput(Input):
     reverses_id: UUID | None = None
     expires_at: datetime | None = None
     reference: Text
-    note: Annotated[str, Field(max_length=1000)] = ""
+    note: Annotated[StoredText, Field(max_length=1000)] = ""
 
     @field_validator("quantity", mode="before")
     @classmethod

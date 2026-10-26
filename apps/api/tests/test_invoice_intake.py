@@ -1,4 +1,5 @@
 import io
+import json
 from uuid import UUID
 
 import pytest
@@ -390,8 +391,9 @@ def test_native_temporary_storage_failure_is_sanitized_and_retryable(monkeypatch
     assert "synthetic-private-path" not in failure.value.detail
 
 
+@pytest.mark.parametrize("invalid", ["Private\x00text", "Private\ud800text"])
 @pytest.mark.parametrize("field", ["corrected_text", "seller_name", "description"])
-def test_invoice_nul_corrections_rejected_without_revision_or_key_consumption(world, intake, field):
+def test_invoice_invalid_text_corrections_rejected_without_writes(world, intake, field, invalid):
     client, tokens, *_ = world
     payload = {
         "expected_version": 1,
@@ -402,17 +404,21 @@ def test_invoice_nul_corrections_rejected_without_revision_or_key_consumption(wo
 
     bad = copy.deepcopy(payload)
     if field == "corrected_text":
-        bad[field] = "Private\x00text"
+        bad[field] = invalid
     elif field == "description":
-        bad["fields"]["lines"][0][field] = "Private\x00text"
+        bad["fields"]["lines"][0][field] = invalid
     else:
-        bad["fields"][field] = "Private\x00text"
+        bad["fields"][field] = invalid
     path = "/api/v1/invoice-intakes/" + intake["id"]
     headers = {**tokens[0], "Idempotency-Key": "nul-correction"}
     models = (m.InvoiceIntakeRevision, m.AuditEvent, m.IdempotencyRecord)
     with Session(engine()) as db:
         before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)
-    result = client.put(path, headers=headers, json=bad)
+    result = client.put(
+        path,
+        headers={**headers, "Content-Type": "application/json"},
+        content=json.dumps(bad, ensure_ascii=True).encode("ascii"),
+    )
     assert result.status_code == 422
     assert "Private" not in result.text
     assert client.get(path, headers=tokens[0]).json() == intake
@@ -423,9 +429,10 @@ def test_invoice_nul_corrections_rejected_without_revision_or_key_consumption(wo
     assert client.put(path, headers=headers, json=payload).status_code == 200
 
 
-def test_invoice_nul_extraction_rejected_without_records(world, monkeypatch):
+@pytest.mark.parametrize("invalid", ["Private\x00text", "Private\ud800text"])
+def test_invoice_invalid_extraction_text_rejected_without_records(world, monkeypatch, invalid):
     client, tokens, *_ = world
-    monkeypatch.setattr(ocr, "extract", lambda *args: ("Private\x00text", 1, "test-fixture"))
+    monkeypatch.setattr(ocr, "extract", lambda *args: (invalid, 1, "test-fixture"))
     models = (m.InvoiceIntake, m.InvoiceIntakeRevision, m.AuditEvent, m.IdempotencyRecord)
     with Session(engine()) as db:
         before = tuple(db.scalar(select(func.count()).select_from(model)) for model in models)

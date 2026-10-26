@@ -201,3 +201,7 @@ new revisions/audit/idempotency writes; ordinary valid Unicode remains supported
 
 A synthetic pg_dump/pg_restore drill is implemented in BACKUP_RESTORE.md and CI. It verifies
 data and selected restored controls on disposable databases, not production backup readiness.
+
+StoredText validators reject NUL and invalid UTF-8 Unicode input before PostgreSQL writes,
+including nested contact/invoice fields and transaction notes. Passwords use a separate
+Unicode validator with strip_whitespace=false; credentials are never silently normalized.
