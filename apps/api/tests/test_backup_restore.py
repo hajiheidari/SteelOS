@@ -3,6 +3,7 @@
 import os
 import re
 import subprocess
+import sys
 from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
@@ -102,10 +103,7 @@ def test_restore_drill_rejects_non_disposable_names(name):
         checked_target(make_url("postgresql+psycopg://localhost/" + name), "test-postgres")
 
 
-@pytest.mark.skipif(
-    not os.environ.get("POSTGRES_TEST_CONTAINER"), reason="Explicit local test container required"
-)
-def test_synthetic_postgres_custom_archive_restore(world, catalog, monkeypatch, tmp_path):
+def run_restore_drill(world, catalog, monkeypatch, tmp_path):
     client, tokens, orgs, _ = world
     source = engine()
     container = os.environ["POSTGRES_TEST_CONTAINER"]
@@ -378,3 +376,72 @@ def test_synthetic_postgres_custom_archive_restore(world, catalog, monkeypatch, 
         finally:
             admin.dispose()
             archive.unlink(missing_ok=True)
+
+
+requires_container = pytest.mark.skipif(
+    not os.environ.get("POSTGRES_TEST_CONTAINER"), reason="Explicit local test container required"
+)
+
+
+@requires_container
+def test_synthetic_postgres_custom_archive_restore(world, catalog, monkeypatch, tmp_path):
+    run_restore_drill(world, catalog, monkeypatch, tmp_path)
+
+
+@requires_container
+def test_restore_drill_corrupt_archive_cleans_destination_and_preserves_source(
+    world, catalog, monkeypatch, tmp_path
+):
+    original = docker
+    state = {}
+
+    def corrupt(container, arguments, **streams):
+        if arguments[0] == "pg_restore":
+            state["target"] = arguments[arguments.index("-d") + 1]
+            state["source"] = rows(engine())
+            archive = tmp_path / "synthetic.dump"
+            assert archive.stat().st_mode & 0o777 == 0o600
+            archive.write_bytes(b"synthetic corrupt archive")
+        return original(container, arguments, **streams)
+
+    monkeypatch.setattr(sys.modules[__name__], "docker", corrupt)
+    with pytest.raises(subprocess.CalledProcessError):
+        run_restore_drill(world, catalog, monkeypatch, tmp_path)
+    assert rows(engine()) == state["source"]
+    with engine().connect() as connection:
+        assert (
+            connection.scalar(
+                text("SELECT count(*) FROM pg_database WHERE datname=:name"),
+                {"name": state["target"]},
+            )
+            == 0
+        )
+    assert list(tmp_path.iterdir()) == []
+
+
+@requires_container
+def test_restore_drill_wrong_cluster_stops_before_dump_or_database_creation(
+    world, catalog, monkeypatch, tmp_path
+):
+    before = rows(engine())
+    with engine().connect() as connection:
+        databases = connection.execute(
+            text("SELECT datname FROM pg_database ORDER BY datname")
+        ).all()
+    calls = []
+
+    def mismatch(container, arguments, **streams):
+        calls.append(arguments[0])
+        return subprocess.CompletedProcess(arguments, 0, stdout=b"different-cluster\n")
+
+    monkeypatch.setattr(sys.modules[__name__], "docker", mismatch)
+    with pytest.raises(AssertionError, match="does not match"):
+        run_restore_drill(world, catalog, monkeypatch, tmp_path)
+    assert calls == ["psql"]
+    assert rows(engine()) == before
+    with engine().connect() as connection:
+        assert (
+            connection.execute(text("SELECT datname FROM pg_database ORDER BY datname")).all()
+            == databases
+        )
+    assert list(tmp_path.iterdir()) == []

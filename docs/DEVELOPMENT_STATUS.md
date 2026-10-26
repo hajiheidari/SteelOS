@@ -660,3 +660,8 @@
 - نقص با درخواست واقعی products?q=NUL بازتولید شد: پیش از اصلاح503 برمی‌گشت. q در فهرست منابع/انبار/فروش/اعضا و فیلترهای آزاد unit/kind/role/status اکنون از StoredText استفاده می‌کنند و422 می‌دهند. ترتیب sort، escaping، pagination و مجوز تغییر نکرده‌اند.
 - در نسخهٔ فعلی FastAPI، شکل q: Alias = Query اعتبارسنج BeforeValidator نوع را حفظ نمی‌کرد؛ تست واقعی این را نشان داد. q با Annotated[StoredText, Query(...)] تعریف شد و نتیجهٔ واقعی سنجیده شد. چهارده regression مسیرها را پوشش می‌دهند و با before_cursor_execute نبود NUL در bindهای SQL را بررسی می‌کنند؛ جست‌وجوی معتبر فارسی/wildcard/emoji نیز حفظ است. جست‌وجوی entries/reservations همچنان طبق قرارداد قبلی unsupported است.
 - هر۱۴ تست هدفمند و اجرای کامل ترکیبی۲۷۱ passed/۲ opt-in skipped، شامل native OCR و restore واقعی موفق شدند؛ Ruff/format موفق‌اند و هشدار قبلی Starlette/httpx باقی است. پایگاه موقت حذف شد. CI نهایی بعد از push بررسی می‌شود.
+
+### شکست کنترل‌شدهٔ تمرین بازیابی — 2026-10-27
+
+- دو regression اضافه شد: archive مصنوعی عمداً خراب می‌شود و pg_restore واقعی شکست می‌خورد؛ فایل/DB مقصد پاک و همهٔ ردیف‌های منبع ثابت می‌مانند. پاسخ شناسهٔ cluster متفاوت نیز تزریق می‌شود و پیش از dump/CREATE DATABASE متوقف می‌شود. این، آزمون قطعی حین تراکنش یا failover production نیست.
+- هر۷ تست هدفمند recovery موفق شد (۵ شاهد قبلی +۲ مسیر شکست)؛ Ruff/format موفق‌اند. اجرای کامل قبلی۲۷۱ passed/۲ skipped بود؛ این دو تست تازه جداگانه موفق‌اند و CI نهایی مجموعهٔ جدید را اجرا خواهد کرد. container _test موقت حذف شد.

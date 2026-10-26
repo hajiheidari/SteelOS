@@ -48,3 +48,8 @@ implemented by this drill. Dumps containing real data would include sensitive te
 they require separately approved storage/access/retention policy. Native invoice originals are
 not archived by SteelOS and cannot be recovered from its database. Production recovery needs
 business acceptance, infrastructure-specific policies and repeatable exercises on approved data.
+
+Failure-path coverage also runs real pg_restore against an intentionally corrupted synthetic
+archive and verifies nonzero failure, archive/destination cleanup and unchanged source rows.
+A separately injected mismatched cluster identifier must stop before dump or DB creation.
+These are failure regressions, not an exercise of production failover or mid-transaction outage.
