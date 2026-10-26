@@ -640,3 +640,10 @@
 - F-001 همچنان تعویق‌شده و غیرمسدودکننده است. main/merge/deploy تغییر نکرده‌اند؛ کیفیت عمومی OCR یا پایان کل پروژه ادعا نمی‌شود.
 
 - تأیید نهایی `e576488cb54612aeca8a5ad67317a2c9d2cf4b68`: [CI40411437701](https://github.com/hajiheidari/SteelOS/actions/runs/40411437701) با هر دو job موفق شد؛۲۲۸ backend passed/۲ opt-in skipped و۳۰ تست production desktop/mobile مرورگر موفق‌اند. migration/model drift، Ruff/format، TypeScript/build و audit وابستگی‌ها موفق شدند. محدودیت OCR/عدم ثبت مالی و تعویق F-001 حفظ‌اند.
+
+### تمرین واقعی بازیابی PostgreSQL — 2026-10-27
+
+- ادامه از3d01c99؛ fetch/شاخهٔ تمیز و نبود اجرای موازی تأیید شد. تست واقعی pg_dump(custom)/pg_restore با دادهٔ مصنوعی API، پایگاه مقصد تصادفی و تطبیق cluster پیاده شد. CI شناسهٔ PostgreSQL service خودش را صریح می‌فرستد؛ بدون آن، drill محلی opt-in است. عملیات منبع فقط روی DB موقت _test مجاز است و هیچ DB موجودی برای مقصد پاک نمی‌شود.
+- هر۵ تست هدفمند موفق شدند: چهار guard نام DB و یک چرخهٔ واقعی dump/restore؛ همهٔ ردیف‌ها، نوع/precision ستون‌ها، index/FK/trigger و revision حفظ شدند؛ متن فارسی، Decimal، زمان، مالکیت جدا از مکان و snapshot/history هم هستند. token بازیابی‌شده از API می‌خواند و foreign tenant404 می‌گیرد؛ mutation ledger/history و دادهٔ نامعتبر واقعاً رد می‌شوند.
+- مقایسهٔ اولیهٔ لفظی CHECK به‌علت deparse معادل cast در PostgreSQL شکست خورد؛ به metadata قید + آزمون عملی invariant تغییر کرد. یک نام اشتباه ستون در تست mutation نیز اصلاح شد؛ اجراهای ناموفق شاهد موفقیت نیستند. Ruff/format و اجرای نهایی هدفمند موفق؛ اجرای کامل/CI در ادامه بررسی می‌شوند.
+- archive مصنوعی0600 و DB مقصد در cleanup حذف می‌شوند؛ منبع پس از verification دست‌نخورده می‌ماند. این تمرین backup عملیاتی، role/ACL، رمزنگاری، PITR، RPO/RTO یا پذیرش production نیست. سیاست و محدودیت‌ها در BACKUP_RESTORE.md ثبت‌اند. سرویس پولی/استقرار/merge یا تغییر main انجام نشده است.

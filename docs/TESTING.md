@@ -337,3 +337,7 @@ FKs, UTC due dates, paginated counts/labels, past-open-only overdue projection, 
 creation denial while retaining completion/cancellation, validation and zero financial posting.
 New browser workflows exercise actual APIs and Asia/Tehran device-local due-time edit roundtrip.
 Results and CI are recorded in DEVELOPMENT_STATUS.md; no messages/calls/workers are invoked.
+
+Real synthetic PostgreSQL custom-archive recovery is exercised by test_backup_restore.py.
+CI supplies POSTGRES_TEST_CONTAINER from its own service; local use requires an explicit
+container and a disposable *_test source. See BACKUP_RESTORE.md for guards and limits.

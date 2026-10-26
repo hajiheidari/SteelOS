@@ -27,8 +27,8 @@
 
 ## Operational limits and future work
 
-No public deployment authorized. Before production: TLS/host/origin configuration, backup and
-restore drills, database least privilege, audit export/immutable storage, proxy rate limiting,
+No public deployment authorized. Before production: TLS/host/origin configuration, operational backup/recovery policies and
+production restore drills, database least privilege, audit export/immutable storage, proxy rate limiting,
 monitoring, recovery process, penetration review and password recovery policy. Login throttling
 can be abused to temporarily lock a known email; stronger edge controls/MFA can follow real needs.
 Uploads are limited to the approved local invoice-transcription module described below.
@@ -198,3 +198,6 @@ images. Historical forms are read-only; backend version/role/scope checks remain
 Invoice OCR output and human transcription text reject NUL characters before persistence;
 source evidence is not silently stripped or rewritten. Invalid corrections return422 without
 new revisions/audit/idempotency writes; ordinary valid Unicode remains supported.
+
+A synthetic pg_dump/pg_restore drill is implemented in BACKUP_RESTORE.md and CI. It verifies
+data and selected restored controls on disposable databases, not production backup readiness.
