@@ -34,6 +34,7 @@ export default function Home() {
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("");
+  const [followUpParty, setFollowUpParty] = useState<Row | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,6 +54,7 @@ export default function Home() {
     offset,
     search,
     filter,
+    followUpParty?.id,
     memberOffset,
     grantOffset,
   ]);
@@ -140,7 +142,7 @@ export default function Home() {
                 ? "&approved_only=true"
                 : "";
         const data = await api(
-          `${page}?limit=25&offset=${offset}&q=${encodeURIComponent(search)}${page === "crm-follow-ups" ? "&sort=due_at&direction=asc" : ""}${extra}`,
+          `${page}?limit=25&offset=${offset}&q=${encodeURIComponent(search)}${page === "crm-follow-ups" ? "&sort=due_at&direction=asc" : ""}${extra}${page === "crm-follow-ups" && followUpParty ? `&party_id=${encodeURIComponent(followUpParty.id)}` : ""}`,
         );
         if (!current()) return;
         setRows(data.items);
@@ -151,7 +153,17 @@ export default function Home() {
     } finally {
       if (current()) setLoading(false);
     }
-  }, [me, page, offset, search, filter, memberOffset, grantOffset, viewKey]);
+  }, [
+    me,
+    page,
+    offset,
+    search,
+    filter,
+    followUpParty,
+    memberOffset,
+    grantOffset,
+    viewKey,
+  ]);
   useEffect(() => {
     void load();
     return () => {
@@ -160,7 +172,11 @@ export default function Home() {
   }, [load]);
   function navigate(key: string) {
     const changed =
-      key !== page || offset !== 0 || search !== "" || filter !== "";
+      key !== page ||
+      offset !== 0 ||
+      search !== "" ||
+      filter !== "" ||
+      followUpParty !== null;
     if (changed) {
       loadSequence.current += 1;
       setRows([]);
@@ -171,6 +187,7 @@ export default function Home() {
     setQuery("");
     setSearch("");
     setFilter("");
+    setFollowUpParty(null);
     setEditing(undefined);
     setError("");
     setNotice("");
@@ -742,23 +759,38 @@ export default function Home() {
                     </label>
                   )}
                   {page === "crm-follow-ups" && (
-                    <label>
-                      نمایش پیگیری‌ها
-                      <select
-                        aria-label="نمایش پیگیری‌ها"
-                        value={filter}
-                        onChange={(e) => {
-                          setFilter(e.target.value);
+                    <>
+                      <RemoteSelect
+                        label="فیلتر طرف حساب پیگیری"
+                        resource="parties"
+                        value={followUpParty?.id || ""}
+                        selectedOption={followUpParty}
+                        emptyLabel="همهٔ طرف‌های حساب"
+                        onChange={(row) => {
+                          setFollowUpParty(row);
                           setOffset(0);
                         }}
-                      >
-                        <option value="">همه</option>
-                        <option value="open">انجام‌نشده</option>
-                        <option value="completed">انجام‌شده</option>
-                        <option value="cancelled">لغوشده</option>
-                        <option value="overdue">عقب‌افتاده و انجام‌نشده</option>
-                      </select>
-                    </label>
+                      />
+                      <label>
+                        نمایش پیگیری‌ها
+                        <select
+                          aria-label="نمایش پیگیری‌ها"
+                          value={filter}
+                          onChange={(e) => {
+                            setFilter(e.target.value);
+                            setOffset(0);
+                          }}
+                        >
+                          <option value="">همه</option>
+                          <option value="open">انجام‌نشده</option>
+                          <option value="completed">انجام‌شده</option>
+                          <option value="cancelled">لغوشده</option>
+                          <option value="overdue">
+                            عقب‌افتاده و انجام‌نشده
+                          </option>
+                        </select>
+                      </label>
+                    </>
                   )}
                   {page === "price-observations" && (
                     <label>

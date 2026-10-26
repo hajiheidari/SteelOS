@@ -47,3 +47,9 @@ a real overdue record and then its disappearance after completion.
 
 Timezone conversion outside the supported UTC datetime range returns422 before writes;
 rejected inputs do not consume an idempotency key.
+
+The follow-up page now combines the existing status/overdue filter with an optional
+party_id filter. Its server-searched25-item party picker includes inactive parties so
+historical follow-ups remain discoverable. Selecting/clearing the party resets the list
+offset; navigation clears the filter, and its ID participates in stale-response guards.
+It does not reassign tasks or change the active-party rule on creation.

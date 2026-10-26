@@ -63,6 +63,42 @@ test("CRM manual follow-ups preserve local due date and overdue status without s
     page.getByRole("combobox", { name: "نمایش پیگیری‌ها", exact: true }),
   ).toHaveValue("overdue");
   await expect(row).toBeVisible();
+  const otherResponse = await page.request.post("/api/backend/parties", {
+    headers: {
+      Origin: "http://127.0.0.1:3000",
+      "Idempotency-Key": crypto.randomUUID(),
+    },
+    data: {
+      name: "طرف بدون پیگیری " + stamp,
+      kind: "individual",
+      roles: ["customer"],
+      active: false,
+    },
+  });
+  expect(otherResponse.status()).toBe(201);
+  const other = await otherResponse.json();
+  const partyFilter = page.getByRole("combobox", {
+    name: "فیلتر طرف حساب پیگیری",
+    exact: true,
+  });
+  const partySearch = page.getByRole("textbox", {
+    name: "جست‌وجوی فیلتر طرف حساب پیگیری",
+    exact: true,
+  });
+  await partySearch.fill(other.name);
+  const filtered = page.waitForResponse(
+    (r) =>
+      r.url().includes("crm-follow-ups?") &&
+      r.url().includes("party_id=" + other.id),
+  );
+  await partyFilter.selectOption(other.id);
+  expect((await (await filtered).json()).total).toBe(0);
+  await expect(row).toHaveCount(0);
+  await partySearch.fill(party.name);
+  await partyFilter.selectOption(party.id);
+  await expect(row).toBeVisible();
+  await partyFilter.selectOption("");
+  await expect(row).toBeVisible();
   const list = await (
     await page.request.get(
       "/api/backend/crm-follow-ups?q=" + encodeURIComponent("پیگیری " + stamp),
