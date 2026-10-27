@@ -8,7 +8,7 @@ import httpx
 from app.modules.agent_workbench.schemas import ModelOutput, Output
 from fastapi import HTTPException
 
-POLICY_VERSION = "internal-agents-v3"
+POLICY_VERSION = "internal-agents-v4"
 
 TASKS = {
     "research": "Research: overview is a testable hypothesis, not a finding. deliverable is a small hypothetical test with synthetic input, steps and expected observation. checks is a measurable acceptance/rejection criterion. Never claim the test has run or suggest real stock changes. Suggested thresholds are proposals only.",
@@ -80,6 +80,7 @@ def output_schema(sources):
         schema["properties"]["evidence_quotes"]["maxItems"] = 0
         schema["$defs"]["Part"]["properties"]["sources"]["maxItems"] = 0
     else:
+        schema["properties"]["evidence_quotes"]["minItems"] = 1
         aliases = [source["alias"] for source in sources]
         schema["$defs"]["Part"]["properties"]["sources"]["items"]["enum"] = aliases
         schema["$defs"]["Quote"]["properties"]["source"]["enum"] = aliases

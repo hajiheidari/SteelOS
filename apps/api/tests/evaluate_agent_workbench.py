@@ -27,6 +27,7 @@ async def evaluate(path):
             "started_at": started_at,
             "completed": completed,
             "quality_acceptance": "not_assessed_by_script",
+            "requested_kinds": list(provider.TASKS),
             "cases": cases,
         }
         temporary = path.with_suffix(path.suffix + ".tmp")

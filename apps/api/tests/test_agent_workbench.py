@@ -333,6 +333,7 @@ def test_local_provider_schema_exact_quotes_and_no_tools(kind):
         assert payload["format"]["$defs"]["Part"]["properties"]["body"]["maxLength"] == 180
         assert payload["format"]["properties"]["title"]["maxLength"] == 100
         assert payload["format"]["properties"]["questions"]["maxItems"] == 1
+        assert payload["format"]["properties"]["evidence_quotes"]["minItems"] == 1
         assert "tools" not in payload and provider.TASKS[kind] in payload["messages"][0]["content"]
         assert set(json.loads(payload["messages"][1]["content"])) == {"brief", "sources"}
         return httpx.Response(
