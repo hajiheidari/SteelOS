@@ -61,18 +61,18 @@ class Quote(Input):
 
 
 class Part(Input):
-    body: Annotated[StoredText, Field(min_length=1, max_length=320)]
+    body: Annotated[StoredText, Field(min_length=1, max_length=180)]
     sources: Annotated[list[Alias], Field(max_length=3)]
 
 
 class ModelOutput(Input):
-    title: Text
+    title: Annotated[StoredText, Field(min_length=1, max_length=100)]
     overview: Part
     deliverable: Part
     checks: Part
     evidence_quotes: Annotated[list[Quote], Field(max_length=3)]
     questions: Annotated[
-        list[Annotated[StoredText, Field(min_length=1, max_length=150)]], Field(max_length=2)
+        list[Annotated[StoredText, Field(min_length=1, max_length=100)]], Field(max_length=1)
     ]
 
 

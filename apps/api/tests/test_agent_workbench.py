@@ -330,6 +330,9 @@ def test_local_provider_schema_exact_quotes_and_no_tools(kind):
     async def handler(request):
         payload = json.loads(request.content)
         assert payload["think"] is False and payload["stream"] is False
+        assert payload["format"]["$defs"]["Part"]["properties"]["body"]["maxLength"] == 180
+        assert payload["format"]["properties"]["title"]["maxLength"] == 100
+        assert payload["format"]["properties"]["questions"]["maxItems"] == 1
         assert "tools" not in payload and provider.TASKS[kind] in payload["messages"][0]["content"]
         assert set(json.loads(payload["messages"][1]["content"])) == {"brief", "sources"}
         return httpx.Response(
@@ -359,6 +362,9 @@ def test_local_provider_schema_exact_quotes_and_no_tools(kind):
         "english",
         "missing_task",
         "duplicate_tasks",
+        "long_body",
+        "long_title",
+        "long_question",
     ],
 )
 def test_local_provider_fails_closed_without_exposing_content(failure):
@@ -366,6 +372,12 @@ def test_local_provider_fails_closed_without_exposing_content(failure):
 
     async def handler(request):
         value = model_output(source)
+        if failure == "long_body":
+            value["deliverable"]["body"] = "آ" * 181
+        if failure == "long_title":
+            value["title"] = "آ" * 101
+        if failure == "long_question":
+            value["questions"] = ["آ" * 101]
         if failure == "unknown_source":
             value["overview"]["sources"] = ["S3"]
         if failure == "invented_quote":
