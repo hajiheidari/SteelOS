@@ -1,0 +1,213 @@
+# Security — implemented and pending controls
+
+## Implemented M1
+
+- Argon2id passwords; minimum 12 characters for new passwords; maximum 128. No public signup.
+- Opaque 48-byte random session tokens, SHA-256 digest at rest, bounded expiry, single-use
+  refresh rotation, logout revocation, all-session revocation on password change.
+- Membership checked on every request; role changes effective immediately. Organization
+  selected at login only after credentials and membership verification.
+- Fixed permission matrix: viewer reads; editor reads and writes business data; admin also
+  manages catalog definitions, warehouses/grants, pricing sources, price decisions, settings,
+  users, audit access and master-data deletion. Warehouse reads/location writes additionally
+  require explicit grant for non-admins. Managers have all warehouse access in their tenant.
+- Tenant-scoped queries and composite foreign keys. Client organization_id rejected by
+  domain input schemas. No cross-tenant lookup grants access.
+- Persistent per-normalized-email login throttling: 10 failed attempts in a 15-minute window;
+  row locking applies across workers. Generic credential errors avoid email enumeration.
+- API errors exclude stack traces, SQL, secrets and rejected input values. Structured logs
+  contain generated request ID, method, result and timing, without bodies/query strings/PII.
+- Business writes and auth success/settings events audit in the same DB transaction.
+- Server-side frontend proxy: HttpOnly, SameSite Strict, Secure in production cookie;
+  browser never receives bearer token JSON. Exact configured origin required for mutations.
+  Backend accepts bearer only, so no cookie CSRF on direct API routes.
+- Loopback local ports, explicit CORS origins, no committed environment secrets. Next security
+  headers include frame denial and CSP. Dev-only unsafe-eval supports React tooling; production
+  CSP allows inline Next.js scripts/styles (nonce CSP remains a hardening opportunity).
+
+## Operational limits and future work
+
+No public deployment authorized. Before production: TLS/host/origin configuration, operational backup/recovery policies and
+production restore drills, database least privilege, audit export/immutable storage, proxy rate limiting,
+monitoring, recovery process, penetration review and password recovery policy. Login throttling
+can be abused to temporarily lock a known email; stronger edge controls/MFA can follow real needs.
+Uploads are limited to the approved local invoice-transcription module described below.
+No paid AI, external scraping, email messaging, tax filing or automatic financial posting.
+No RLS policy is claimed: tenant isolation uses domain authorization plus composite FKs.
+Database operators remain privileged; API audit history has no write endpoints but DB superusers
+can modify tables. Role grants and source approval require authenticated administrators.
+
+Future agents must use controlled APIs with explicit policy/audit and approvals for sensitive
+stock ownership, approved pricing, accounting and tax actions; no direct database access.
+
+Organization administration (enrollment, removal, role changes and organization settings)
+is serialized with a PostgreSQL organization-row `FOR NO KEY UPDATE` lock. The actor's
+membership role is queried again after acquiring the lock, because authorization checked
+before waiting may have become stale. Combined with rejecting self-demotion/removal, this
+prevents two concurrent admins from removing/demoting each other and leaving no admin.
+The lock permits normal foreign-key key-share locks; it does not serialize unrelated tenants.
+
+Browser session lifecycle: failed current-password verification is a 400 input error and does
+not clear an otherwise valid cookie. Actual 401 responses from authenticated requests trigger
+a full navigation to login, discarding tenant data, outstanding UI work and form secrets in the
+old document. Logout/password-change success deletes the HttpOnly cookie and navigates to a
+fresh document; no follow-up workspace load is issued after these actions. No business form
+payload or password is stored in browser storage to restore it after logout.
+
+Every domain create/update/delete and price decision locks the actor's membership row for
+its transaction, refreshes the current role, and rechecks permission after waiting. Removed
+memberships return 401; demoted actors return 403. Idempotency replays are checked under the
+same current authorization before returning a stored result. The lock also serializes retries
+for the same actor. Different actors/organizations remain independent except for domain locks
+such as the category-rule invariant. Identity administration retains its organization-lock order.
+
+## Approved warehouse operations extension
+
+See [INVENTORY.md](INVENTORY.md) for the implemented M2 API, immutable ledger,
+role/warehouse policy, concurrency rules, migration `0002_inventory` and test coverage.
+M1 historical boundaries describe the foundation before this approved extension.
+
+### Warehouse grant checks and cached creation responses
+
+Warehouse-scoped mutations hold a shared lock on the actor's grant through commit;
+revocation that acquires its row first is awaited and denied after recheck. Grant revocation
+waits for a write that already acquired permission. Idempotency responses carry no authority:
+location creation replay must still resolve the existing record through current warehouse
+scope and hold the grant. Inventory draft replay likewise revalidates warehouse scope.
+Restoring access allows the same idempotency key to return its original result without
+creating another record. Requests denied for revoked scope do not create audit/domain rows.
+
+### CI action dependencies
+
+Workflow actions are pinned to verified commit SHAs of official `actions/*` releases,
+with a version comment for review. Their internal runtime is Node 24; application CI
+still uses Python 3.12 and Node 22. Checkout does not persist credentials, and workflow
+permissions remain `contents: read`. Update pins deliberately against official release
+metadata and validate with the full CI workflow. No deployment or publishing job exists.
+
+### Internal sales drafts
+
+Sales drafts authorize current membership before every write/replay. Shared locks stabilize
+customer eligibility, product activity and approved price/source checks; concurrent master
+revocation that wins the row lock causes409 and leaves no partial draft/revision/audit/
+idempotency result. Revision and cancellation guards preserve history in PostgreSQL.
+Clients provide price IDs, decimal quantities and an optional validated tax percentage;
+prices, base/tax amounts and totals are always derived server-side.
+Historical and cached price checks carry their original as-of timestamp; fresh GET rechecks
+current eligibility. Financial approval is always false and there is no customer issuance,
+stock/accounting posting or external-send endpoint in this stage.
+
+Organization tax-default updates use the existing serialized administrator lock and
+post-lock authority recheck, plus expected_version to reject stale writes. Members cannot
+supply another organization ID. Concurrent policy edits yield one200/one409; viewer writes
+are403. Draft rates/rounding policies are version-specific snapshots; changing defaults
+never changes historical amounts. Tax-inclusive prices are rejected to prevent double tax.
+Two-place HALF_UP calculations use Decimal/SQL NUMERIC, never binary floating point.
+
+Internal sales reviews are administrator-only with current membership locking/recheck,
+expected-version validation and a draft-row lock. Acceptance revalidates price/customer/source/
+product under shared locks and checks expiry again before saving evidence. Review snapshots
+are append-only with tenant/version FKs and a current-draft PostgreSQL trigger; audit and
+idempotency share the transaction. Accepted internal review is not financial approval and
+cannot issue/send a quotation. There is no implemented agent identity/runtime yet; see
+AGENT_READINESS.md. Do not give future agents human administrator session tokens.
+
+The optional sales assistant has a fixed read-only tool registry and no model-executable HTTP
+or SQL interface. Local Ollama URLs/model are server-configured/validated; no paid provider,
+public endpoint URL, redirects, arbitrary model name or API keys are supported. Only question
+text and a static extraction schema reach the model, never token/tenant/domain results. The
+user's token remains in server-side domain API calls; current session is checked on every read
+and finally before returning results, including revocation during inference. Only catalog and
+approved/current price fields are projected; no CRM contacts, warehouse balances or journals.
+One extraction call, bounded tokens/response/time/data calls, concurrency2 per worker; no
+unbounded loops or automatic model pulls. Read-only is enforced structurally even for an
+administrator's user session. No separate agent principal or background agent exists yet.
+Queries/answers are not persisted in audits; HTTP-client URL INFO and raw Uvicorn access
+logs are suppressed in favor of structured request metadata.
+Local model debug request logging must remain disabled for business data. CI's loopback-only
+mock provider refuses non-_test databases and is not application inference. See SALES_ASSISTANT.md.
+
+Assistant numeric dimension constraints are extracted/validated by deterministic code before
+inference; model omission cannot relax them. Typed filters pass only through the controlled
+product API, scoped before filtering/count/pagination. Up to8 Code attributes, bounded JSON,
+Decimal/units and duplicate-key checks; all values are SQLAlchemy JSONB bind data, never SQL
+identifiers/expressions. Exact-match canonical alternatives avoid numeric casts. Range comparisons put numeric casts inside CASE guarded by a bounded decimal regex, and require JSON string values; malformed/oversized JSON values cannot trigger a cast failure.
+Ambiguity yields no data reads/model call; no-match never broadens criteria. A model-generated
+query not copied from the question is rejected with a generic provider error. UI renders original
+attribute/price evidence as escaped text. No new mutable permissions, external service or model
+access to tokens/domain data was introduced.
+
+Unsupported comparison/approximation/negation markers on named dimensions stop inference
+and domain retrieval. Regressions specifically cover missing-unit comparisons and negated
+exact/range constraints, which previously could lose or invert the user's numeric intent.
+Explicit one-sided gt/gte/lt/lte operators are now validated by a fixed enum and bound schema; unsupported markers outside consumed valid comparison spans still stop search. Disjunction is rejected rather than silently treated as AND.
+
+Exclusive interval flags are strict JSON booleans, with exact numeric endpoint predicates.
+Only two adjacent opposite comparisons joined by explicit و/and can merge; other repeats,
+OR, negation and contradictory bounds stop inference/data lookup. No silent bound tightening,
+epsilon or synthetic endpoint is introduced. Existing tenant scope and SQL CASE guards remain.
+
+Identifier-backed product search uses an explicit organization predicate on the
+identifier membership subquery as well as the outer product scope. Values are bound, literal-substring
+ILIKE inputs with %, _ and backslash escaping; no user-supplied pattern or SQL is evaluated.
+The assistant's projected fields and read-only tool registry are unchanged; identifier records
+are not added to its response. Search text is still excluded from application/audit logs.
+
+### Session rotation and concurrent security changes
+
+Refresh locks the global user before the presented session, matching login/password-change
+lock order. It reloads user activity and scoped session state with populate_existing, then
+checks expiry after acquiring the session lock. Revoked/rotated/expired sessions and inactive
+users return401 without issuing a token or refresh audit. If password revocation wins the
+user lock, queued refresh cannot resurrect a session; if rotation wins, the following
+password change deletes its newly issued session too. This serializes short authentication
+transitions for one user across organizations, not unrelated users/tenants. It is not a
+claim that already-authorized in-flight business requests are globally cancelled on logout.
+
+Optional benchmark scripts are development-only and require a dedicated empty *_benchmark
+DB plus a shared advisory lock. The real-HTTP experiment binds only127.0.0.1, uses generated
+viewer credentials and read-only product requests, and records no credentials in artifacts.
+Its committed synthetic rows are removed only within generated IDs after server shutdown;
+normal/error cleanup is verified. FK/history guards remain active; unexpected business history
+aborts cleanup instead of erasing it. Process/host crashes may leave fixtures and require
+operator inspection of the disposable DB. No business-data deletion policy is implemented.
+
+Approved invoice intake is an untrusted local document/transcription module, isolated from
+business posting APIs. It reauthenticates/rechecks membership after bounded OCR before writes;
+raw source/first evidence and revisions have DB guards. Proxy/server stream bounds, type/signature
+checks, image pixels/frames, PDF pages/encryption, process memory/CPU/output/deadline and per-worker
+slots bound processing; commands are fixed/no shell and private temporary files are deleted.
+This is not a hostile-file sandbox. Source binary is not retained; sensitive text and immutable
+versions are tenant-readable and backed up under operator policy. Native output/file contents
+are absent from logs/audits/errors. OCR can lose decimal separators; human transcription review
+is explicitly not financial approval. Full details/limits/retention in INVOICE_INTAKE.md.
+
+Native OCR/readiness commands receive an explicit minimal environment (runtime path, locale,
+one OpenMP thread and optional server-configured TESSDATA_PREFIX). DATABASE_URL, proxy/auth
+credentials and unrelated runtime secrets are not inherited. Processing HOME/TMPDIR/cache/cwd
+are inside the private temporary directory. This reduces ambient credential exposure; it is
+not filesystem/network isolation or a hostile-file sandbox. A subprocess-spy regression checks
+both readiness and processing environments while real native image/PDF tests remain enabled.
+
+The invoice UI binary proxy is limited to the fixed extraction endpoint; both proxy and API
+bound streamed bytes. It preserves exact-origin checks and HttpOnly server-side auth. Local
+image preview uses revocable Blob URLs only for the selected intake's matching source hash;
+no PDF embedding or browser storage persistence is introduced. CSP allows blob: only for
+images. Historical forms are read-only; backend version/role/scope checks remain authoritative.
+
+Invoice OCR output and human transcription text reject NUL characters before persistence;
+source evidence is not silently stripped or rewritten. Invalid corrections return422 without
+new revisions/audit/idempotency writes; ordinary valid Unicode remains supported.
+
+A synthetic pg_dump/pg_restore drill is implemented in BACKUP_RESTORE.md and CI. It verifies
+data and selected restored controls on disposable databases, not production backup readiness.
+
+StoredText validators reject NUL and invalid UTF-8 Unicode input before PostgreSQL writes,
+including nested contact/invoice fields and transaction notes. Passwords use a separate
+Unicode validator with strip_whitespace=false; credentials are never silently normalized.
+
+Internal agents: only administrators register permitted manual source text or revoke sources;
+editors/admins generate internal drafts, administrators review. Model credentials/tools are absent;
+quotes/aliases are checked and text is rendered as plain React text. Inputs/source instructions
+remain untrusted; exact quotes do not prove all generated claims. Reauthentication, membership and
+source locks are renewed after inference. External retrieval/publishing/messaging remain absent.

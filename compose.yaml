@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: steelos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: steelos
+    ports: ['127.0.0.1:5432:5432']
+    volumes: ['postgres_data:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U steelos']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  api:
+    image: steelos-api:local
+    # Bounded volatile workspace for local invoice decoders; no original-file volume.
+    tmpfs: ['/tmp:rw,nosuid,nodev,noexec,size=128m,mode=1777']
+    build: ./apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg://steelos:${POSTGRES_PASSWORD}@db:5432/steelos
+      AGENT_WORKBENCH_MODEL: ${AGENT_WORKBENCH_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
+      AGENT_WORKBENCH_PROVIDER: ${AGENT_WORKBENCH_PROVIDER:-disabled}
+      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-disabled}
+      ASSISTANT_OLLAMA_URL: ${ASSISTANT_OLLAMA_URL:-http://ollama:11434}
+      ASSISTANT_MODEL: qwen3:1.7b
+      ALLOWED_ORIGINS: '["http://localhost:3000"]'
+    depends_on:
+      db:
+        condition: service_healthy
+    ports: ['127.0.0.1:8000:8000']
+    command: sh -c 'alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000'
+  ollama:
+    profiles: ['assistant-local']
+    # Ollama0.40.10, verified multi-platform manifest; optional/free local inference only.
+    image: ollama/ollama@sha256:4c5b27871a3239a717048f9b93057680a51b60c8119a7016aebb57f938e25e35
+    ports: ['127.0.0.1:11434:11434']
+    volumes: ['ollama_models:/root/.ollama']
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-4g}
+    cpus: 2
+    pids_limit: 256
+    environment:
+      OLLAMA_NO_CLOUD: '1'
+      OLLAMA_NUM_PARALLEL: '1'
+      OLLAMA_MAX_LOADED_MODELS: '1'
+      OLLAMA_CONTEXT_LENGTH: '2048'
+volumes:
+  postgres_data:
+  ollama_models:

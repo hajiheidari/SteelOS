@@ -1,0 +1,63 @@
+{
+  "synthetic_only": true,
+  "model": "qwen2.5:7b-instruct-q3_K_M",
+  "policy_version": "internal-agents-v5",
+  "production_benchmark": false,
+  "started_at": "2026-10-27T12:10:17.819267+00:00",
+  "completed": true,
+  "quality_acceptance": "not_assessed_by_script",
+  "requested_kinds": [
+    "research",
+    "education",
+    "marketing",
+    "sales"
+  ],
+  "cases": [
+    {
+      "kind": "research",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "با استناد به یادداشت، طرح آزمایشی برای جلوگیری از اشتباه مالکیت کالا پیشنهاد بده.",
+      "sources": [
+        {
+          "alias": "S1",
+          "content": "مالکیت کالا مستقل از محل نگهداری است."
+        }
+      ],
+      "seconds": 120.05
+    },
+    {
+      "kind": "education",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "برای کارشناس تازه‌کار یک درس کوتاه و تمرین درباره تفاوت مالکیت و محل نگهداری بساز.",
+      "sources": [
+        {
+          "alias": "S1",
+          "content": "مالکیت کالا مستقل از محل نگهداری است."
+        }
+      ],
+      "seconds": 120.1
+    },
+    {
+      "kind": "marketing",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "فقط یک طرح اولیه برای محتوای آموزشی مخاطب صنعتی درباره انتخاب تأمین‌کننده فولاد بساز؛ قیمت و وعده نده.",
+      "sources": [],
+      "seconds": 120.1
+    },
+    {
+      "kind": "sales",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "فقط طرح اولیه پرسش‌های کشف نیاز یک مشتری ورق و برنامه پیگیری داخلی بساز؛ قیمت و موجودی اعلام نکن.",
+      "sources": [],
+      "seconds": 120.1
+    }
+  ]
+}

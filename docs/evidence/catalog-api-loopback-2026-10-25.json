@@ -1,0 +1,76 @@
+{
+  "scope": "Synthetic real loopback HTTP, one API worker; not a production SLO",
+  "recorded_at": "2026-10-25T03:09:20.549205+00:00",
+  "rows_per_organization": 5000,
+  "organizations": 2,
+  "identifiers_per_product": 2,
+  "repeats_per_client": 10,
+  "postgres_version": "17.11",
+  "workloads": [
+    {
+      "concurrency": 1,
+      "requests": 40,
+      "duration_seconds": 4.328,
+      "requests_per_second": 9.241,
+      "cases": [
+        {
+          "name": "name",
+          "samples": 10,
+          "median_ms": 55.86,
+          "p95_ms": 59.739
+        },
+        {
+          "name": "literal_identifier",
+          "samples": 10,
+          "median_ms": 67.934,
+          "p95_ms": 83.804
+        },
+        {
+          "name": "missing_identifier",
+          "samples": 10,
+          "median_ms": 69.918,
+          "p95_ms": 72.094
+        },
+        {
+          "name": "identifier_range",
+          "samples": 10,
+          "median_ms": 239.964,
+          "p95_ms": 248.016
+        }
+      ]
+    },
+    {
+      "concurrency": 4,
+      "requests": 160,
+      "duration_seconds": 6.3,
+      "requests_per_second": 25.398,
+      "cases": [
+        {
+          "name": "name",
+          "samples": 40,
+          "median_ms": 63.999,
+          "p95_ms": 96.774
+        },
+        {
+          "name": "literal_identifier",
+          "samples": 40,
+          "median_ms": 98.681,
+          "p95_ms": 135.691
+        },
+        {
+          "name": "missing_identifier",
+          "samples": 40,
+          "median_ms": 91.736,
+          "p95_ms": 139.523
+        },
+        {
+          "name": "identifier_range",
+          "samples": 40,
+          "median_ms": 345.043,
+          "p95_ms": 447.924
+        }
+      ]
+    }
+  ],
+  "cleaned_up": true
+}

@@ -1,0 +1,43 @@
+{
+  "synthetic_only": true,
+  "model": "qwen3:4b-instruct-2507-q4_K_M",
+  "policy_version": "internal-agents-v4",
+  "production_benchmark": false,
+  "started_at": "2026-10-27T11:48:38.103611+00:00",
+  "completed": true,
+  "quality_acceptance": "not_assessed_by_script",
+  "requested_kinds": [
+    "research",
+    "education"
+  ],
+  "cases": [
+    {
+      "kind": "research",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "با استناد به یادداشت، طرح آزمایشی برای جلوگیری از اشتباه مالکیت کالا پیشنهاد بده.",
+      "sources": [
+        {
+          "alias": "S1",
+          "content": "مالکیت کالا مستقل از محل نگهداری است."
+        }
+      ],
+      "seconds": 29.52
+    },
+    {
+      "kind": "education",
+      "passed": false,
+      "error_type": "HTTPException",
+      "status": 503,
+      "brief": "برای کارشناس تازه‌کار یک درس کوتاه و تمرین درباره تفاوت مالکیت و محل نگهداری بساز.",
+      "sources": [
+        {
+          "alias": "S1",
+          "content": "مالکیت کالا مستقل از محل نگهداری است."
+        }
+      ],
+      "seconds": 0.04
+    }
+  ]
+}
