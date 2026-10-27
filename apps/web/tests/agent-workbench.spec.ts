@@ -15,6 +15,7 @@ test("four internal agents use permitted evidence, human reviews and source revo
   await page
     .getByRole("button", { name: "مرکز ایجنت‌ها", exact: true })
     .click();
+  await expect(page.getByText(/تولید متن آزمایشی است/)).toBeVisible();
   const stamp = Date.now().toString();
   const name = "دانش مجاز " + stamp;
   const content =

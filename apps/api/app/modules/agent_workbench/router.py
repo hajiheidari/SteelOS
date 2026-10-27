@@ -97,6 +97,7 @@ def status(ctx: Context = Depends(context)):
         "external_actions": False,
         "financial_approval": False,
         "source_mode": "human_approved_manual_text",
+        "generation_readiness": "experimental_not_quality_accepted",
     }
 
 

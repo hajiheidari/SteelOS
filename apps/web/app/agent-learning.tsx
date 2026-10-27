@@ -5,7 +5,7 @@ import { api, display } from "./workspace-schema";
 type Lesson = {
   id: string;
   title: string;
-  reference: string;
+  reference_title: string;
   paragraphs: string[];
   questions: { id: string; prompt: string; options: string[] }[];
 };
@@ -32,9 +32,7 @@ function LessonCard({ lesson, version }: { lesson: Lesson; version: string }) {
       {lesson.paragraphs.map((text, index) => (
         <p key={index}>{text}</p>
       ))}
-      <p className="muted">
-        مرجع محصول: <bdi>{lesson.reference}</bdi>
-      </p>
+      <p className="muted">مرجع محصول: {lesson.reference_title}</p>
       <form
         onSubmit={async (event) => {
           event.preventDefault();

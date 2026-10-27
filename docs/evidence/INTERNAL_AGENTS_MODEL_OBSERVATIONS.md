@@ -93,3 +93,39 @@ remains optional /tmp data and may disappear on environment replacement. No unre
 volume/image was removed. Future acceptance requires a suitable locally available Persian
 model/runtime and a reviewed broader task set; do not repeat endless prompt changes against
 this inadequate four-case baseline or claim that adding quotes validates its content.
+
+## Optional Qwen2.5 7B latency experiment
+
+To investigate the genuine Persian-content gap rather than repeat prompt changes, an optional
+free `qwen2.5:7b-instruct-q3_K_M` experiment used the same policy-v5 synthetic four cases.
+The official registry manifest reported3,808,391,584 model bytes,
+sha256:427b3d95aca8ce3bc2ac6f5a459e4b55f14cbc4aaa656fa2913c3fa59a9fe932.
+The license layer (11,343bytes),
+sha256:832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e,
+identified Apache License2.0. Each layer/config was SHA256/size-verified after serial HTTPS
+download from registry.ollama.ai. No mandatory setup/CI download or paid API was introduced.
+
+[Raw timeout receipt](INTERNAL_AGENTS_QWEN25_7B_TIMEOUTS.json): research120.05s,
+education120.10s, marketing120.10s, sales120.10s, all503 at the existing120-second bound.
+No complete candidate was available for semantic review. This demonstrates failure to meet
+this runtime budget, NOT that the7B model's Persian content is semantically bad. Native
+CPU-only mmap runtime,8192 context and1280 output-token cap were retained; observed whole
+cgroup memory was about6.85–6.87GB and oom_kill stayed1 (no new OOM). No NVIDIA device was
+exposed. These are observations for a two-CPU8GiB environment, not a hardware benchmark.
+
+The tag was temporarily allowed only in the evaluation worktree and removed again before
+commit; production configuration remains the existing two experimental Qwen3 tags with
+provider disabled by default. API/browser deadlines were not increased to force a pass.
+The workbench now reports experimental_not_quality_accepted and displays experimental
+generation readiness. Documented authored learning remains available without the model.
+
+Cleanup supersedes the earlier cache note: only this experiment's temporary4B blob/manifest
+were removed to fit7B; after evaluation the owned7B processes and its temporary large
+blob/manifest were removed as well. Existing named Docker model volumes, images and business
+data were not touched. No model process remains; raw receipts and verified hashes are durable
+in Git. Do not assume either large experimental /tmp model still exists.
+
+Further broad-drafting acceptance needs a suitable existing runtime/local model and reviewed
+semantic cases. Founder question F-003 asks about available compute without new purchases;
+accounting reference data is not needed. Do not activate a paid model or repeatedly rerun these
+same failing cases on the unchanged budget.
