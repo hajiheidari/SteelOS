@@ -8,7 +8,7 @@ import httpx
 from app.modules.agent_workbench.schemas import ModelOutput, Output
 from fastapi import HTTPException
 
-POLICY_VERSION = "internal-agents-v4"
+POLICY_VERSION = "internal-agents-v5"
 
 TASKS = {
     "research": "Research: overview is a testable hypothesis, not a finding. deliverable is a small hypothetical test with synthetic input, steps and expected observation. checks is a measurable acceptance/rejection criterion. Never claim the test has run or suggest real stock changes. Suggested thresholds are proposals only.",
@@ -107,7 +107,13 @@ async def generate(kind, brief, sources, config, *, transport=None):
                 "content": json.dumps({"brief": brief, "sources": sources}, ensure_ascii=False),
             },
         ],
-        "options": {"temperature": 0, "seed": 0, "num_predict": 1280, "num_ctx": 8192},
+        "options": {
+            "temperature": 0,
+            "seed": 0,
+            "num_predict": 1280,
+            "num_ctx": 8192,
+            "use_mmap": True,
+        },
         "keep_alive": "2m",
     }
     try:

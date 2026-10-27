@@ -330,6 +330,7 @@ def test_local_provider_schema_exact_quotes_and_no_tools(kind):
     async def handler(request):
         payload = json.loads(request.content)
         assert payload["think"] is False and payload["stream"] is False
+        assert payload["options"]["use_mmap"] is True
         assert payload["format"]["$defs"]["Part"]["properties"]["body"]["maxLength"] == 180
         assert payload["format"]["properties"]["title"]["maxLength"] == 100
         assert payload["format"]["properties"]["questions"]["maxItems"] == 1
