@@ -288,3 +288,7 @@ Existing supported-search rules, literal wildcard escaping and authorization rem
 
 Internal four-role drafting endpoints are under /api/v1/agent-workbench; see INTERNAL_AGENTS.md
 for sources/runs/reviews, role matrix, bounded inference and evidence/revocation contracts.
+
+## Documented internal learning (no model required)
+
+Authenticated organization members of any existing role can GET `/agent-workbench/lessons`: a bounded shared three-lesson catalog (`foundation-learning-v1`), no tenant/customer data and no answer keys. POST `/agent-workbench/lessons/{id}/check` accepts the exact catalog `version` and `answers` mapping each question ID to its strict integer option index. All and only that lesson's question IDs and valid indices are required. Missing/stale version or invalid answers return422; unknown lesson404. The response supplies integer correct/question counts and explanatory feedback. It performs no business/progress/audit mutation, issues no certificate and needs no idempotency key. No optional inference provider is invoked; no cross-organization business records are read. This is a self-check, not a protected examination or generative tutor.

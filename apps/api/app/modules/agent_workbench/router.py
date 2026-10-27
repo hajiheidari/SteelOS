@@ -6,6 +6,8 @@ from app.config import settings
 from app.db import database
 from app.idempotency import finish, replay
 from app.modules.agent_workbench import provider
+from app.modules.agent_workbench.learning import LESSONS, VERSION, catalog
+from app.modules.agent_workbench.learning import CheckInput as LearningCheck
 from app.modules.agent_workbench.models import AgentEvidence, AgentReview, AgentRun, AgentSource
 from app.modules.agent_workbench.schemas import Kind, ReviewInput, RunInput, SourceInput
 from app.modules.resources import audit, scoped, serialize
@@ -312,3 +314,39 @@ def review(
     audit(db, ctx, "review", "agent-runs", row.id)
     finish(db, ctx, idempotency_key, fingerprint, {"id": str(row.id)})
     return read_run(db, ctx, row)
+
+
+@router.get("/lessons")
+def lessons(ctx: Context = Depends(context)):
+    return catalog()
+
+
+@router.post("/lessons/{lesson_id}/check")
+def check_lesson(lesson_id: str, body: LearningCheck, ctx: Context = Depends(context)):
+    lesson = next((row for row in LESSONS if row["id"] == lesson_id), None)
+    if lesson is None:
+        raise HTTPException(404, "Lesson not found")
+    questions = lesson["questions"]
+    if set(body.answers) != {row["id"] for row in questions} or any(
+        not 0 <= body.answers[row["id"]] < len(row["options"]) for row in questions
+    ):
+        raise HTTPException(422, "Answer every lesson question with a listed option")
+    feedback = [
+        {
+            "question_id": row["id"],
+            "correct": body.answers[row["id"]] == row["answer"],
+            "correct_option": row["answer"],
+            "explanation": row["explanation"],
+        }
+        for row in questions
+    ]
+    return {
+        "lesson_id": lesson_id,
+        "version": VERSION,
+        "correct_count": sum(row["correct"] for row in feedback),
+        "question_count": len(questions),
+        "feedback": feedback,
+        "progress_persisted": False,
+        "generated_by_model": False,
+        "financial_approval": False,
+    }

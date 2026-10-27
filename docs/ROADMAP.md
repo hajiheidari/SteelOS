@@ -43,3 +43,5 @@ reconciliation design; it does not authorize a financial posting engine or tax i
 
 The approved internal four-role workbench and its exact boundaries are in INTERNAL_AGENTS.md.
 External research retrieval/publishing/messaging remain separate future authorization.
+
+Founder priority2026-10-27: research, education, marketing and sales precede accounting. The internal four-role draft/source/review workbench is implemented; model content quality remains unaccepted after actual local4B evaluation. Documented education has three authored lessons and six deterministic self-check questions without a model dependency. Generative tutoring, learner progress, autonomous external research, campaigns/channels and accounting remain separate future work; see INTERNAL_AGENTS.md and AGENT_READINESS.md.

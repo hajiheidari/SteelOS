@@ -127,3 +127,61 @@ test("four internal agents use permitted evidence, human reviews and source revo
     ),
   ).toBe(true);
 });
+
+test("documented ownership lesson gives deterministic self-checks without model generation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("ایمیل", { exact: true }).fill("browser@example.test");
+  await page
+    .getByLabel("رمز عبور", { exact: true })
+    .fill("Browser-test-only-123");
+  await page
+    .getByLabel("شناسه سازمان")
+    .fill("00000000-0000-0000-0000-000000000001");
+  await page.getByRole("button", { name: "ورود", exact: true }).click();
+  await page
+    .getByRole("button", { name: "مرکز ایجنت‌ها", exact: true })
+    .click();
+  let generated = 0;
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      request.url().endsWith("/agent-workbench/runs")
+    )
+      generated++;
+  });
+  await page.getByRole("button", { name: "آموزش", exact: true }).click();
+  const training = page.getByRole("region", { name: "آموزش پایهٔ سیستم" });
+  await training.getByText("مالکیت و محل نگهداری", { exact: true }).click();
+  const lesson = training
+    .locator("details")
+    .filter({ hasText: "مالکیت و محل نگهداری" });
+  await lesson
+    .getByRole("radio", { name: "شرکت ب به دلیل انبارداری", exact: true })
+    .check();
+  await lesson
+    .getByRole("radio", { name: "مالکیت را به انبار مقصد می‌دهد", exact: true })
+    .check();
+  await lesson
+    .getByRole("button", { name: "بررسی پاسخ‌ها", exact: true })
+    .click();
+  await expect(lesson.getByRole("status")).toContainText("پاسخ درست: ۰ از ۲");
+  await expect(lesson.getByRole("status")).toContainText("مشتری الف مالک است");
+  await lesson.getByRole("radio", { name: "مشتری الف", exact: true }).check();
+  await lesson
+    .getByRole("radio", { name: "مالکیت را تغییر نمی‌دهد", exact: true })
+    .check();
+  await expect(lesson.getByRole("status")).toHaveCount(0);
+  await lesson
+    .getByRole("button", { name: "بررسی پاسخ‌ها", exact: true })
+    .click();
+  await expect(lesson.getByRole("status")).toContainText("پاسخ درست: ۲ از ۲");
+  await expect(training).toContainText("پاسخ‌ها و پیشرفت ذخیره نمی‌شوند");
+  expect(generated).toBe(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth + 1,
+    ),
+  ).toBe(true);
+});

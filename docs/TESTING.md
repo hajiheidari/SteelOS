@@ -347,3 +347,5 @@ source revocation and permission/session changes during inference, exact quotes,
 concurrent reviews and bounded provider failures. Real browser workflows use the explicitly labelled
 local HTTP fixture, not an AI benchmark. Optional actual-model evaluation is documented separately
 in INTERNAL_AGENTS.md; no model download occurs in CI.
+
+Documented learning regressions are in `tests/test_agent_learning.py`: all existing roles, unauthenticated access, complete/incomplete and invalid strict answers, unknown lessons, extra organization input, stale curriculum versions, correct/incorrect feedback, retries and no run/audit writes. These tests require only the disposable PostgreSQL test database; no language model. The browser ownership lesson checks wrong→correct feedback through actual APIs on desktop/mobile without a POST to model runs. Learning progress is intentionally not persisted.

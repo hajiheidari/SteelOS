@@ -140,3 +140,5 @@ Migration0008_agent_workbench adds tenant-scoped agent_sources/runs/evidence/rev
 content is immutable/revocable; evidence/reviews have composite tenant FKs and run history is
 append-only. Runs retain model_name/policy_version. Source/run text is private organization data;
 there is no erasure/retention automation or public publishing contract. INTERNAL_AGENTS.md.
+
+The documented learning catalog (`foundation-learning-v1`) is application-authored shared content, not tenant business data. Its self-check endpoint performs no writes. No learning-attempt/progress/certificate table is implemented; the UI retains answers only for its mounted lesson. Catalog version is required when checking answers to prevent grading against a changed lesson contract.

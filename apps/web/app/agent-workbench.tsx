@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { AgentLearning } from "./agent-learning";
 import { api, display, type Row } from "./workspace-schema";
 
 type Kind = "research" | "education" | "marketing" | "sales";
@@ -216,6 +217,7 @@ export function AgentWorkbench({ role }: { role: string }) {
           </form>
         )}
       </section>
+      {kind === "education" && <AgentLearning />}
       {draft && (
         <section className="card" aria-label="خروجی ایجنت">
           <h2>{draft.output.title}</h2>
