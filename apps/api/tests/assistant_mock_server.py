@@ -42,9 +42,9 @@ class Handler(BaseHTTPRequestHandler):
                             **{
                                 part: {
                                     "body": {
-                                        "overview": "هدف داخلی آزمایشی",
-                                        "deliverable": "تمرین و پیش‌نویس آزمایشی",
-                                        "checks": "بررسی انسانی آزمایشی",
+                                        "overview": "هدف داخلی آزمایشی.",
+                                        "deliverable": "تمرین و پیش‌نویس آزمایشی.",
+                                        "checks": "بررسی انسانی آزمایشی.",
                                     }[part],
                                     "sources": [s["alias"] for s in sources],
                                 }

@@ -365,6 +365,7 @@ def test_local_provider_schema_exact_quotes_and_no_tools(kind):
         "long_body",
         "long_title",
         "long_question",
+        "clipped_sentence",
     ],
 )
 def test_local_provider_fails_closed_without_exposing_content(failure):
@@ -372,6 +373,8 @@ def test_local_provider_fails_closed_without_exposing_content(failure):
 
     async def handler(request):
         value = model_output(source)
+        if failure == "clipped_sentence":
+            value["deliverable"]["body"] = "آزمایش را با داده مصنوعی انجام دهید و اگر نتیجه مصنو"
         if failure == "long_body":
             value["deliverable"]["body"] = "آ" * 181
         if failure == "long_title":
