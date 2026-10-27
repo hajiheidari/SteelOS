@@ -9,6 +9,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     database_url: str = "postgresql+psycopg://steelos:steelos@localhost:5432/steelos"
+    agent_workbench_model: Literal["qwen3:1.7b", "qwen3:4b-instruct-2507-q4_K_M"] = (
+        "qwen3:4b-instruct-2507-q4_K_M"
+    )
+    agent_workbench_provider: Literal["disabled", "ollama"] = "disabled"
     assistant_provider: Literal["disabled", "ollama"] = "disabled"
     assistant_model: Literal["qwen3:1.7b"] = "qwen3:1.7b"
     assistant_ollama_url: str = "http://127.0.0.1:11434"

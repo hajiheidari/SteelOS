@@ -19,6 +19,8 @@ services:
     build: ./apps/api
     environment:
       DATABASE_URL: postgresql+psycopg://steelos:${POSTGRES_PASSWORD}@db:5432/steelos
+      AGENT_WORKBENCH_MODEL: ${AGENT_WORKBENCH_MODEL:-qwen3:4b-instruct-2507-q4_K_M}
+      AGENT_WORKBENCH_PROVIDER: ${AGENT_WORKBENCH_PROVIDER:-disabled}
       ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-disabled}
       ASSISTANT_OLLAMA_URL: ${ASSISTANT_OLLAMA_URL:-http://ollama:11434}
       ASSISTANT_MODEL: qwen3:1.7b
@@ -34,7 +36,7 @@ services:
     image: ollama/ollama@sha256:4c5b27871a3239a717048f9b93057680a51b60c8119a7016aebb57f938e25e35
     ports: ['127.0.0.1:11434:11434']
     volumes: ['ollama_models:/root/.ollama']
-    mem_limit: 4g
+    mem_limit: ${OLLAMA_MEMORY_LIMIT:-4g}
     cpus: 2
     pids_limit: 256
     environment:

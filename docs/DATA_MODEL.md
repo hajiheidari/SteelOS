@@ -135,3 +135,8 @@ INVOICE_INTAKE.md for native boundaries, tenant FKs, errors and actual OCR accur
 Migration0007_crm_follow_ups adds crm_follow_ups with UUID/TIMESTAMPTZ, indexed organization/due,
 composite tenant-party FK and kind/status checks. It is a normal shared CRM task record with
 existing admin deletion and metadata audit, not an immutable financial/stock/history ledger.
+
+Migration0008_agent_workbench adds tenant-scoped agent_sources/runs/evidence/reviews. Source
+content is immutable/revocable; evidence/reviews have composite tenant FKs and run history is
+append-only. Runs retain model_name/policy_version. Source/run text is private organization data;
+there is no erasure/retention automation or public publishing contract. INTERNAL_AGENTS.md.

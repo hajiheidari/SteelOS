@@ -136,3 +136,8 @@ a separate whitespace-preserving Unicode guard. Query validators use Annotated q
 to ensure FastAPI retains the validator before SQL binding. No persistence schema change.
 The synthetic backup/restore test uses PostgreSQL's own tools only in disposable local/CI
 containers; it is test orchestration, not a new deployed service.
+
+The internal agent_workbench module uses the existing optional local Ollama with an independent
+model/provider setting. It has no tools, scheduler, external retrieval, vector store or new
+service. Source aliases/content go to inference; controlled domain APIs reauthorize afterward
+and persist only internal drafts/evidence/reviews. No financial or stock posting authority.

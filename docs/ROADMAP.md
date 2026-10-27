@@ -10,9 +10,9 @@ transactional availability; implemented contracts in INVENTORY.md. Internal non-
 Version-bound administrator internal reviews are implemented; financial approval/issuance,
 purchases/sales contracts and trading settlement remain future
 work; Iranian invoices use IRR and two-place ROUND_HALF_UP (founder clarified); exclusive tax with configurable default10% is implemented for internal drafts.
-M3: proprietary double-entry accounting, official requirements research and parallel reconciliation.
-M4: deeper CRM, quoting and controlled sales agent workflows.
-M5: approved research/market/education/marketing assistance.
+M3 accounting is explicitly deferred to last by the founder on2026-10-27; reference-process input is not a blocker for the current agents.
+M4 current priority: controlled internal sales drafts/assistance and CRM.
+M5 current priority: internal research/development, education and marketing drafts before accounting.
 M6: approved external integrations, official tax validation and operational hardening.
 
 No paid services, main merge or public deployment without founder authorization. No sensitive
@@ -40,3 +40,6 @@ regressions, is implemented in CI (BACKUP_RESTORE.md). Operational backup polici
 retention, role/ACL restoration and production recovery acceptance remain future work.
 The accounting reference-process input is tracked as F-002 in FOUNDER_INPUTS.md for parallel
 reconciliation design; it does not authorize a financial posting engine or tax integration.
+
+The approved internal four-role workbench and its exact boundaries are in INTERNAL_AGENTS.md.
+External research retrieval/publishing/messaging remain separate future authorization.

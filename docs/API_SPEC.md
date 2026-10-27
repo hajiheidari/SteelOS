@@ -285,3 +285,6 @@ exact whitespace and other previously allowed characters; it does not apply stor
 Free-text q queries in resource, inventory, internal-sales and organization-member lists,
 and free-text unit/kind/role/status filters, reject NUL before SQL parameter binding.
 Existing supported-search rules, literal wildcard escaping and authorization remain unchanged.
+
+Internal four-role drafting endpoints are under /api/v1/agent-workbench; see INTERNAL_AGENTS.md
+for sources/runs/reviews, role matrix, bounded inference and evidence/revocation contracts.

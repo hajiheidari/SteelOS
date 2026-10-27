@@ -292,3 +292,11 @@ class FollowUp(Tenant, Base):
         CheckConstraint("kind IN ('call','meeting','document','other')", name="ck_follow_up_kind"),
         CheckConstraint("status IN ('open','completed','cancelled')", name="ck_follow_up_status"),
     )
+
+
+from app.modules.agent_workbench.models import (  # noqa: E402,F401
+    AgentEvidence,
+    AgentReview,
+    AgentRun,
+    AgentSource,
+)

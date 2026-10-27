@@ -205,3 +205,9 @@ data and selected restored controls on disposable databases, not production back
 StoredText validators reject NUL and invalid UTF-8 Unicode input before PostgreSQL writes,
 including nested contact/invoice fields and transaction notes. Passwords use a separate
 Unicode validator with strip_whitespace=false; credentials are never silently normalized.
+
+Internal agents: only administrators register permitted manual source text or revoke sources;
+editors/admins generate internal drafts, administrators review. Model credentials/tools are absent;
+quotes/aliases are checked and text is rendered as plain React text. Inputs/source instructions
+remain untrusted; exact quotes do not prove all generated claims. Reauthentication, membership and
+source locks are renewed after inference. External retrieval/publishing/messaging remain absent.

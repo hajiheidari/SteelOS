@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase, Session
 
 from app.config import settings
 
-SCHEMA_REVISION = "0007_crm_follow_ups"
+SCHEMA_REVISION = "0008_agent_workbench"
 
 
 class Base(DeclarativeBase):

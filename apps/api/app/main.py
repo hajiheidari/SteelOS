@@ -11,8 +11,10 @@ from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.exceptions import HTTPException
 
+from app import models  # noqa: F401
 from app.config import settings
 from app.db import SCHEMA_REVISION, engine
+from app.modules.agent_workbench.router import router as agent_workbench
 from app.modules.assistant.router import router as assistant
 from app.modules.identity import router as identity
 from app.modules.inventory.router import router as inventory
@@ -39,6 +41,7 @@ app.include_router(resources, prefix="/api/v1")
 app.include_router(sales, prefix="/api/v1")
 app.include_router(assistant, prefix="/api/v1")
 app.include_router(invoice_intakes, prefix="/api/v1")
+app.include_router(agent_workbench, prefix="/api/v1")
 
 
 def error(request, status, code, message, details=None):
