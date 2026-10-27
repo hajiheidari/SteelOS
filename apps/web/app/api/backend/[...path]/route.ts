@@ -5,6 +5,7 @@ const upstream = process.env.API_BASE_URL || "http://127.0.0.1:8000";
 const cookieName = "steelos_session";
 const resources = new Set([
   "auth",
+  "agent-workbench",
   "inventory",
   "sales-drafts",
   "invoice-intakes",
@@ -94,7 +95,13 @@ async function proxy(
         cache: "no-store",
         redirect: "error",
         body: body as BodyInit | undefined,
-        signal: AbortSignal.timeout(invoiceUpload ? 45000 : 15000),
+        signal: AbortSignal.timeout(
+          request.method === "POST" && path.join("/") === "agent-workbench/runs"
+            ? 135000
+            : invoiceUpload
+              ? 45000
+              : 15000,
+        ),
       },
     );
   } catch {

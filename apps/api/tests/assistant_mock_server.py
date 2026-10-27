@@ -16,7 +16,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         size = int(self.headers.get("Content-Length", "0"))
-        if size > 16384:
+        if size > 32768:
             self.send_error(413)
             return
         request = json.loads(self.rfile.read(size))
@@ -31,6 +31,33 @@ class Handler(BaseHTTPRequestHandler):
                 )
             }
         }
+        if "deliverable" in request.get("format", {}).get("properties", {}):
+            context = json.loads(question)
+            sources = context["sources"]
+            response = {
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "title": "پیش‌نویس داخلی آزمایشی (fixture)",
+                            **{
+                                part: {
+                                    "body": {
+                                        "overview": "هدف داخلی آزمایشی",
+                                        "deliverable": "تمرین و پیش‌نویس آزمایشی",
+                                        "checks": "بررسی انسانی آزمایشی",
+                                    }[part],
+                                    "sources": [s["alias"] for s in sources],
+                                }
+                                for part in ("overview", "deliverable", "checks")
+                            },
+                            "evidence_quotes": [
+                                {"source": s["alias"], "quote": s["content"][:80]} for s in sources
+                            ],
+                            "questions": ["معیار موفقیت چیست؟"],
+                        }
+                    )
+                }
+            }
         data = json.dumps(response).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")

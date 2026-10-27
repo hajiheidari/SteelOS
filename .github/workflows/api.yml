@@ -60,6 +60,7 @@ jobs:
       PYTHONPATH: apps/api
       PLAYWRIGHT_PRODUCTION: "1"
       # Deterministic local HTTP fixture for browser tests; no model download/API bill.
+      AGENT_WORKBENCH_PROVIDER: ollama
       ASSISTANT_PROVIDER: ollama
       ASSISTANT_OLLAMA_URL: http://127.0.0.1:11435
       NEXT_TELEMETRY_DISABLED: "1"

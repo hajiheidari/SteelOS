@@ -341,3 +341,9 @@ Results and CI are recorded in DEVELOPMENT_STATUS.md; no messages/calls/workers 
 Real synthetic PostgreSQL custom-archive recovery is exercised by test_backup_restore.py.
 CI supplies POSTGRES_TEST_CONTAINER from its own service; local use requires an explicit
 container and a disposable *_test source. See BACKUP_RESTORE.md for guards and limits.
+
+The internal-agent suite covers four roles, no-source plans, default-disabled behavior, scope/roles,
+source revocation and permission/session changes during inference, exact quotes, immutable history,
+concurrent reviews and bounded provider failures. Real browser workflows use the explicitly labelled
+local HTTP fixture, not an AI benchmark. Optional actual-model evaluation is documented separately
+in INTERNAL_AGENTS.md; no model download occurs in CI.

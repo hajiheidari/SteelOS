@@ -36,6 +36,7 @@ export const roles = [
 ];
 export const titles: Record<string, string> = {
   dashboard: "نمای کلی",
+  "agent-workbench": "مرکز ایجنت‌ها",
   inventory: "عملیات و موجودی انبار",
   "sales-drafts": "پیش‌نویس فروش",
   "invoice-intakes": "دریافت و بررسی فاکتور",
@@ -134,6 +135,21 @@ const inventoryErrors: Record<string, string> = {
   "Rejected draft cannot be posted": "پیش‌نویس ردشده قابل ثبت نهایی نیست.",
 };
 
+const agentErrors: Record<string, string> = {
+  "Local drafting model not configured":
+    "مدل محلی ایجنت‌ها هنوز تنظیم نشده است.",
+  "Local drafting model unavailable or invalid evidence; retry or revise the brief":
+    "مدل محلی پاسخ معتبر نداد یا در دسترس نبود؛ درخواست را دقیق‌تر کنید و دوباره تلاش کنید.",
+  "Invalid generated evidence": "خروجی مدل با شواهد سازگار نبود و ذخیره نشد.",
+  "Source revoked; choose current evidence":
+    "اعتبار منبع لغو شده؛ منبع معتبر دیگری انتخاب کنید.",
+  "Internal agent is busy; retry shortly":
+    "ایجنت مشغول است؛ کمی بعد دوباره تلاش کنید.",
+  "Run already reviewed; generate a new draft for changes":
+    "این پیش‌نویس قبلاً بازبینی شده؛ برای تغییر پیش‌نویس تازه بسازید.",
+  "Source not found": "منبع پیدا نشد یا به آن دسترسی ندارید.",
+};
+
 export async function api(
   path: string,
   method = "GET",
@@ -159,7 +175,9 @@ export async function api(
     throw new Error(
       (result.status === 400 && path === "auth/password"
         ? "رمز عبور فعلی درست نیست."
-        : (path.startsWith("sales-drafts") &&
+        : (path.startsWith("agent-workbench/") &&
+            agentErrors[data.error?.message]) ||
+          (path.startsWith("sales-drafts") &&
             salesErrors[data.error?.message]) ||
           (path.startsWith("inventory/") &&
             inventoryErrors[data.error?.message]) ||

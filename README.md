@@ -130,3 +130,11 @@ the dashboard opens overdue work directly. It sends no calls/messages and posts 
 Contracts/limits: [CRM_FOLLOW_UPS.md](docs/CRM_FOLLOW_UPS.md).
 Deferred founder inputs: [FOUNDER_INPUTS.md](docs/FOUNDER_INPUTS.md); missing invoice samples
 are future evaluation input and do not block independent development.
+
+## Internal research, education, marketing and sales agents
+
+The Persian agent workbench generates internal drafts from a brief and up to3 human-permitted
+text sources, retaining evidence and administrator review. It does not browse, publish, send
+messages or approve financial actions. Accounting is deferred by the founder and is not a
+prerequisite. The local model is optional/default-disabled; current model-quality limitations,
+configuration and role-specific workflows are in [INTERNAL_AGENTS.md](docs/INTERNAL_AGENTS.md).

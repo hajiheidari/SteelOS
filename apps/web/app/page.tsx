@@ -21,6 +21,7 @@ import { SalesAssistantWorkspace } from "./sales-assistant-workspace";
 import { Editor } from "./record-editor";
 import { RemoteSelect } from "./remote-select";
 import { SalesDraftsWorkspace } from "./sales-drafts-workspace";
+import { AgentWorkbench } from "./agent-workbench";
 import { InvoiceIntakeWorkspace } from "./invoice-intake-workspace";
 import { InventoryWorkspace } from "./inventory-workspace";
 
@@ -89,6 +90,7 @@ export default function Home() {
         "sales-drafts",
         "sales-assistant",
         "invoice-intakes",
+        "agent-workbench",
       ].includes(page)
     ) {
       setLoading(false);
@@ -381,7 +383,9 @@ export default function Home() {
               در حال دریافت اطلاعات…
             </p>
           )}
-          {page === "invoice-intakes" ? (
+          {page === "agent-workbench" ? (
+            <AgentWorkbench role={me.role} />
+          ) : page === "invoice-intakes" ? (
             <InvoiceIntakeWorkspace role={me.role} />
           ) : page === "sales-assistant" ? (
             <SalesAssistantWorkspace />
